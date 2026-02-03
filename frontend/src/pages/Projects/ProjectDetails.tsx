@@ -1,0 +1,1778 @@
+import React, { useState, useEffect } from 'react';
+import { useParams, useNavigate } from 'react-router-dom';
+import projectService from '../../services/projectService';
+import workerService from '../../services/workerService';
+import attendanceService from '../../services/attendanceService';
+import paymentService from '../../services/paymentService';
+import materialService from '../../services/materialService';
+import expenseService from '../../services/expenseService';
+import Modal from '../../components/Modal';
+import Loading from '../../components/Loading';
+
+type TabType = 'overview' | 'workers' | 'attendance' | 'payments' | 'materials' | 'expenses' | 'invoices' | 'client-advances';
+type ModalType = 'workers' | 'attendance' | 'payments' | 'materials' | 'expenses' | 'invoices' | 'client-advances' | null;
+
+const ProjectDetails: React.FC = () => {
+  const { id } = useParams();
+  const navigate = useNavigate();
+  const [project, setProject] = useState<any>(null);
+  const [loading, setLoading] = useState(true);
+  const [activeTab, setActiveTab] = useState<TabType>('overview');
+  const [workers, setWorkers] = useState<any[]>([]);
+  const [attendances, setAttendances] = useState<any[]>([]);
+  const [payments, setPayments] = useState<any[]>([]);
+  const [materials, setMaterials] = useState<any[]>([]);
+  const [expenses, setExpenses] = useState<any[]>([]);
+  const [openModal, setOpenModal] = useState<ModalType>(null);
+  const [allWorkers, setAllWorkers] = useState<any[]>([]);
+  const [allAttendances, setAllAttendances] = useState<any[]>([]);
+  const [allPayments, setAllPayments] = useState<any[]>([]);
+  const [allMaterials, setAllMaterials] = useState<any[]>([]);
+  const [allExpenses, setAllExpenses] = useState<any[]>([]);
+
+  useEffect(() => {
+    loadProject();
+  }, [id]);
+
+  useEffect(() => {
+    if (activeTab === 'workers' && id) {
+      loadWorkers();
+    } else if (activeTab === 'attendance' && id) {
+      loadAttendances();
+    } else if (activeTab === 'payments' && id) {
+      loadPayments();
+    } else if (activeTab === 'materials' && id) {
+      loadMaterials();
+    } else if (activeTab === 'expenses' && id) {
+      loadExpenses();
+    }
+  }, [activeTab, id]);
+
+  const loadProject = async () => {
+    try {
+      const data = await projectService.getById(id!);
+      setProject(data);
+    } catch (error) {
+      alert('Failed to load project');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const loadWorkers = async () => {
+    try {
+      const data = await workerService.getAll(id!);
+      setWorkers(data.filter((w: any) => w.is_active));
+    } catch (error) {
+      console.error('Failed to load workers:', error);
+    }
+  };
+
+  const loadAttendances = async () => {
+    try {
+      const data = await attendanceService.getAll({ project_id: id! });
+      setAttendances(data.slice(0, 10));
+    } catch (error) {
+      console.error('Failed to load attendances:', error);
+    }
+  };
+
+  const loadPayments = async () => {
+    try {
+      const data = await paymentService.getAll(undefined, id!);
+      setPayments(data.slice(0, 10));
+    } catch (error) {
+      console.error('Failed to load payments:', error);
+    }
+  };
+
+  const loadMaterials = async () => {
+    try {
+      const data = await materialService.getAll(id!);
+      setMaterials(data.slice(0, 10));
+    } catch (error) {
+      console.error('Failed to load materials:', error);
+    }
+  };
+
+  const loadExpenses = async () => {
+    try {
+      const data = await expenseService.getAll(id!);
+      setExpenses(data.slice(0, 10));
+    } catch (error) {
+      console.error('Failed to load expenses:', error);
+    }
+  };
+
+  const handleOpenModal = async (type: ModalType) => {
+    setOpenModal(type);
+
+    // Load all data based on modal type
+    try {
+      switch (type) {
+        case 'workers':
+          const workersData = await workerService.getAll(id!);
+          setAllWorkers(workersData.filter((w: any) => w.is_active));
+          break;
+        case 'attendance':
+          const attendanceData = await attendanceService.getAll({ project_id: id! });
+          setAllAttendances(attendanceData);
+          break;
+        case 'payments':
+          const paymentsData = await paymentService.getAll(undefined, id!);
+          setAllPayments(paymentsData);
+          break;
+        case 'materials':
+          const materialsData = await materialService.getAll(id!);
+          setAllMaterials(materialsData);
+          break;
+        case 'expenses':
+          const expensesData = await expenseService.getAll(id!);
+          setAllExpenses(expensesData);
+          break;
+      }
+    } catch (error) {
+      console.error(`Failed to load ${type} data:`, error);
+    }
+  };
+
+  if (loading) {
+    return <Loading message="Loading project details..." />;
+  }
+
+  if (!project) {
+    return (
+      <div style={{
+        minHeight: '100vh',
+        background: 'linear-gradient(to bottom, #f8f9fa 0%, #e9ecef 100%)',
+        padding: '2rem 3rem 3rem 3rem'
+      }}>
+        <div style={{
+          padding: '2rem',
+          background: 'linear-gradient(135deg, #ef4444 0%, #dc2626 100%)',
+          color: 'white',
+          borderRadius: '12px',
+          fontSize: '1.1rem',
+          textAlign: 'center'
+        }}>
+          Project not found
+        </div>
+      </div>
+    );
+  }
+
+  const stats = project.stats || {};
+
+  const tabs = [
+    { id: 'overview' as TabType, label: 'Overview', icon: '📊' },
+    { id: 'workers' as TabType, label: 'Workers', icon: '👷' },
+    { id: 'attendance' as TabType, label: 'Attendance', icon: '✓' },
+    { id: 'payments' as TabType, label: 'Payments', icon: '��' },
+    { id: 'materials' as TabType, label: 'Materials', icon: '🧱' },
+    { id: 'expenses' as TabType, label: 'Expenses', icon: '💸' },
+    { id: 'invoices' as TabType, label: 'Invoices', icon: '📄' },
+    { id: 'client-advances' as TabType, label: 'Client Advances', icon: '💵' },
+  ];
+
+  const renderTabContent = () => {
+    switch (activeTab) {
+      case 'overview':
+        return (
+          <div>
+            {/* Project Details Card */}
+            <div style={{
+              background: 'white',
+              borderRadius: '12px',
+              padding: '2rem',
+              boxShadow: '0 4px 15px rgba(0,0,0,0.08)',
+              marginBottom: '2rem',
+              border: '1px solid #e9ecef'
+            }}>
+              <h2 style={{
+                margin: '0 0 1.5rem 0',
+                fontSize: '1.5rem',
+                color: '#1F7A8C',
+                fontWeight: 'bold',
+                borderBottom: '2px solid #e9ecef',
+                paddingBottom: '0.75rem'
+              }}>
+                Project Information
+              </h2>
+              <div style={{ display: 'grid', gap: '1rem' }}>
+                <div style={{
+                  display: 'grid',
+                  gridTemplateColumns: '200px 1fr',
+                  padding: '0.75rem',
+                  borderRadius: '8px',
+                  background: '#f8f9fa'
+                }}>
+                  <strong style={{ color: '#1F7A8C' }}>Client</strong>
+                  <span>{project.client_name}</span>
+                </div>
+                <div style={{
+                  display: 'grid',
+                  gridTemplateColumns: '200px 1fr',
+                  padding: '0.75rem',
+                  borderRadius: '8px',
+                  background: 'white'
+                }}>
+                  <strong style={{ color: '#1F7A8C' }}>Budget</strong>
+                  <span>₹{(project.budget / 100000).toFixed(2)}L</span>
+                </div>
+                <div style={{
+                  display: 'grid',
+                  gridTemplateColumns: '200px 1fr',
+                  padding: '0.75rem',
+                  borderRadius: '8px',
+                  background: '#f8f9fa'
+                }}>
+                  <strong style={{ color: '#1F7A8C' }}>Start Date</strong>
+                  <span>{project.start_date}</span>
+                </div>
+                <div style={{
+                  display: 'grid',
+                  gridTemplateColumns: '200px 1fr',
+                  padding: '0.75rem',
+                  borderRadius: '8px',
+                  background: 'white'
+                }}>
+                  <strong style={{ color: '#1F7A8C' }}>End Date</strong>
+                  <span>{project.end_date || 'Not set'}</span>
+                </div>
+                <div style={{
+                  display: 'grid',
+                  gridTemplateColumns: '200px 1fr',
+                  padding: '0.75rem',
+                  borderRadius: '8px',
+                  background: '#f8f9fa'
+                }}>
+                  <strong style={{ color: '#1F7A8C' }}>Status</strong>
+                  <span style={{
+                    display: 'inline-block',
+                    padding: '0.35rem 0.75rem',
+                    borderRadius: '16px',
+                    fontSize: '0.75rem',
+                    fontWeight: '600',
+                    textTransform: 'uppercase',
+                    letterSpacing: '0.5px',
+                    background: project.status === 'in-progress'
+                      ? 'linear-gradient(135deg, #22c55e 0%, #16a34a 100%)'
+                      : project.status === 'completed'
+                      ? 'linear-gradient(135deg, #3b82f6 0%, #2563eb 100%)'
+                      : 'linear-gradient(135deg, #f59e0b 0%, #d97706 100%)',
+                    color: 'white',
+                    boxShadow: project.status === 'in-progress'
+                      ? '0 2px 8px rgba(34, 197, 94, 0.3)'
+                      : project.status === 'completed'
+                      ? '0 2px 8px rgba(59, 130, 246, 0.3)'
+                      : '0 2px 8px rgba(245, 158, 11, 0.3)'
+                  }}>
+                    {project.status.replace('-', ' ')}
+                  </span>
+                </div>
+                <div style={{
+                  display: 'grid',
+                  gridTemplateColumns: '200px 1fr',
+                  padding: '0.75rem',
+                  borderRadius: '8px',
+                  background: 'white'
+                }}>
+                  <strong style={{ color: '#1F7A8C' }}>Description</strong>
+                  <span>{project.description || 'No description'}</span>
+                </div>
+              </div>
+            </div>
+          </div>
+        );
+      case 'workers':
+        return (
+          <div>
+            <div style={{
+              display: 'flex',
+              justifyContent: 'space-between',
+              alignItems: 'center',
+              marginBottom: '1.5rem'
+            }}>
+              <h2 style={{
+                margin: 0,
+                fontSize: '1.5rem',
+                color: '#1F7A8C',
+                fontWeight: 'bold'
+              }}>
+                Project Workers ({workers.length})
+              </h2>
+              <div style={{ display: 'flex', gap: '0.75rem' }}>
+                <button
+                  onClick={() => navigate(`/projects/${id}/workers`)}
+                  style={{
+                    background: '#f8f9fa',
+                    border: '2px solid #1F7A8C',
+                    color: '#1F7A8C',
+                    padding: '0.75rem 1.5rem',
+                    fontSize: '0.95rem',
+                    fontWeight: '600',
+                    borderRadius: '10px',
+                    cursor: 'pointer',
+                    transition: 'all 0.3s'
+                  }}
+                  onMouseEnter={(e) => {
+                    e.currentTarget.style.background = '#1F7A8C';
+                    e.currentTarget.style.color = 'white';
+                    e.currentTarget.style.transform = 'translateY(-2px)';
+                  }}
+                  onMouseLeave={(e) => {
+                    e.currentTarget.style.background = '#f8f9fa';
+                    e.currentTarget.style.color = '#1F7A8C';
+                    e.currentTarget.style.transform = 'translateY(0)';
+                  }}
+                >
+                  View All Workers
+                </button>
+                <button
+                  onClick={() => navigate(`/projects/${id}/workers`)}
+                  style={{
+                    background: 'linear-gradient(135deg, #1F7A8C 0%, #16616F 100%)',
+                    border: 'none',
+                    color: 'white',
+                    padding: '0.75rem 1.5rem',
+                    fontSize: '0.95rem',
+                    fontWeight: '600',
+                    borderRadius: '10px',
+                    boxShadow: '0 4px 15px rgba(31, 122, 140, 0.3)',
+                    cursor: 'pointer',
+                    transition: 'all 0.3s'
+                  }}
+                  onMouseEnter={(e) => {
+                    e.currentTarget.style.transform = 'translateY(-2px)';
+                    e.currentTarget.style.boxShadow = '0 6px 20px rgba(31, 122, 140, 0.4)';
+                  }}
+                  onMouseLeave={(e) => {
+                    e.currentTarget.style.transform = 'translateY(0)';
+                    e.currentTarget.style.boxShadow = '0 4px 15px rgba(31, 122, 140, 0.3)';
+                  }}
+                >
+                  + Add Worker
+                </button>
+              </div>
+            </div>
+
+            {workers.length > 0 ? (
+              <div className="grid grid-cols-4" style={{ gap: '1.25rem' }}>
+                {workers.map((worker, index) => (
+                  <div
+                    key={worker.id}
+                    style={{
+                      background: 'white',
+                      borderRadius: '12px',
+                      padding: '1.25rem',
+                      boxShadow: '0 4px 15px rgba(0,0,0,0.08)',
+                      transition: 'all 0.3s',
+                      border: '1px solid #e9ecef',
+                      cursor: 'pointer',
+                      animation: `fadeInUp 0.5s ease-out ${index * 0.1}s both`
+                    }}
+                    onMouseEnter={(e) => {
+                      e.currentTarget.style.transform = 'translateY(-5px)';
+                      e.currentTarget.style.boxShadow = '0 6px 20px rgba(31, 122, 140, 0.15)';
+                    }}
+                    onMouseLeave={(e) => {
+                      e.currentTarget.style.transform = 'translateY(0)';
+                      e.currentTarget.style.boxShadow = '0 4px 15px rgba(0,0,0,0.08)';
+                    }}
+                  >
+                    <div style={{ marginBottom: '0.875rem' }}>
+                      <h3
+                        onClick={() => navigate(`/projects/${id}/workers/${worker.id}`)}
+                        style={{
+                          margin: '0 0 0.5rem 0',
+                          fontSize: '1.15rem',
+                          color: '#1F7A8C',
+                          fontWeight: '700',
+                          cursor: 'pointer',
+                          transition: 'all 0.2s'
+                        }}
+                        onMouseEnter={(e) => {
+                          e.currentTarget.style.color = '#16616F';
+                          e.currentTarget.style.textDecoration = 'underline';
+                        }}
+                        onMouseLeave={(e) => {
+                          e.currentTarget.style.color = '#1F7A8C';
+                          e.currentTarget.style.textDecoration = 'none';
+                        }}
+                      >
+                        {worker.name}
+                      </h3>
+
+                      <div style={{
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '0.4rem',
+                        margin: '0.35rem 0',
+                        color: '#6c757d'
+                      }}>
+                        <span style={{ fontSize: '0.95rem' }}>💼</span>
+                        <span style={{ fontSize: '0.85rem' }}>{worker.role}</span>
+                      </div>
+
+                      <div style={{
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '0.4rem',
+                        margin: '0.35rem 0',
+                        color: '#6c757d'
+                      }}>
+                        <span style={{ fontSize: '0.95rem' }}>📱</span>
+                        <span style={{ fontSize: '0.85rem' }}>{worker.phone}</span>
+                      </div>
+                    </div>
+
+                    <div style={{ marginBottom: '0.875rem' }}>
+                      <span style={{
+                        display: 'inline-block',
+                        padding: '0.35rem 0.75rem',
+                        borderRadius: '16px',
+                        fontSize: '0.75rem',
+                        fontWeight: '600',
+                        textTransform: 'uppercase',
+                        letterSpacing: '0.5px',
+                        background: worker.is_active
+                          ? 'linear-gradient(135deg, #22c55e 0%, #16a34a 100%)'
+                          : 'linear-gradient(135deg, #ef4444 0%, #dc2626 100%)',
+                        color: 'white',
+                        boxShadow: worker.is_active
+                          ? '0 2px 8px rgba(34, 197, 94, 0.3)'
+                          : '0 2px 8px rgba(239, 68, 68, 0.3)'
+                      }}>
+                        {worker.is_active ? 'Active' : 'Inactive'}
+                      </span>
+                    </div>
+
+                    <div style={{
+                      marginBottom: '1rem',
+                      padding: '0.75rem',
+                      background: 'linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%)',
+                      borderRadius: '8px',
+                      borderLeft: '3px solid #1F7A8C'
+                    }}>
+                      <p style={{
+                        margin: 0,
+                        fontSize: '0.75rem',
+                        color: '#6c757d',
+                        marginBottom: '0.15rem'
+                      }}>
+                        Daily Wage
+                      </p>
+                      <p style={{
+                        margin: 0,
+                        fontSize: '1.15rem',
+                        fontWeight: 'bold',
+                        color: '#1F7A8C'
+                      }}>
+                        ₹{worker.daily_wage}
+                      </p>
+                    </div>
+
+                    <div style={{ display: 'flex', gap: '0.5rem' }}>
+                      <button
+                        style={{
+                          flex: 1,
+                          background: '#f8f9fa',
+                          color: '#1F7A8C',
+                          border: '2px solid #1F7A8C',
+                          padding: '0.6rem',
+                          borderRadius: '6px',
+                          fontWeight: '600',
+                          fontSize: '0.85rem',
+                          transition: 'all 0.2s',
+                          cursor: 'pointer'
+                        }}
+                        onClick={() => navigate(`/workers/${worker.id}/edit`)}
+                        onMouseEnter={(e) => {
+                          e.currentTarget.style.background = '#1F7A8C';
+                          e.currentTarget.style.color = 'white';
+                          e.currentTarget.style.transform = 'scale(1.05)';
+                        }}
+                        onMouseLeave={(e) => {
+                          e.currentTarget.style.background = '#f8f9fa';
+                          e.currentTarget.style.color = '#1F7A8C';
+                          e.currentTarget.style.transform = 'scale(1)';
+                        }}
+                      >
+                        Edit
+                      </button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <div style={{
+                textAlign: 'center',
+                padding: '4rem 2rem',
+                background: '#f8f9fa',
+                borderRadius: '12px'
+              }}>
+                <div style={{ fontSize: '4rem', marginBottom: '1rem' }}>👷</div>
+                <h3 style={{
+                  color: '#1F7A8C',
+                  marginBottom: '0.5rem',
+                  fontSize: '1.5rem'
+                }}>
+                  No Workers Yet
+                </h3>
+                <p style={{ color: '#6c757d', marginBottom: '1.5rem' }}>
+                  Add workers to this project to get started!
+                </p>
+              </div>
+            )}
+          </div>
+        );
+      case 'attendance':
+        return (
+          <div>
+            <div style={{
+              display: 'flex',
+              justifyContent: 'space-between',
+              alignItems: 'center',
+              marginBottom: '1.5rem'
+            }}>
+              <h2 style={{
+                margin: 0,
+                fontSize: '1.5rem',
+                color: '#1F7A8C',
+                fontWeight: 'bold'
+              }}>
+                Recent Attendance ({attendances.length})
+              </h2>
+              <div style={{ display: 'flex', gap: '0.75rem' }}>
+                <button
+                  onClick={() => navigate(`/projects/${id}/attendance`)}
+                  style={{
+                    background: '#f8f9fa',
+                    border: '2px solid #1F7A8C',
+                    color: '#1F7A8C',
+                    padding: '0.75rem 1.5rem',
+                    fontSize: '0.95rem',
+                    fontWeight: '600',
+                    borderRadius: '10px',
+                    cursor: 'pointer',
+                    transition: 'all 0.3s'
+                  }}
+                  onMouseEnter={(e) => {
+                    e.currentTarget.style.background = '#1F7A8C';
+                    e.currentTarget.style.color = 'white';
+                    e.currentTarget.style.transform = 'translateY(-2px)';
+                  }}
+                  onMouseLeave={(e) => {
+                    e.currentTarget.style.background = '#f8f9fa';
+                    e.currentTarget.style.color = '#1F7A8C';
+                    e.currentTarget.style.transform = 'translateY(0)';
+                  }}
+                >
+                  View All Attendance
+                </button>
+                <button
+                  onClick={() => navigate(`/attendance?project_id=${id}`)}
+                  style={{
+                    background: 'linear-gradient(135deg, #1F7A8C 0%, #16616F 100%)',
+                    border: 'none',
+                    color: 'white',
+                    padding: '0.75rem 1.5rem',
+                    fontSize: '0.95rem',
+                    fontWeight: '600',
+                    borderRadius: '10px',
+                    boxShadow: '0 4px 15px rgba(31, 122, 140, 0.3)',
+                    cursor: 'pointer',
+                    transition: 'all 0.3s'
+                  }}
+                  onMouseEnter={(e) => {
+                    e.currentTarget.style.transform = 'translateY(-2px)';
+                    e.currentTarget.style.boxShadow = '0 6px 20px rgba(31, 122, 140, 0.4)';
+                  }}
+                  onMouseLeave={(e) => {
+                    e.currentTarget.style.transform = 'translateY(0)';
+                    e.currentTarget.style.boxShadow = '0 4px 15px rgba(31, 122, 140, 0.3)';
+                  }}
+                >
+                  Mark Attendance
+                </button>
+              </div>
+            </div>
+
+            {attendances.length > 0 ? (
+              <div style={{ overflowX: 'auto' }}>
+                <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+                  <thead>
+                    <tr style={{ background: '#f8f9fa' }}>
+                      <th style={{ padding: '1rem', textAlign: 'left', color: '#1F7A8C', fontWeight: '600' }}>Worker</th>
+                      <th style={{ padding: '1rem', textAlign: 'left', color: '#1F7A8C', fontWeight: '600' }}>Date</th>
+                      <th style={{ padding: '1rem', textAlign: 'left', color: '#1F7A8C', fontWeight: '600' }}>Status</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {attendances.map((attendance, index) => (
+                      <tr key={index} style={{ borderBottom: '1px solid #e9ecef' }}>
+                        <td style={{ padding: '1rem' }}>{attendance.worker?.name || 'N/A'}</td>
+                        <td style={{ padding: '1rem' }}>{attendance.date}</td>
+                        <td style={{ padding: '1rem' }}>
+                          <span style={{
+                            display: 'inline-block',
+                            padding: '0.25rem 0.75rem',
+                            borderRadius: '12px',
+                            fontSize: '0.75rem',
+                            fontWeight: '600',
+                            textTransform: 'uppercase',
+                            background: attendance.status === 'present'
+                              ? '#22c55e'
+                              : attendance.status === 'half-day'
+                              ? '#f59e0b'
+                              : '#ef4444',
+                            color: 'white'
+                          }}>
+                            {attendance.status}
+                          </span>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            ) : (
+              <div style={{
+                textAlign: 'center',
+                padding: '4rem 2rem',
+                background: '#f8f9fa',
+                borderRadius: '12px'
+              }}>
+                <div style={{ fontSize: '4rem', marginBottom: '1rem' }}>✓</div>
+                <h3 style={{
+                  color: '#1F7A8C',
+                  marginBottom: '0.5rem',
+                  fontSize: '1.5rem'
+                }}>
+                  No Attendance Records
+                </h3>
+                <p style={{ color: '#6c757d', marginBottom: '1.5rem' }}>
+                  Start marking attendance for workers!
+                </p>
+              </div>
+            )}
+          </div>
+        );
+      case 'payments':
+        return (
+          <div>
+            <div style={{
+              display: 'flex',
+              justifyContent: 'space-between',
+              alignItems: 'center',
+              marginBottom: '1.5rem'
+            }}>
+              <h2 style={{
+                margin: 0,
+                fontSize: '1.5rem',
+                color: '#1F7A8C',
+                fontWeight: 'bold'
+              }}>
+                Recent Payments ({payments.length})
+              </h2>
+              <div style={{ display: 'flex', gap: '0.75rem' }}>
+                <button
+                  onClick={() => navigate(`/projects/${id}/payments`)}
+                  style={{
+                    background: '#f8f9fa',
+                    border: '2px solid #1F7A8C',
+                    color: '#1F7A8C',
+                    padding: '0.75rem 1.5rem',
+                    fontSize: '0.95rem',
+                    fontWeight: '600',
+                    borderRadius: '10px',
+                    cursor: 'pointer',
+                    transition: 'all 0.3s'
+                  }}
+                  onMouseEnter={(e) => {
+                    e.currentTarget.style.background = '#1F7A8C';
+                    e.currentTarget.style.color = 'white';
+                    e.currentTarget.style.transform = 'translateY(-2px)';
+                  }}
+                  onMouseLeave={(e) => {
+                    e.currentTarget.style.background = '#f8f9fa';
+                    e.currentTarget.style.color = '#1F7A8C';
+                    e.currentTarget.style.transform = 'translateY(0)';
+                  }}
+                >
+                  View All Payments
+                </button>
+                <button
+                  onClick={() => navigate(`/projects/${id}/payments`)}
+                  style={{
+                    background: 'linear-gradient(135deg, #1F7A8C 0%, #16616F 100%)',
+                    border: 'none',
+                    color: 'white',
+                    padding: '0.75rem 1.5rem',
+                    fontSize: '0.95rem',
+                    fontWeight: '600',
+                    borderRadius: '10px',
+                    boxShadow: '0 4px 15px rgba(31, 122, 140, 0.3)',
+                    cursor: 'pointer',
+                    transition: 'all 0.3s'
+                  }}
+                  onMouseEnter={(e) => {
+                    e.currentTarget.style.transform = 'translateY(-2px)';
+                    e.currentTarget.style.boxShadow = '0 6px 20px rgba(31, 122, 140, 0.4)';
+                  }}
+                  onMouseLeave={(e) => {
+                    e.currentTarget.style.transform = 'translateY(0)';
+                    e.currentTarget.style.boxShadow = '0 4px 15px rgba(31, 122, 140, 0.3)';
+                  }}
+                >
+                  + Add Payment
+                </button>
+              </div>
+            </div>
+
+            {payments.length > 0 ? (
+              <div style={{
+                background: 'white',
+                borderRadius: '12px',
+                boxShadow: '0 4px 15px rgba(0,0,0,0.08)',
+                border: '1px solid #e9ecef',
+                overflowX: 'auto'
+              }}>
+                <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+                  <thead>
+                    <tr style={{ background: '#f8f9fa', borderBottom: '2px solid #e9ecef' }}>
+                      <th style={{ padding: '1rem', textAlign: 'left', color: '#1F7A8C', fontWeight: '600' }}>Worker</th>
+                      <th style={{ padding: '1rem', textAlign: 'left', color: '#1F7A8C', fontWeight: '600' }}>Date</th>
+                      <th style={{ padding: '1rem', textAlign: 'right', color: '#1F7A8C', fontWeight: '600' }}>Amount</th>
+                      <th style={{ padding: '1rem', textAlign: 'left', color: '#1F7A8C', fontWeight: '600' }}>Method</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {payments.map((payment, index) => (
+                      <tr key={index} style={{
+                        borderBottom: '1px solid #e9ecef',
+                        transition: 'background 0.2s'
+                      }}
+                      onMouseEnter={(e) => e.currentTarget.style.background = '#f8f9fa'}
+                      onMouseLeave={(e) => e.currentTarget.style.background = 'white'}
+                      >
+                        <td style={{ padding: '1rem', fontWeight: '500' }}>{payment.worker?.name || 'N/A'}</td>
+                        <td style={{ padding: '1rem', color: '#6c757d' }}>
+                          {new Date(payment.payment_date).toLocaleDateString('en-IN')}
+                        </td>
+                        <td style={{ padding: '1rem', textAlign: 'right', fontWeight: '600', color: '#22c55e' }}>
+                          ₹{parseFloat(payment.amount).toLocaleString('en-IN')}
+                        </td>
+                        <td style={{ padding: '1rem' }}>
+                          <span style={{
+                            display: 'inline-block',
+                            padding: '0.25rem 0.75rem',
+                            borderRadius: '12px',
+                            fontSize: '0.75rem',
+                            fontWeight: '600',
+                            textTransform: 'uppercase',
+                            background: payment.payment_method === 'cash'
+                              ? '#d1fae5'
+                              : payment.payment_method === 'bank_transfer'
+                              ? '#dbeafe'
+                              : '#fef3c7',
+                            color: payment.payment_method === 'cash'
+                              ? '#065f46'
+                              : payment.payment_method === 'bank_transfer'
+                              ? '#1e40af'
+                              : '#92400e'
+                          }}>
+                            {payment.payment_method?.replace('_', ' ') || 'N/A'}
+                          </span>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            ) : (
+              <div style={{
+                textAlign: 'center',
+                padding: '4rem 2rem',
+                background: 'white',
+                borderRadius: '12px',
+                boxShadow: '0 4px 15px rgba(0,0,0,0.08)',
+                border: '1px solid #e9ecef'
+              }}>
+                <div style={{ fontSize: '4rem', marginBottom: '1rem' }}>💰</div>
+                <h3 style={{ color: '#1F7A8C', marginBottom: '0.5rem', fontSize: '1.25rem' }}>No Payments Yet</h3>
+                <p style={{ color: '#6c757d' }}>Start recording worker payments!</p>
+              </div>
+            )}
+          </div>
+        );
+      case 'materials':
+        return (
+          <div>
+            <div style={{
+              display: 'flex',
+              justifyContent: 'space-between',
+              alignItems: 'center',
+              marginBottom: '1.5rem'
+            }}>
+              <h2 style={{
+                margin: 0,
+                fontSize: '1.5rem',
+                color: '#1F7A8C',
+                fontWeight: 'bold'
+              }}>
+                Project Materials ({materials.length})
+              </h2>
+              <div style={{ display: 'flex', gap: '0.75rem' }}>
+                <button
+                  onClick={() => navigate(`/projects/${id}/materials`)}
+                  style={{
+                    background: '#f8f9fa',
+                    border: '2px solid #1F7A8C',
+                    color: '#1F7A8C',
+                    padding: '0.75rem 1.5rem',
+                    fontSize: '0.95rem',
+                    fontWeight: '600',
+                    borderRadius: '10px',
+                    cursor: 'pointer',
+                    transition: 'all 0.3s'
+                  }}
+                  onMouseEnter={(e) => {
+                    e.currentTarget.style.background = '#1F7A8C';
+                    e.currentTarget.style.color = 'white';
+                    e.currentTarget.style.transform = 'translateY(-2px)';
+                  }}
+                  onMouseLeave={(e) => {
+                    e.currentTarget.style.background = '#f8f9fa';
+                    e.currentTarget.style.color = '#1F7A8C';
+                    e.currentTarget.style.transform = 'translateY(0)';
+                  }}
+                >
+                  View All Materials
+                </button>
+                <button
+                  onClick={() => navigate(`/projects/${id}/materials`)}
+                  style={{
+                    background: 'linear-gradient(135deg, #1F7A8C 0%, #16616F 100%)',
+                    border: 'none',
+                    color: 'white',
+                    padding: '0.75rem 1.5rem',
+                    fontSize: '0.95rem',
+                    fontWeight: '600',
+                    borderRadius: '10px',
+                    boxShadow: '0 4px 15px rgba(31, 122, 140, 0.3)',
+                    cursor: 'pointer',
+                    transition: 'all 0.3s'
+                  }}
+                  onMouseEnter={(e) => {
+                    e.currentTarget.style.transform = 'translateY(-2px)';
+                    e.currentTarget.style.boxShadow = '0 6px 20px rgba(31, 122, 140, 0.4)';
+                  }}
+                  onMouseLeave={(e) => {
+                    e.currentTarget.style.transform = 'translateY(0)';
+                    e.currentTarget.style.boxShadow = '0 4px 15px rgba(31, 122, 140, 0.3)';
+                  }}
+                >
+                  + Add Material
+                </button>
+              </div>
+            </div>
+
+            {materials.length > 0 ? (
+              <div style={{
+                background: 'white',
+                borderRadius: '12px',
+                boxShadow: '0 4px 15px rgba(0,0,0,0.08)',
+                border: '1px solid #e9ecef',
+                overflowX: 'auto'
+              }}>
+                <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+                  <thead>
+                    <tr style={{ background: '#f8f9fa', borderBottom: '2px solid #e9ecef' }}>
+                      <th style={{ padding: '1rem', textAlign: 'left', color: '#1F7A8C', fontWeight: '600' }}>Material Name</th>
+                      <th style={{ padding: '1rem', textAlign: 'left', color: '#1F7A8C', fontWeight: '600' }}>Category</th>
+                      <th style={{ padding: '1rem', textAlign: 'right', color: '#1F7A8C', fontWeight: '600' }}>Quantity</th>
+                      <th style={{ padding: '1rem', textAlign: 'right', color: '#1F7A8C', fontWeight: '600' }}>Cost</th>
+                      <th style={{ padding: '1rem', textAlign: 'left', color: '#1F7A8C', fontWeight: '600' }}>Supplier</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {materials.map((material, index) => (
+                      <tr key={index} style={{
+                        borderBottom: '1px solid #e9ecef',
+                        transition: 'background 0.2s'
+                      }}
+                      onMouseEnter={(e) => e.currentTarget.style.background = '#f8f9fa'}
+                      onMouseLeave={(e) => e.currentTarget.style.background = 'white'}
+                      >
+                        <td style={{ padding: '1rem', fontWeight: '500' }}>{material.material_name}</td>
+                        <td style={{ padding: '1rem' }}>
+                          <span style={{
+                            display: 'inline-block',
+                            padding: '0.25rem 0.75rem',
+                            borderRadius: '12px',
+                            fontSize: '0.75rem',
+                            fontWeight: '600',
+                            textTransform: 'uppercase',
+                            background: '#e0f2fe',
+                            color: '#0369a1'
+                          }}>
+                            {material.category || 'N/A'}
+                          </span>
+                        </td>
+                        <td style={{ padding: '1rem', textAlign: 'right', color: '#6c757d' }}>
+                          {parseFloat(material.quantity).toLocaleString('en-IN')} {material.unit || ''}
+                        </td>
+                        <td style={{ padding: '1rem', textAlign: 'right', fontWeight: '600', color: '#1F7A8C' }}>
+                          ₹{parseFloat(material.cost_per_unit).toLocaleString('en-IN')}
+                        </td>
+                        <td style={{ padding: '1rem', color: '#6c757d' }}>{material.supplier || 'N/A'}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            ) : (
+              <div style={{
+                textAlign: 'center',
+                padding: '4rem 2rem',
+                background: 'white',
+                borderRadius: '12px',
+                boxShadow: '0 4px 15px rgba(0,0,0,0.08)',
+                border: '1px solid #e9ecef'
+              }}>
+                <div style={{ fontSize: '4rem', marginBottom: '1rem' }}>🧱</div>
+                <h3 style={{ color: '#1F7A8C', marginBottom: '0.5rem', fontSize: '1.25rem' }}>No Materials Yet</h3>
+                <p style={{ color: '#6c757d' }}>Start tracking construction materials!</p>
+              </div>
+            )}
+          </div>
+        );
+      case 'expenses':
+        return (
+          <div>
+            <div style={{
+              display: 'flex',
+              justifyContent: 'space-between',
+              alignItems: 'center',
+              marginBottom: '1.5rem'
+            }}>
+              <h2 style={{
+                margin: 0,
+                fontSize: '1.5rem',
+                color: '#1F7A8C',
+                fontWeight: 'bold'
+              }}>
+                Recent Expenses ({expenses.length})
+              </h2>
+              <div style={{ display: 'flex', gap: '0.75rem' }}>
+                <button
+                  onClick={() => navigate(`/projects/${id}/expenses`)}
+                  style={{
+                    background: '#f8f9fa',
+                    border: '2px solid #1F7A8C',
+                    color: '#1F7A8C',
+                    padding: '0.75rem 1.5rem',
+                    fontSize: '0.95rem',
+                    fontWeight: '600',
+                    borderRadius: '10px',
+                    cursor: 'pointer',
+                    transition: 'all 0.3s'
+                  }}
+                  onMouseEnter={(e) => {
+                    e.currentTarget.style.background = '#1F7A8C';
+                    e.currentTarget.style.color = 'white';
+                    e.currentTarget.style.transform = 'translateY(-2px)';
+                  }}
+                  onMouseLeave={(e) => {
+                    e.currentTarget.style.background = '#f8f9fa';
+                    e.currentTarget.style.color = '#1F7A8C';
+                    e.currentTarget.style.transform = 'translateY(0)';
+                  }}
+                >
+                  View All Expenses
+                </button>
+                <button
+                  onClick={() => navigate(`/projects/${id}/expenses`)}
+                  style={{
+                    background: 'linear-gradient(135deg, #1F7A8C 0%, #16616F 100%)',
+                    border: 'none',
+                    color: 'white',
+                    padding: '0.75rem 1.5rem',
+                    fontSize: '0.95rem',
+                    fontWeight: '600',
+                    borderRadius: '10px',
+                    boxShadow: '0 4px 15px rgba(31, 122, 140, 0.3)',
+                    cursor: 'pointer',
+                    transition: 'all 0.3s'
+                  }}
+                  onMouseEnter={(e) => {
+                    e.currentTarget.style.transform = 'translateY(-2px)';
+                    e.currentTarget.style.boxShadow = '0 6px 20px rgba(31, 122, 140, 0.4)';
+                  }}
+                  onMouseLeave={(e) => {
+                    e.currentTarget.style.transform = 'translateY(0)';
+                    e.currentTarget.style.boxShadow = '0 4px 15px rgba(31, 122, 140, 0.3)';
+                  }}
+                >
+                  + Add Expense
+                </button>
+              </div>
+            </div>
+
+            {expenses.length > 0 ? (
+              <div style={{
+                background: 'white',
+                borderRadius: '12px',
+                boxShadow: '0 4px 15px rgba(0,0,0,0.08)',
+                border: '1px solid #e9ecef',
+                overflowX: 'auto'
+              }}>
+                <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+                  <thead>
+                    <tr style={{ background: '#f8f9fa', borderBottom: '2px solid #e9ecef' }}>
+                      <th style={{ padding: '1rem', textAlign: 'left', color: '#1F7A8C', fontWeight: '600' }}>Category</th>
+                      <th style={{ padding: '1rem', textAlign: 'left', color: '#1F7A8C', fontWeight: '600' }}>Description</th>
+                      <th style={{ padding: '1rem', textAlign: 'left', color: '#1F7A8C', fontWeight: '600' }}>Date</th>
+                      <th style={{ padding: '1rem', textAlign: 'right', color: '#1F7A8C', fontWeight: '600' }}>Amount</th>
+                      <th style={{ padding: '1rem', textAlign: 'left', color: '#1F7A8C', fontWeight: '600' }}>Method</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {expenses.map((expense, index) => (
+                      <tr key={index} style={{
+                        borderBottom: '1px solid #e9ecef',
+                        transition: 'background 0.2s'
+                      }}
+                      onMouseEnter={(e) => e.currentTarget.style.background = '#f8f9fa'}
+                      onMouseLeave={(e) => e.currentTarget.style.background = 'white'}
+                      >
+                        <td style={{ padding: '1rem' }}>
+                          <span style={{
+                            display: 'inline-block',
+                            padding: '0.25rem 0.75rem',
+                            borderRadius: '12px',
+                            fontSize: '0.75rem',
+                            fontWeight: '600',
+                            textTransform: 'uppercase',
+                            background: '#fef3c7',
+                            color: '#92400e'
+                          }}>
+                            {expense.category || 'N/A'}
+                          </span>
+                        </td>
+                        <td style={{ padding: '1rem', fontWeight: '500' }}>{expense.description}</td>
+                        <td style={{ padding: '1rem', color: '#6c757d' }}>
+                          {new Date(expense.expense_date).toLocaleDateString('en-IN')}
+                        </td>
+                        <td style={{ padding: '1rem', textAlign: 'right', fontWeight: '600', color: '#ef4444' }}>
+                          ₹{parseFloat(expense.amount).toLocaleString('en-IN')}
+                        </td>
+                        <td style={{ padding: '1rem', color: '#6c757d' }}>
+                          {expense.payment_method?.replace('_', ' ') || 'N/A'}
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            ) : (
+              <div style={{
+                textAlign: 'center',
+                padding: '4rem 2rem',
+                background: 'white',
+                borderRadius: '12px',
+                boxShadow: '0 4px 15px rgba(0,0,0,0.08)',
+                border: '1px solid #e9ecef'
+              }}>
+                <div style={{ fontSize: '4rem', marginBottom: '1rem' }}>💸</div>
+                <h3 style={{ color: '#1F7A8C', marginBottom: '0.5rem', fontSize: '1.25rem' }}>No Expenses Yet</h3>
+                <p style={{ color: '#6c757d' }}>Start tracking project expenses!</p>
+              </div>
+            )}
+          </div>
+        );
+      case 'invoices':
+        return (
+          <div>
+            <div style={{
+              display: 'flex',
+              justifyContent: 'space-between',
+              alignItems: 'center',
+              marginBottom: '1.5rem'
+            }}>
+              <h2 style={{
+                margin: 0,
+                fontSize: '1.5rem',
+                color: '#1F7A8C',
+                fontWeight: 'bold'
+              }}>
+                Invoices
+              </h2>
+              <div style={{ display: 'flex', gap: '0.75rem' }}>
+                <button
+                  onClick={() => navigate(`/projects/${id}/invoices`)}
+                  style={{
+                    background: '#f8f9fa',
+                    border: '2px solid #1F7A8C',
+                    color: '#1F7A8C',
+                    padding: '0.75rem 1.5rem',
+                    fontSize: '0.95rem',
+                    fontWeight: '600',
+                    borderRadius: '10px',
+                    cursor: 'pointer',
+                    transition: 'all 0.3s'
+                  }}
+                  onMouseEnter={(e) => {
+                    e.currentTarget.style.background = '#1F7A8C';
+                    e.currentTarget.style.color = 'white';
+                    e.currentTarget.style.transform = 'translateY(-2px)';
+                  }}
+                  onMouseLeave={(e) => {
+                    e.currentTarget.style.background = '#f8f9fa';
+                    e.currentTarget.style.color = '#1F7A8C';
+                    e.currentTarget.style.transform = 'translateY(0)';
+                  }}
+                >
+                  View All Invoices
+                </button>
+                <button
+                  onClick={() => navigate(`/projects/${id}/invoices`)}
+                  style={{
+                    background: 'linear-gradient(135deg, #1F7A8C 0%, #16616F 100%)',
+                    border: 'none',
+                    color: 'white',
+                    padding: '0.75rem 1.5rem',
+                    fontSize: '0.95rem',
+                    fontWeight: '600',
+                    borderRadius: '10px',
+                    boxShadow: '0 4px 15px rgba(31, 122, 140, 0.3)',
+                    cursor: 'pointer',
+                    transition: 'all 0.3s'
+                  }}
+                  onMouseEnter={(e) => {
+                    e.currentTarget.style.transform = 'translateY(-2px)';
+                    e.currentTarget.style.boxShadow = '0 6px 20px rgba(31, 122, 140, 0.4)';
+                  }}
+                  onMouseLeave={(e) => {
+                    e.currentTarget.style.transform = 'translateY(0)';
+                    e.currentTarget.style.boxShadow = '0 4px 15px rgba(31, 122, 140, 0.3)';
+                  }}
+                >
+                  + Create Invoice
+                </button>
+              </div>
+            </div>
+
+            <div style={{
+              textAlign: 'center',
+              padding: '4rem 2rem',
+              background: 'white',
+              borderRadius: '12px',
+              boxShadow: '0 4px 15px rgba(0,0,0,0.08)',
+              border: '1px solid #e9ecef'
+            }}>
+              <div style={{ fontSize: '4rem', marginBottom: '1rem' }}>📄</div>
+              <h3 style={{ color: '#1F7A8C', marginBottom: '0.5rem', fontSize: '1.25rem' }}>No Invoices Yet</h3>
+              <p style={{ color: '#6c757d' }}>Generate invoices for your clients!</p>
+            </div>
+          </div>
+        );
+      case 'client-advances':
+        return (
+          <div>
+            <div style={{
+              display: 'flex',
+              justifyContent: 'space-between',
+              alignItems: 'center',
+              marginBottom: '1.5rem'
+            }}>
+              <h2 style={{
+                margin: 0,
+                fontSize: '1.5rem',
+                color: '#1F7A8C',
+                fontWeight: 'bold'
+              }}>
+                Client Advances
+              </h2>
+              <div style={{ display: 'flex', gap: '0.75rem' }}>
+                <button
+                  onClick={() => navigate(`/projects/${id}/client-advances`)}
+                  style={{
+                    background: '#f8f9fa',
+                    border: '2px solid #1F7A8C',
+                    color: '#1F7A8C',
+                    padding: '0.75rem 1.5rem',
+                    fontSize: '0.95rem',
+                    fontWeight: '600',
+                    borderRadius: '10px',
+                    cursor: 'pointer',
+                    transition: 'all 0.3s'
+                  }}
+                  onMouseEnter={(e) => {
+                    e.currentTarget.style.background = '#1F7A8C';
+                    e.currentTarget.style.color = 'white';
+                    e.currentTarget.style.transform = 'translateY(-2px)';
+                  }}
+                  onMouseLeave={(e) => {
+                    e.currentTarget.style.background = '#f8f9fa';
+                    e.currentTarget.style.color = '#1F7A8C';
+                    e.currentTarget.style.transform = 'translateY(0)';
+                  }}
+                >
+                  View All Advances
+                </button>
+                <button
+                  onClick={() => navigate(`/projects/${id}/client-advances`)}
+                  style={{
+                    background: 'linear-gradient(135deg, #1F7A8C 0%, #16616F 100%)',
+                    border: 'none',
+                    color: 'white',
+                    padding: '0.75rem 1.5rem',
+                    fontSize: '0.95rem',
+                    fontWeight: '600',
+                    borderRadius: '10px',
+                    boxShadow: '0 4px 15px rgba(31, 122, 140, 0.3)',
+                    cursor: 'pointer',
+                    transition: 'all 0.3s'
+                  }}
+                  onMouseEnter={(e) => {
+                    e.currentTarget.style.transform = 'translateY(-2px)';
+                    e.currentTarget.style.boxShadow = '0 6px 20px rgba(31, 122, 140, 0.4)';
+                  }}
+                  onMouseLeave={(e) => {
+                    e.currentTarget.style.transform = 'translateY(0)';
+                    e.currentTarget.style.boxShadow = '0 4px 15px rgba(31, 122, 140, 0.3)';
+                  }}
+                >
+                  + Record Advance
+                </button>
+              </div>
+            </div>
+
+            <div style={{
+              textAlign: 'center',
+              padding: '4rem 2rem',
+              background: 'white',
+              borderRadius: '12px',
+              boxShadow: '0 4px 15px rgba(0,0,0,0.08)',
+              border: '1px solid #e9ecef'
+            }}>
+              <div style={{ fontSize: '4rem', marginBottom: '1rem' }}>💵</div>
+              <h3 style={{ color: '#1F7A8C', marginBottom: '0.5rem', fontSize: '1.25rem' }}>No Client Advances Yet</h3>
+              <p style={{ color: '#6c757d' }}>Track advance payments from clients!</p>
+            </div>
+          </div>
+        );
+      default:
+        return null;
+    }
+  };
+
+  return (
+    <div style={{
+      minHeight: '100vh',
+      background: 'linear-gradient(to bottom, #f8f9fa 0%, #e9ecef 100%)',
+      padding: '2rem 3rem 3rem 3rem'
+    }}>
+      {/* Header Section */}
+      <div style={{
+        display: 'flex',
+        justifyContent: 'space-between',
+        alignItems: 'center',
+        marginBottom: '1rem',
+        background: 'white',
+        padding: '0.75rem 1.25rem',
+        borderRadius: '10px',
+        boxShadow: '0 1px 4px rgba(0,0,0,0.05)'
+      }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+          <button
+            onClick={() => navigate('/projects')}
+            style={{
+              background: '#f8f9fa',
+              color: '#1F7A8C',
+              border: '2px solid #1F7A8C',
+              padding: '0.4rem 0.8rem',
+              fontSize: '0.8rem',
+              fontWeight: '600',
+              borderRadius: '6px',
+              cursor: 'pointer',
+              transition: 'all 0.3s',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '0.3rem'
+            }}
+            onMouseEnter={(e) => {
+              e.currentTarget.style.background = '#1F7A8C';
+              e.currentTarget.style.color = 'white';
+              e.currentTarget.style.transform = 'translateX(-3px)';
+            }}
+            onMouseLeave={(e) => {
+              e.currentTarget.style.background = '#f8f9fa';
+              e.currentTarget.style.color = '#1F7A8C';
+              e.currentTarget.style.transform = 'translateX(0)';
+            }}
+          >
+            ← Back to Projects
+          </button>
+          <div>
+            <h1 style={{
+              margin: 0,
+              fontSize: '1.4rem',
+              background: 'linear-gradient(135deg, #1F7A8C 0%, #16616F 100%)',
+              WebkitBackgroundClip: 'text',
+              WebkitTextFillColor: 'transparent',
+              fontWeight: 'bold'
+            }}>
+              {project.name}
+            </h1>
+            <p style={{
+              margin: '0.2rem 0 0 0',
+              color: '#6c757d',
+              fontSize: '0.75rem',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '0.3rem'
+            }}>
+              <span>📍</span> {project.location}
+            </p>
+          </div>
+        </div>
+        <button
+          onClick={() => navigate(`/projects/${id}/edit`)}
+          style={{
+            background: 'linear-gradient(135deg, #1F7A8C 0%, #16616F 100%)',
+            border: 'none',
+            color: 'white',
+            padding: '0.5rem 1.2rem',
+            fontSize: '0.85rem',
+            fontWeight: '600',
+            borderRadius: '6px',
+            boxShadow: '0 1px 4px rgba(31, 122, 140, 0.2)',
+            transition: 'all 0.3s',
+            cursor: 'pointer'
+          }}
+          onMouseEnter={(e) => {
+            e.currentTarget.style.transform = 'translateY(-2px)';
+            e.currentTarget.style.boxShadow = '0 3px 8px rgba(31, 122, 140, 0.3)';
+          }}
+          onMouseLeave={(e) => {
+            e.currentTarget.style.transform = 'translateY(0)';
+            e.currentTarget.style.boxShadow = '0 1px 4px rgba(31, 122, 140, 0.2)';
+          }}
+        >
+          Edit Project
+        </button>
+      </div>
+
+      {/* Stats Cards */}
+      <div className="grid grid-cols-4" style={{ gap: '0.5rem', marginBottom: '1rem' }}>
+        <div style={{
+          background: 'white',
+          borderRadius: '8px',
+          padding: '0.6rem',
+          boxShadow: '0 2px 8px rgba(0,0,0,0.06)',
+          textAlign: 'center',
+          transition: 'all 0.3s',
+          border: '1px solid #e9ecef'
+        }}
+        onMouseEnter={(e) => {
+          e.currentTarget.style.transform = 'translateY(-3px)';
+          e.currentTarget.style.boxShadow = '0 4px 12px rgba(31, 122, 140, 0.12)';
+        }}
+        onMouseLeave={(e) => {
+          e.currentTarget.style.transform = 'translateY(0)';
+          e.currentTarget.style.boxShadow = '0 2px 8px rgba(0,0,0,0.06)';
+        }}
+        >
+          <h3 style={{
+            color: '#1F7A8C',
+            margin: '0 0 0.15rem 0',
+            fontSize: '1.2rem',
+            fontWeight: 'bold'
+          }}>
+            {stats.total_workers || 0}
+          </h3>
+          <p style={{ color: '#6c757d', margin: 0, fontSize: '0.7rem' }}>Total Workers</p>
+        </div>
+        <div style={{
+          background: 'white',
+          borderRadius: '8px',
+          padding: '0.6rem',
+          boxShadow: '0 2px 8px rgba(0,0,0,0.06)',
+          textAlign: 'center',
+          transition: 'all 0.3s',
+          border: '1px solid #e9ecef'
+        }}
+        onMouseEnter={(e) => {
+          e.currentTarget.style.transform = 'translateY(-3px)';
+          e.currentTarget.style.boxShadow = '0 4px 12px rgba(31, 122, 140, 0.12)';
+        }}
+        onMouseLeave={(e) => {
+          e.currentTarget.style.transform = 'translateY(0)';
+          e.currentTarget.style.boxShadow = '0 2px 8px rgba(0,0,0,0.06)';
+        }}
+        >
+          <h3 style={{
+            color: '#3b82f6',
+            margin: '0 0 0.15rem 0',
+            fontSize: '1.2rem',
+            fontWeight: 'bold'
+          }}>
+            ₹{((stats.total_labor_cost || 0) / 1000).toFixed(1)}K
+          </h3>
+          <p style={{ color: '#6c757d', margin: 0, fontSize: '0.7rem' }}>Labor Cost</p>
+        </div>
+        <div style={{
+          background: 'white',
+          borderRadius: '8px',
+          padding: '0.6rem',
+          boxShadow: '0 2px 8px rgba(0,0,0,0.06)',
+          textAlign: 'center',
+          transition: 'all 0.3s',
+          border: '1px solid #e9ecef'
+        }}
+        onMouseEnter={(e) => {
+          e.currentTarget.style.transform = 'translateY(-3px)';
+          e.currentTarget.style.boxShadow = '0 4px 12px rgba(31, 122, 140, 0.12)';
+        }}
+        onMouseLeave={(e) => {
+          e.currentTarget.style.transform = 'translateY(0)';
+          e.currentTarget.style.boxShadow = '0 2px 8px rgba(0,0,0,0.06)';
+        }}
+        >
+          <h3 style={{
+            color: '#f59e0b',
+            margin: '0 0 0.15rem 0',
+            fontSize: '1.2rem',
+            fontWeight: 'bold'
+          }}>
+            ₹{((stats.total_cost || 0) / 100000).toFixed(1)}L
+          </h3>
+          <p style={{ color: '#6c757d', margin: 0, fontSize: '0.7rem' }}>Total Cost</p>
+        </div>
+        <div style={{
+          background: 'white',
+          borderRadius: '8px',
+          padding: '0.6rem',
+          boxShadow: '0 2px 8px rgba(0,0,0,0.06)',
+          textAlign: 'center',
+          transition: 'all 0.3s',
+          border: '1px solid #e9ecef'
+        }}
+        onMouseEnter={(e) => {
+          e.currentTarget.style.transform = 'translateY(-3px)';
+          e.currentTarget.style.boxShadow = '0 4px 12px rgba(31, 122, 140, 0.12)';
+        }}
+        onMouseLeave={(e) => {
+          e.currentTarget.style.transform = 'translateY(0)';
+          e.currentTarget.style.boxShadow = '0 2px 8px rgba(0,0,0,0.06)';
+        }}
+        >
+          <h3 style={{
+            color: stats.profit_loss >= 0 ? '#22c55e' : '#ef4444',
+            margin: '0 0 0.15rem 0',
+            fontSize: '1.2rem',
+            fontWeight: 'bold'
+          }}>
+            ₹{((stats.profit_loss || 0) / 100000).toFixed(1)}L
+          </h3>
+          <p style={{ color: '#6c757d', margin: 0, fontSize: '0.7rem' }}>Profit/Loss</p>
+        </div>
+      </div>
+
+      {/* Tab Navigation */}
+      <div style={{
+        background: 'white',
+        borderRadius: '12px 12px 0 0',
+        boxShadow: '0 4px 15px rgba(0,0,0,0.08)',
+        border: '1px solid #e9ecef',
+        borderBottom: 'none',
+        overflowX: 'auto',
+        display: 'flex'
+      }}>
+        {tabs.map((tab) => (
+          <button
+            key={tab.id}
+            onClick={() => setActiveTab(tab.id)}
+            style={{
+              flex: '1',
+              padding: '1rem 1.5rem',
+              border: 'none',
+              background: activeTab === tab.id
+                ? 'linear-gradient(135deg, #1F7A8C 0%, #16616F 100%)'
+                : 'transparent',
+              color: activeTab === tab.id ? 'white' : '#6c757d',
+              fontWeight: '600',
+              fontSize: '0.95rem',
+              cursor: 'pointer',
+              transition: 'all 0.3s',
+              borderBottom: activeTab === tab.id ? 'none' : '2px solid #e9ecef',
+              whiteSpace: 'nowrap',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              gap: '0.5rem'
+            }}
+            onMouseEnter={(e) => {
+              if (activeTab !== tab.id) {
+                e.currentTarget.style.background = '#f8f9fa';
+                e.currentTarget.style.color = '#1F7A8C';
+              }
+            }}
+            onMouseLeave={(e) => {
+              if (activeTab !== tab.id) {
+                e.currentTarget.style.background = 'transparent';
+                e.currentTarget.style.color = '#6c757d';
+              }
+            }}
+          >
+            <span>{tab.icon}</span>
+            <span>{tab.label}</span>
+          </button>
+        ))}
+      </div>
+
+      {/* Tab Content */}
+      <div style={{
+        background: 'white',
+        borderRadius: '0 0 12px 12px',
+        boxShadow: '0 4px 15px rgba(0,0,0,0.08)',
+        border: '1px solid #e9ecef',
+        borderTop: 'none',
+        padding: '2rem'
+      }}>
+        {renderTabContent()}
+      </div>
+
+      {/* Modals */}
+      <Modal
+        isOpen={openModal === 'workers'}
+        onClose={() => setOpenModal(null)}
+        title="All Workers"
+        size="xlarge"
+      >
+        {allWorkers.length > 0 ? (
+          <div className="grid grid-cols-3" style={{ gap: '1.25rem' }}>
+            {allWorkers.map((worker, index) => (
+              <div
+                key={worker.id}
+                style={{
+                  background: 'white',
+                  borderRadius: '12px',
+                  padding: '1.25rem',
+                  boxShadow: '0 4px 15px rgba(0,0,0,0.08)',
+                  transition: 'all 0.3s',
+                  border: '1px solid #e9ecef'
+                }}
+              >
+                <h3
+                  onClick={() => {
+                    setOpenModal(null);
+                    navigate(`/projects/${id}/workers/${worker.id}`);
+                  }}
+                  style={{
+                    margin: '0 0 0.5rem 0',
+                    fontSize: '1.15rem',
+                    color: '#1F7A8C',
+                    fontWeight: '700',
+                    cursor: 'pointer'
+                  }}
+                >
+                  {worker.name}
+                </h3>
+                <div style={{ marginBottom: '0.5rem', color: '#6c757d' }}>
+                  <div>💼 {worker.role}</div>
+                  <div>📱 {worker.phone}</div>
+                </div>
+                <div style={{
+                  padding: '0.75rem',
+                  background: '#f8f9fa',
+                  borderRadius: '8px',
+                  marginTop: '0.75rem'
+                }}>
+                  <p style={{ margin: 0, fontSize: '0.75rem', color: '#6c757d' }}>Daily Wage</p>
+                  <p style={{ margin: 0, fontSize: '1.15rem', fontWeight: 'bold', color: '#1F7A8C' }}>
+                    ₹{worker.daily_wage}
+                  </p>
+                </div>
+              </div>
+            ))}
+          </div>
+        ) : (
+          <p style={{ textAlign: 'center', color: '#6c757d', padding: '2rem' }}>No workers found</p>
+        )}
+      </Modal>
+
+      <Modal
+        isOpen={openModal === 'attendance'}
+        onClose={() => setOpenModal(null)}
+        title="All Attendance Records"
+        size="xlarge"
+      >
+        {allAttendances.length > 0 ? (
+          <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+            <thead>
+              <tr style={{ background: '#f8f9fa', borderBottom: '2px solid #e9ecef' }}>
+                <th style={{ padding: '1rem', textAlign: 'left', color: '#1F7A8C', fontWeight: '600' }}>Worker</th>
+                <th style={{ padding: '1rem', textAlign: 'left', color: '#1F7A8C', fontWeight: '600' }}>Date</th>
+                <th style={{ padding: '1rem', textAlign: 'left', color: '#1F7A8C', fontWeight: '600' }}>Status</th>
+              </tr>
+            </thead>
+            <tbody>
+              {allAttendances.map((attendance, index) => (
+                <tr key={index} style={{ borderBottom: '1px solid #e9ecef' }}>
+                  <td style={{ padding: '1rem' }}>{attendance.worker?.name || 'N/A'}</td>
+                  <td style={{ padding: '1rem' }}>{attendance.date}</td>
+                  <td style={{ padding: '1rem' }}>
+                    <span style={{
+                      padding: '0.25rem 0.75rem',
+                      borderRadius: '12px',
+                      fontSize: '0.75rem',
+                      fontWeight: '600',
+                      background: attendance.status === 'present' ? '#22c55e' : attendance.status === 'half-day' ? '#f59e0b' : '#ef4444',
+                      color: 'white'
+                    }}>
+                      {attendance.status}
+                    </span>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        ) : (
+          <p style={{ textAlign: 'center', color: '#6c757d', padding: '2rem' }}>No attendance records found</p>
+        )}
+      </Modal>
+
+      <Modal
+        isOpen={openModal === 'payments'}
+        onClose={() => setOpenModal(null)}
+        title="All Payments"
+        size="xlarge"
+      >
+        {allPayments.length > 0 ? (
+          <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+            <thead>
+              <tr style={{ background: '#f8f9fa', borderBottom: '2px solid #e9ecef' }}>
+                <th style={{ padding: '1rem', textAlign: 'left', color: '#1F7A8C', fontWeight: '600' }}>Worker</th>
+                <th style={{ padding: '1rem', textAlign: 'left', color: '#1F7A8C', fontWeight: '600' }}>Date</th>
+                <th style={{ padding: '1rem', textAlign: 'right', color: '#1F7A8C', fontWeight: '600' }}>Amount</th>
+                <th style={{ padding: '1rem', textAlign: 'left', color: '#1F7A8C', fontWeight: '600' }}>Method</th>
+              </tr>
+            </thead>
+            <tbody>
+              {allPayments.map((payment, index) => (
+                <tr key={index} style={{ borderBottom: '1px solid #e9ecef' }}>
+                  <td style={{ padding: '1rem' }}>{payment.worker?.name || 'N/A'}</td>
+                  <td style={{ padding: '1rem' }}>{new Date(payment.payment_date).toLocaleDateString('en-IN')}</td>
+                  <td style={{ padding: '1rem', textAlign: 'right', fontWeight: '600', color: '#22c55e' }}>
+                    ₹{parseFloat(payment.amount).toLocaleString('en-IN')}
+                  </td>
+                  <td style={{ padding: '1rem' }}>{payment.payment_method?.replace('_', ' ') || 'N/A'}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        ) : (
+          <p style={{ textAlign: 'center', color: '#6c757d', padding: '2rem' }}>No payments found</p>
+        )}
+      </Modal>
+
+      <Modal
+        isOpen={openModal === 'materials'}
+        onClose={() => setOpenModal(null)}
+        title="All Materials"
+        size="xlarge"
+      >
+        {allMaterials.length > 0 ? (
+          <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+            <thead>
+              <tr style={{ background: '#f8f9fa', borderBottom: '2px solid #e9ecef' }}>
+                <th style={{ padding: '1rem', textAlign: 'left', color: '#1F7A8C', fontWeight: '600' }}>Material Name</th>
+                <th style={{ padding: '1rem', textAlign: 'left', color: '#1F7A8C', fontWeight: '600' }}>Category</th>
+                <th style={{ padding: '1rem', textAlign: 'right', color: '#1F7A8C', fontWeight: '600' }}>Quantity</th>
+                <th style={{ padding: '1rem', textAlign: 'right', color: '#1F7A8C', fontWeight: '600' }}>Cost</th>
+                <th style={{ padding: '1rem', textAlign: 'left', color: '#1F7A8C', fontWeight: '600' }}>Supplier</th>
+              </tr>
+            </thead>
+            <tbody>
+              {allMaterials.map((material, index) => (
+                <tr key={index} style={{ borderBottom: '1px solid #e9ecef' }}>
+                  <td style={{ padding: '1rem', fontWeight: '500' }}>{material.material_name}</td>
+                  <td style={{ padding: '1rem' }}>{material.category || 'N/A'}</td>
+                  <td style={{ padding: '1rem', textAlign: 'right' }}>
+                    {parseFloat(material.quantity).toLocaleString('en-IN')} {material.unit || ''}
+                  </td>
+                  <td style={{ padding: '1rem', textAlign: 'right', fontWeight: '600', color: '#1F7A8C' }}>
+                    ₹{parseFloat(material.cost_per_unit).toLocaleString('en-IN')}
+                  </td>
+                  <td style={{ padding: '1rem' }}>{material.supplier || 'N/A'}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        ) : (
+          <p style={{ textAlign: 'center', color: '#6c757d', padding: '2rem' }}>No materials found</p>
+        )}
+      </Modal>
+
+      <Modal
+        isOpen={openModal === 'expenses'}
+        onClose={() => setOpenModal(null)}
+        title="All Expenses"
+        size="xlarge"
+      >
+        {allExpenses.length > 0 ? (
+          <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+            <thead>
+              <tr style={{ background: '#f8f9fa', borderBottom: '2px solid #e9ecef' }}>
+                <th style={{ padding: '1rem', textAlign: 'left', color: '#1F7A8C', fontWeight: '600' }}>Category</th>
+                <th style={{ padding: '1rem', textAlign: 'left', color: '#1F7A8C', fontWeight: '600' }}>Description</th>
+                <th style={{ padding: '1rem', textAlign: 'left', color: '#1F7A8C', fontWeight: '600' }}>Date</th>
+                <th style={{ padding: '1rem', textAlign: 'right', color: '#1F7A8C', fontWeight: '600' }}>Amount</th>
+                <th style={{ padding: '1rem', textAlign: 'left', color: '#1F7A8C', fontWeight: '600' }}>Method</th>
+              </tr>
+            </thead>
+            <tbody>
+              {allExpenses.map((expense, index) => (
+                <tr key={index} style={{ borderBottom: '1px solid #e9ecef' }}>
+                  <td style={{ padding: '1rem' }}>{expense.category || 'N/A'}</td>
+                  <td style={{ padding: '1rem', fontWeight: '500' }}>{expense.description}</td>
+                  <td style={{ padding: '1rem' }}>{new Date(expense.expense_date).toLocaleDateString('en-IN')}</td>
+                  <td style={{ padding: '1rem', textAlign: 'right', fontWeight: '600', color: '#ef4444' }}>
+                    ₹{parseFloat(expense.amount).toLocaleString('en-IN')}
+                  </td>
+                  <td style={{ padding: '1rem' }}>{expense.payment_method?.replace('_', ' ') || 'N/A'}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        ) : (
+          <p style={{ textAlign: 'center', color: '#6c757d', padding: '2rem' }}>No expenses found</p>
+        )}
+      </Modal>
+
+      <Modal
+        isOpen={openModal === 'invoices'}
+        onClose={() => setOpenModal(null)}
+        title="All Invoices"
+        size="xlarge"
+      >
+        <p style={{ textAlign: 'center', color: '#6c757d', padding: '2rem' }}>No invoices available</p>
+      </Modal>
+
+      <Modal
+        isOpen={openModal === 'client-advances'}
+        onClose={() => setOpenModal(null)}
+        title="All Client Advances"
+        size="xlarge"
+      >
+        <p style={{ textAlign: 'center', color: '#6c757d', padding: '2rem' }}>No client advances available</p>
+      </Modal>
+    </div>
+  );
+};
+
+export default ProjectDetails;

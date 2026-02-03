@@ -1,0 +1,621 @@
+import React, { useState, useEffect } from 'react';
+import { useNavigate, useParams, useLocation } from 'react-router-dom';
+import workerService from '../../services/workerService';
+import Loading from '../../components/Loading';
+import ConfirmDialog from '../../components/ConfirmDialog';
+
+const WorkerDetails: React.FC = () => {
+  const navigate = useNavigate();
+  const params = useParams();
+  const location = useLocation();
+
+  // Check if this is a project-scoped route
+  const isProjectRoute = location.pathname.includes('/projects/');
+  const workerId = isProjectRoute ? params.workerId : params.id;
+  const projectId = isProjectRoute ? params.id : null;
+  const [worker, setWorker] = useState<any>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState('');
+  const [confirmDialog, setConfirmDialog] = useState({ isOpen: false });
+
+  useEffect(() => {
+    loadWorker();
+  }, [workerId]);
+
+  const loadWorker = async () => {
+    try {
+      setLoading(true);
+      const data = await workerService.getById(workerId!);
+      setWorker(data);
+    } catch (err: any) {
+      setError(err.response?.data?.error || 'Failed to load worker details');
+      console.error(err);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleDeleteClick = () => {
+    setConfirmDialog({ isOpen: true });
+  };
+
+  const handleDeleteConfirm = async () => {
+    try {
+      await workerService.delete(workerId!);
+      setConfirmDialog({ isOpen: false });
+      navigate(isProjectRoute ? `/projects/${projectId}/workers` : '/workers');
+    } catch (err: any) {
+      setError(err.response?.data?.error || 'Failed to delete worker');
+      console.error(err);
+      setConfirmDialog({ isOpen: false });
+    }
+  };
+
+  const handleDeleteCancel = () => {
+    setConfirmDialog({ isOpen: false });
+  };
+
+  if (loading) {
+    return <Loading message="Loading worker details..." />;
+  }
+
+  if (error) {
+    return (
+      <div style={{
+        minHeight: '100vh',
+        background: 'linear-gradient(to bottom, #f8f9fa 0%, #e9ecef 100%)',
+        padding: '2rem 3rem 3rem 3rem'
+      }}>
+        <div style={{
+          padding: '2rem',
+          background: 'linear-gradient(135deg, #ef4444 0%, #dc2626 100%)',
+          color: 'white',
+          borderRadius: '12px',
+          fontSize: '1.1rem',
+          textAlign: 'center',
+          marginBottom: '1rem'
+        }}>
+          {error}
+        </div>
+        <button
+          onClick={() => navigate(isProjectRoute ? `/projects/${projectId}/workers` : '/workers')}
+          style={{
+            background: 'linear-gradient(135deg, #1F7A8C 0%, #16616F 100%)',
+            border: 'none',
+            color: 'white',
+            padding: '0.875rem 2rem',
+            fontSize: '1rem',
+            fontWeight: '600',
+            borderRadius: '10px',
+            cursor: 'pointer'
+          }}
+        >
+          Back to Workers
+        </button>
+      </div>
+    );
+  }
+
+  if (!worker) {
+    return (
+      <div style={{
+        minHeight: '100vh',
+        background: 'linear-gradient(to bottom, #f8f9fa 0%, #e9ecef 100%)',
+        padding: '2rem 3rem 3rem 3rem'
+      }}>
+        <div style={{
+          padding: '2rem',
+          background: 'linear-gradient(135deg, #ef4444 0%, #dc2626 100%)',
+          color: 'white',
+          borderRadius: '12px',
+          fontSize: '1.1rem',
+          textAlign: 'center',
+          marginBottom: '1rem'
+        }}>
+          Worker not found
+        </div>
+        <button
+          onClick={() => navigate(isProjectRoute ? `/projects/${projectId}/workers` : '/workers')}
+          style={{
+            background: 'linear-gradient(135deg, #1F7A8C 0%, #16616F 100%)',
+            border: 'none',
+            color: 'white',
+            padding: '0.875rem 2rem',
+            fontSize: '1rem',
+            fontWeight: '600',
+            borderRadius: '10px',
+            cursor: 'pointer'
+          }}
+        >
+          Back to Workers
+        </button>
+      </div>
+    );
+  }
+
+  const balanceDue = worker.balance_due || 0;
+  const totalWages = worker.total_wages_earned || 0;
+  const totalAdvances = worker.advance_given || 0;
+
+  return (
+    <div style={{
+      minHeight: '100vh',
+      background: 'linear-gradient(to bottom, #f8f9fa 0%, #e9ecef 100%)',
+      padding: '2rem 3rem 3rem 3rem'
+    }}>
+      {/* Header Section */}
+      <div style={{
+        display: 'flex',
+        justifyContent: 'space-between',
+        alignItems: 'center',
+        marginBottom: '2rem',
+        background: 'white',
+        padding: '1.5rem 2rem',
+        borderRadius: '16px',
+        boxShadow: '0 4px 20px rgba(0,0,0,0.08)'
+      }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '1.5rem' }}>
+          <button
+            onClick={() => navigate(isProjectRoute ? `/projects/${projectId}/workers` : '/workers')}
+            style={{
+              background: '#f8f9fa',
+              color: '#1F7A8C',
+              border: '2px solid #1F7A8C',
+              padding: '0.75rem 1.5rem',
+              fontSize: '0.95rem',
+              fontWeight: '600',
+              borderRadius: '10px',
+              cursor: 'pointer',
+              transition: 'all 0.3s',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '0.5rem'
+            }}
+            onMouseEnter={(e) => {
+              e.currentTarget.style.background = '#1F7A8C';
+              e.currentTarget.style.color = 'white';
+              e.currentTarget.style.transform = 'translateX(-3px)';
+            }}
+            onMouseLeave={(e) => {
+              e.currentTarget.style.background = '#f8f9fa';
+              e.currentTarget.style.color = '#1F7A8C';
+              e.currentTarget.style.transform = 'translateX(0)';
+            }}
+          >
+            ← Back to Workers
+          </button>
+          <div>
+            <h1 style={{
+              margin: 0,
+              fontSize: '2.5rem',
+              background: 'linear-gradient(135deg, #1F7A8C 0%, #16616F 100%)',
+              WebkitBackgroundClip: 'text',
+              WebkitTextFillColor: 'transparent',
+              fontWeight: 'bold'
+            }}>
+              {worker.name}
+            </h1>
+            <p style={{
+              margin: '0.5rem 0 0 0',
+              color: '#6c757d',
+              fontSize: '1rem',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '0.5rem'
+            }}>
+              <span>💼</span> {worker.role}
+            </p>
+          </div>
+        </div>
+        <div style={{ display: 'flex', gap: '0.75rem' }}>
+          <button
+            onClick={() => navigate(isProjectRoute ? `/projects/${projectId}/workers/${workerId}/edit` : `/workers/${workerId}/edit`)}
+            style={{
+              background: 'linear-gradient(135deg, #1F7A8C 0%, #16616F 100%)',
+              border: 'none',
+              color: 'white',
+              padding: '0.875rem 1.5rem',
+              fontSize: '1rem',
+              fontWeight: '600',
+              borderRadius: '10px',
+              boxShadow: '0 4px 15px rgba(31, 122, 140, 0.3)',
+              transition: 'all 0.3s',
+              cursor: 'pointer'
+            }}
+            onMouseEnter={(e) => {
+              e.currentTarget.style.transform = 'translateY(-2px)';
+              e.currentTarget.style.boxShadow = '0 6px 20px rgba(31, 122, 140, 0.4)';
+            }}
+            onMouseLeave={(e) => {
+              e.currentTarget.style.transform = 'translateY(0)';
+              e.currentTarget.style.boxShadow = '0 4px 15px rgba(31, 122, 140, 0.3)';
+            }}
+          >
+            Edit Worker
+          </button>
+          <button
+            onClick={handleDeleteClick}
+            style={{
+              background: 'linear-gradient(135deg, #ef4444 0%, #dc2626 100%)',
+              border: 'none',
+              color: 'white',
+              padding: '0.875rem 1.5rem',
+              fontSize: '1rem',
+              fontWeight: '600',
+              borderRadius: '10px',
+              boxShadow: '0 4px 15px rgba(239, 68, 68, 0.3)',
+              transition: 'all 0.3s',
+              cursor: 'pointer'
+            }}
+            onMouseEnter={(e) => {
+              e.currentTarget.style.transform = 'translateY(-2px)';
+              e.currentTarget.style.boxShadow = '0 6px 20px rgba(239, 68, 68, 0.4)';
+            }}
+            onMouseLeave={(e) => {
+              e.currentTarget.style.transform = 'translateY(0)';
+              e.currentTarget.style.boxShadow = '0 4px 15px rgba(239, 68, 68, 0.3)';
+            }}
+          >
+            Delete
+          </button>
+        </div>
+      </div>
+
+      {/* Financial Stats Cards */}
+      <div className="grid grid-cols-4" style={{ gap: '1.25rem', marginBottom: '2rem' }}>
+        <div style={{
+          background: 'white',
+          borderRadius: '12px',
+          padding: '1.5rem',
+          boxShadow: '0 4px 15px rgba(0,0,0,0.08)',
+          textAlign: 'center',
+          transition: 'all 0.3s',
+          border: '1px solid #e9ecef'
+        }}
+        onMouseEnter={(e) => {
+          e.currentTarget.style.transform = 'translateY(-5px)';
+          e.currentTarget.style.boxShadow = '0 6px 20px rgba(31, 122, 140, 0.15)';
+        }}
+        onMouseLeave={(e) => {
+          e.currentTarget.style.transform = 'translateY(0)';
+          e.currentTarget.style.boxShadow = '0 4px 15px rgba(0,0,0,0.08)';
+        }}
+        >
+          <h3 style={{
+            color: '#1F7A8C',
+            margin: '0 0 0.5rem 0',
+            fontSize: '2rem',
+            fontWeight: 'bold'
+          }}>
+            ₹{totalWages.toLocaleString()}
+          </h3>
+          <p style={{ color: '#6c757d', margin: 0, fontSize: '0.9rem' }}>Total Wages Earned</p>
+        </div>
+
+        <div style={{
+          background: 'white',
+          borderRadius: '12px',
+          padding: '1.5rem',
+          boxShadow: '0 4px 15px rgba(0,0,0,0.08)',
+          textAlign: 'center',
+          transition: 'all 0.3s',
+          border: '1px solid #e9ecef'
+        }}
+        onMouseEnter={(e) => {
+          e.currentTarget.style.transform = 'translateY(-5px)';
+          e.currentTarget.style.boxShadow = '0 6px 20px rgba(31, 122, 140, 0.15)';
+        }}
+        onMouseLeave={(e) => {
+          e.currentTarget.style.transform = 'translateY(0)';
+          e.currentTarget.style.boxShadow = '0 4px 15px rgba(0,0,0,0.08)';
+        }}
+        >
+          <h3 style={{
+            color: '#f59e0b',
+            margin: '0 0 0.5rem 0',
+            fontSize: '2rem',
+            fontWeight: 'bold'
+          }}>
+            ₹{totalAdvances.toLocaleString()}
+          </h3>
+          <p style={{ color: '#6c757d', margin: 0, fontSize: '0.9rem' }}>Advances Given</p>
+        </div>
+
+        <div style={{
+          background: 'white',
+          borderRadius: '12px',
+          padding: '1.5rem',
+          boxShadow: '0 4px 15px rgba(0,0,0,0.08)',
+          textAlign: 'center',
+          transition: 'all 0.3s',
+          border: '1px solid #e9ecef'
+        }}
+        onMouseEnter={(e) => {
+          e.currentTarget.style.transform = 'translateY(-5px)';
+          e.currentTarget.style.boxShadow = '0 6px 20px rgba(31, 122, 140, 0.15)';
+        }}
+        onMouseLeave={(e) => {
+          e.currentTarget.style.transform = 'translateY(0)';
+          e.currentTarget.style.boxShadow = '0 4px 15px rgba(0,0,0,0.08)';
+        }}
+        >
+          <h3 style={{
+            color: balanceDue >= 0 ? '#22c55e' : '#ef4444',
+            margin: '0 0 0.5rem 0',
+            fontSize: '2rem',
+            fontWeight: 'bold'
+          }}>
+            ₹{Math.abs(balanceDue).toLocaleString()}
+          </h3>
+          <p style={{ color: '#6c757d', margin: 0, fontSize: '0.9rem' }}>
+            {balanceDue >= 0 ? 'Balance Due (Owe to Worker)' : 'Advance Outstanding'}
+          </p>
+        </div>
+
+        <div style={{
+          background: 'white',
+          borderRadius: '12px',
+          padding: '1.5rem',
+          boxShadow: '0 4px 15px rgba(0,0,0,0.08)',
+          textAlign: 'center',
+          transition: 'all 0.3s',
+          border: '1px solid #e9ecef'
+        }}
+        onMouseEnter={(e) => {
+          e.currentTarget.style.transform = 'translateY(-5px)';
+          e.currentTarget.style.boxShadow = '0 6px 20px rgba(31, 122, 140, 0.15)';
+        }}
+        onMouseLeave={(e) => {
+          e.currentTarget.style.transform = 'translateY(0)';
+          e.currentTarget.style.boxShadow = '0 4px 15px rgba(0,0,0,0.08)';
+        }}
+        >
+          <h3 style={{
+            color: '#3b82f6',
+            margin: '0 0 0.5rem 0',
+            fontSize: '2rem',
+            fontWeight: 'bold'
+          }}>
+            ₹{worker.daily_wage.toLocaleString()}
+          </h3>
+          <p style={{ color: '#6c757d', margin: 0, fontSize: '0.9rem' }}>Daily Wage</p>
+        </div>
+      </div>
+
+      {/* Worker Information Card */}
+      <div style={{
+        background: 'white',
+        borderRadius: '12px',
+        padding: '2rem',
+        boxShadow: '0 4px 15px rgba(0,0,0,0.08)',
+        marginBottom: '2rem',
+        border: '1px solid #e9ecef'
+      }}>
+        <h2 style={{
+          margin: '0 0 1.5rem 0',
+          fontSize: '1.5rem',
+          color: '#1F7A8C',
+          fontWeight: 'bold',
+          borderBottom: '2px solid #e9ecef',
+          paddingBottom: '0.75rem'
+        }}>
+          Worker Information
+        </h2>
+        <div style={{ display: 'grid', gap: '1rem' }}>
+          <div style={{
+            display: 'grid',
+            gridTemplateColumns: '200px 1fr',
+            padding: '0.75rem',
+            borderRadius: '8px',
+            background: '#f8f9fa'
+          }}>
+            <strong style={{ color: '#1F7A8C' }}>Name</strong>
+            <span>{worker.name}</span>
+          </div>
+          <div style={{
+            display: 'grid',
+            gridTemplateColumns: '200px 1fr',
+            padding: '0.75rem',
+            borderRadius: '8px',
+            background: 'white'
+          }}>
+            <strong style={{ color: '#1F7A8C' }}>Role</strong>
+            <span>{worker.role}</span>
+          </div>
+          <div style={{
+            display: 'grid',
+            gridTemplateColumns: '200px 1fr',
+            padding: '0.75rem',
+            borderRadius: '8px',
+            background: '#f8f9fa'
+          }}>
+            <strong style={{ color: '#1F7A8C' }}>Phone</strong>
+            <span>{worker.phone}</span>
+          </div>
+          <div style={{
+            display: 'grid',
+            gridTemplateColumns: '200px 1fr',
+            padding: '0.75rem',
+            borderRadius: '8px',
+            background: 'white'
+          }}>
+            <strong style={{ color: '#1F7A8C' }}>Address</strong>
+            <span>{worker.address || 'N/A'}</span>
+          </div>
+          <div style={{
+            display: 'grid',
+            gridTemplateColumns: '200px 1fr',
+            padding: '0.75rem',
+            borderRadius: '8px',
+            background: '#f8f9fa'
+          }}>
+            <strong style={{ color: '#1F7A8C' }}>Status</strong>
+            <span style={{
+              display: 'inline-block',
+              padding: '0.35rem 0.75rem',
+              borderRadius: '16px',
+              fontSize: '0.75rem',
+              fontWeight: '600',
+              textTransform: 'uppercase',
+              letterSpacing: '0.5px',
+              background: worker.status === 'active'
+                ? 'linear-gradient(135deg, #22c55e 0%, #16a34a 100%)'
+                : 'linear-gradient(135deg, #ef4444 0%, #dc2626 100%)',
+              color: 'white',
+              boxShadow: worker.status === 'active'
+                ? '0 2px 8px rgba(34, 197, 94, 0.3)'
+                : '0 2px 8px rgba(239, 68, 68, 0.3)'
+            }}>
+              {worker.status}
+            </span>
+          </div>
+          <div style={{
+            display: 'grid',
+            gridTemplateColumns: '200px 1fr',
+            padding: '0.75rem',
+            borderRadius: '8px',
+            background: 'white'
+          }}>
+            <strong style={{ color: '#1F7A8C' }}>Project</strong>
+            <span
+              onClick={() => navigate(`/projects/${worker.project_id}`)}
+              style={{
+                color: '#1F7A8C',
+                cursor: 'pointer',
+                fontWeight: '600',
+                transition: 'all 0.2s'
+              }}
+              onMouseEnter={(e) => {
+                e.currentTarget.style.textDecoration = 'underline';
+                e.currentTarget.style.color = '#16616F';
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.textDecoration = 'none';
+                e.currentTarget.style.color = '#1F7A8C';
+              }}
+            >
+              {worker.project?.name || 'N/A'}
+            </span>
+          </div>
+          <div style={{
+            display: 'grid',
+            gridTemplateColumns: '200px 1fr',
+            padding: '0.75rem',
+            borderRadius: '8px',
+            background: '#f8f9fa'
+          }}>
+            <strong style={{ color: '#1F7A8C' }}>Joined Date</strong>
+            <span>{new Date(worker.created_at).toLocaleDateString()}</span>
+          </div>
+        </div>
+      </div>
+
+      {/* Quick Actions */}
+      <div style={{
+        background: 'white',
+        borderRadius: '12px',
+        padding: '2rem',
+        boxShadow: '0 4px 15px rgba(0,0,0,0.08)',
+        border: '1px solid #e9ecef'
+      }}>
+        <h2 style={{
+          margin: '0 0 1.5rem 0',
+          fontSize: '1.5rem',
+          color: '#1F7A8C',
+          fontWeight: 'bold',
+          borderBottom: '2px solid #e9ecef',
+          paddingBottom: '0.75rem'
+        }}>
+          Quick Actions
+        </h2>
+        <div className="grid grid-cols-3" style={{ gap: '1.25rem' }}>
+          <button
+            onClick={() => navigate(`/attendance?project_id=${worker.project_id}`)}
+            style={{
+              background: 'linear-gradient(135deg, #1F7A8C 0%, #16616F 100%)',
+              border: 'none',
+              color: 'white',
+              padding: '1rem 1.5rem',
+              fontSize: '1rem',
+              fontWeight: '600',
+              borderRadius: '10px',
+              boxShadow: '0 4px 15px rgba(31, 122, 140, 0.3)',
+              transition: 'all 0.3s',
+              cursor: 'pointer'
+            }}
+            onMouseEnter={(e) => {
+              e.currentTarget.style.transform = 'translateY(-2px)';
+              e.currentTarget.style.boxShadow = '0 6px 20px rgba(31, 122, 140, 0.4)';
+            }}
+            onMouseLeave={(e) => {
+              e.currentTarget.style.transform = 'translateY(0)';
+              e.currentTarget.style.boxShadow = '0 4px 15px rgba(31, 122, 140, 0.3)';
+            }}
+          >
+            Mark Attendance
+          </button>
+          <button
+            onClick={() => navigate(`/payments?worker_id=${worker.id}`)}
+            style={{
+              background: 'linear-gradient(135deg, #3b82f6 0%, #2563eb 100%)',
+              border: 'none',
+              color: 'white',
+              padding: '1rem 1.5rem',
+              fontSize: '1rem',
+              fontWeight: '600',
+              borderRadius: '10px',
+              boxShadow: '0 4px 15px rgba(59, 130, 246, 0.3)',
+              transition: 'all 0.3s',
+              cursor: 'pointer'
+            }}
+            onMouseEnter={(e) => {
+              e.currentTarget.style.transform = 'translateY(-2px)';
+              e.currentTarget.style.boxShadow = '0 6px 20px rgba(59, 130, 246, 0.4)';
+            }}
+            onMouseLeave={(e) => {
+              e.currentTarget.style.transform = 'translateY(0)';
+              e.currentTarget.style.boxShadow = '0 4px 15px rgba(59, 130, 246, 0.3)';
+            }}
+          >
+            Make Payment
+          </button>
+          <button
+            onClick={() => navigate(`/attendance?worker_id=${worker.id}`)}
+            style={{
+              background: 'linear-gradient(135deg, #22c55e 0%, #16a34a 100%)',
+              border: 'none',
+              color: 'white',
+              padding: '1rem 1.5rem',
+              fontSize: '1rem',
+              fontWeight: '600',
+              borderRadius: '10px',
+              boxShadow: '0 4px 15px rgba(34, 197, 94, 0.3)',
+              transition: 'all 0.3s',
+              cursor: 'pointer'
+            }}
+            onMouseEnter={(e) => {
+              e.currentTarget.style.transform = 'translateY(-2px)';
+              e.currentTarget.style.boxShadow = '0 6px 20px rgba(34, 197, 94, 0.4)';
+            }}
+            onMouseLeave={(e) => {
+              e.currentTarget.style.transform = 'translateY(0)';
+              e.currentTarget.style.boxShadow = '0 4px 15px rgba(34, 197, 94, 0.3)';
+            }}
+          >
+            View Attendance History
+          </button>
+        </div>
+      </div>
+
+      <ConfirmDialog
+        isOpen={confirmDialog.isOpen}
+        title="Delete Worker"
+        message="Are you sure you want to delete this worker? This will also delete all associated attendance records. This action cannot be undone."
+        onConfirm={handleDeleteConfirm}
+        onCancel={handleDeleteCancel}
+      />
+    </div>
+  );
+};
+
+export default WorkerDetails;
