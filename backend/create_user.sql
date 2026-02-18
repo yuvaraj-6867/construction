@@ -1,0 +1,2 @@
+-- Create PostgreSQL user for Rails
+CREATE ROLE yuvaraj WITH LOGIN SUPERUSER CREATEDB CREATEROLE;
