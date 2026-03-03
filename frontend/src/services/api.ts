@@ -1,7 +1,7 @@
 import axios, { AxiosInstance, AxiosError } from 'axios';
 
-// Base API URL
-export const API_BASE_URL = 'http://localhost:3001/api/v1';
+// Base API URL - use relative path in production (nginx proxies /api/ to backend)
+export const API_BASE_URL = process.env.REACT_APP_API_URL || '/api/v1';
 
 // Create axios instance
 const api: AxiosInstance = axios.create({
