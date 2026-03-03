@@ -45,6 +45,9 @@ const PaymentList: React.FC = () => {
     paymentId: null,
   });
 
+  // Receipt state
+  const [receiptPayment, setReceiptPayment] = useState<any>(null);
+
   useEffect(() => {
     loadPayments();
     loadWorkers();
@@ -478,6 +481,19 @@ const PaymentList: React.FC = () => {
                     </td>
                     <td style={{ padding: '1rem' }}>
                       <div style={{ display: 'flex', gap: '0.5rem', justifyContent: 'center' }}>
+                        <button
+                          onClick={() => setReceiptPayment(payment)}
+                          style={{
+                            background: '#1F7A8C', border: 'none', color: 'white',
+                            padding: '0.5rem 0.75rem', fontSize: '0.8rem', fontWeight: '600',
+                            borderRadius: '6px', cursor: 'pointer', transition: 'all 0.2s'
+                          }}
+                          title="Print Receipt"
+                          onMouseEnter={(e) => { e.currentTarget.style.background = '#16616F'; e.currentTarget.style.transform = 'translateY(-1px)'; }}
+                          onMouseLeave={(e) => { e.currentTarget.style.background = '#1F7A8C'; e.currentTarget.style.transform = 'translateY(0)'; }}
+                        >
+                          🧾 Receipt
+                        </button>
                         <button
                           onClick={() => openEditDrawer(payment)}
                           style={{
@@ -962,6 +978,83 @@ const PaymentList: React.FC = () => {
         </>
       )}
 
+      {/* Payment Receipt Modal */}
+      {receiptPayment && (
+        <>
+          <div
+            style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(0,0,0,0.6)', zIndex: 1100 }}
+            onClick={() => setReceiptPayment(null)}
+          />
+          <div style={{
+            position: 'fixed', top: '50%', left: '50%', transform: 'translate(-50%, -50%)',
+            background: 'white', borderRadius: '16px', padding: '2.5rem', zIndex: 1101,
+            width: '480px', maxWidth: '95vw', boxShadow: '0 20px 60px rgba(0,0,0,0.3)'
+          }}>
+            {/* Receipt */}
+            <div id="payment-receipt">
+              <div style={{ textAlign: 'center', marginBottom: '1.5rem', borderBottom: '2px dashed #e9ecef', paddingBottom: '1rem' }}>
+                <div style={{ fontSize: '2rem', marginBottom: '0.25rem' }}>🏗️</div>
+                <h2 style={{ margin: '0 0 0.25rem 0', color: '#1F7A8C', fontSize: '1.3rem', fontWeight: 'bold' }}>
+                  Construction Management
+                </h2>
+                <p style={{ margin: 0, color: '#6c757d', fontSize: '0.85rem' }}>Payment Receipt</p>
+              </div>
+
+              <div style={{ marginBottom: '1.5rem' }}>
+                {[
+                  { label: 'Receipt No.', value: `#PAY-${receiptPayment.id}` },
+                  { label: 'Date', value: new Date(receiptPayment.payment_date).toLocaleDateString('en-IN', { day: '2-digit', month: 'long', year: 'numeric' }) },
+                  { label: 'Worker', value: receiptPayment.worker?.name || 'N/A' },
+                  { label: 'Project', value: receiptPayment.project?.name || 'N/A' },
+                  { label: 'Payment Method', value: (receiptPayment.payment_method || 'cash').replace('_', ' ').toUpperCase() },
+                  { label: 'Notes', value: receiptPayment.notes || '—' },
+                ].map(({ label, value }) => (
+                  <div key={label} style={{ display: 'flex', justifyContent: 'space-between', padding: '0.5rem 0', borderBottom: '1px solid #f0f0f0' }}>
+                    <span style={{ color: '#6c757d', fontSize: '0.9rem' }}>{label}</span>
+                    <span style={{ fontWeight: '600', color: '#374151', fontSize: '0.9rem', textAlign: 'right', maxWidth: '60%' }}>{value}</span>
+                  </div>
+                ))}
+              </div>
+
+              <div style={{ background: 'linear-gradient(135deg, #1F7A8C, #16616F)', borderRadius: '12px', padding: '1.25rem', textAlign: 'center', marginBottom: '1.5rem' }}>
+                <div style={{ color: 'rgba(255,255,255,0.8)', fontSize: '0.85rem', marginBottom: '0.25rem' }}>Amount Paid</div>
+                <div style={{ color: 'white', fontSize: '2rem', fontWeight: 'bold' }}>
+                  ₹{parseFloat(receiptPayment.amount).toLocaleString('en-IN')}
+                </div>
+              </div>
+
+              <div style={{ textAlign: 'center', color: '#9ca3af', fontSize: '0.75rem', borderTop: '1px dashed #e9ecef', paddingTop: '0.75rem' }}>
+                Thank you! — Construction Worker Attendance & Payment App
+              </div>
+            </div>
+
+            {/* Actions */}
+            <div style={{ display: 'flex', gap: '0.75rem', marginTop: '1.5rem' }}>
+              <button
+                onClick={() => window.print()}
+                style={{
+                  flex: 1, background: 'linear-gradient(135deg, #1F7A8C, #16616F)', border: 'none',
+                  color: 'white', padding: '0.875rem', borderRadius: '10px',
+                  fontWeight: '600', cursor: 'pointer', fontSize: '0.95rem'
+                }}
+              >
+                🖨️ Print Receipt
+              </button>
+              <button
+                onClick={() => setReceiptPayment(null)}
+                style={{
+                  flex: 1, background: '#f8f9fa', border: '2px solid #e9ecef',
+                  color: '#6c757d', padding: '0.875rem', borderRadius: '10px',
+                  fontWeight: '600', cursor: 'pointer', fontSize: '0.95rem'
+                }}
+              >
+                Close
+              </button>
+            </div>
+          </div>
+        </>
+      )}
+
       <style>{`
         @keyframes fadeIn {
           from {
@@ -979,6 +1072,11 @@ const PaymentList: React.FC = () => {
           to {
             transform: translateX(0);
           }
+        }
+
+        @media print {
+          body > *:not(#payment-receipt) { display: none !important; }
+          #payment-receipt { display: block !important; }
         }
       `}</style>
 

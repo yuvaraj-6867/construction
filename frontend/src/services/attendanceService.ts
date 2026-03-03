@@ -9,11 +9,13 @@ export interface Attendance {
 }
 
 const attendanceService = {
-  getAll: async (filters?: { project_id?: string; worker_id?: string; date?: string }) => {
+  getAll: async (filters?: { project_id?: string; worker_id?: string; date?: string; start_date?: string; end_date?: string }) => {
     const params = new URLSearchParams();
     if (filters?.project_id) params.append('project_id', filters.project_id);
     if (filters?.worker_id) params.append('worker_id', filters.worker_id);
     if (filters?.date) params.append('date', filters.date);
+    if (filters?.start_date) params.append('start_date', filters.start_date);
+    if (filters?.end_date) params.append('end_date', filters.end_date);
 
     const response = await api.get(`/attendances?${params}`);
     return response.data;

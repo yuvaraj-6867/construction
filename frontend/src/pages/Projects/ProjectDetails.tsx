@@ -282,6 +282,115 @@ const ProjectDetails: React.FC = () => {
                 </div>
               </div>
             </div>
+
+            {/* Cost Breakdown & Financial Summary */}
+            <div style={{
+              background: 'white', borderRadius: '12px', padding: '2rem',
+              boxShadow: '0 4px 15px rgba(0,0,0,0.08)', border: '1px solid #e9ecef', marginBottom: '1.5rem'
+            }}>
+              <h2 style={{ margin: '0 0 1.5rem 0', fontSize: '1.5rem', color: '#1F7A8C', fontWeight: 'bold', borderBottom: '2px solid #e9ecef', paddingBottom: '0.75rem' }}>
+                📊 Financial Summary
+              </h2>
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '1rem', marginBottom: '1.5rem' }}>
+                {[
+                  { label: 'Labor Cost', value: stats.total_labor_cost || 0, color: '#3b82f6', icon: '👷' },
+                  { label: 'Material Cost', value: stats.total_material_cost || 0, color: '#f59e0b', icon: '🧱' },
+                  { label: 'Other Expenses', value: stats.total_expenses || 0, color: '#ef4444', icon: '💸' },
+                ].map(item => (
+                  <div key={item.label} style={{
+                    background: '#f8f9fa', borderRadius: '10px', padding: '1.25rem',
+                    borderLeft: `4px solid ${item.color}`, textAlign: 'center'
+                  }}>
+                    <div style={{ fontSize: '1.5rem', marginBottom: '0.4rem' }}>{item.icon}</div>
+                    <div style={{ fontSize: '1.3rem', fontWeight: 'bold', color: item.color }}>
+                      ₹{parseFloat(item.value || 0).toLocaleString('en-IN')}
+                    </div>
+                    <div style={{ fontSize: '0.8rem', color: '#6c757d', marginTop: '0.25rem' }}>{item.label}</div>
+                  </div>
+                ))}
+              </div>
+
+              {/* Total cost vs Budget */}
+              {(() => {
+                const budget = parseFloat(project.budget || 0);
+                const laborCost = parseFloat(stats.total_labor_cost || 0);
+                const materialCost = parseFloat(stats.total_material_cost || 0);
+                const expenseCost = parseFloat(stats.total_expenses || 0);
+                const totalCost = laborCost + materialCost + expenseCost;
+                const utilization = budget > 0 ? Math.min(100, Math.round((totalCost / budget) * 100)) : 0;
+                const profitLoss = budget - totalCost;
+                return (
+                  <div>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.5rem' }}>
+                      <span style={{ fontWeight: '600', color: '#374151' }}>Budget Utilization</span>
+                      <span style={{ fontWeight: '700', color: utilization > 90 ? '#ef4444' : '#1F7A8C' }}>{utilization}%</span>
+                    </div>
+                    <div style={{ background: '#e9ecef', borderRadius: '8px', height: '12px', overflow: 'hidden', marginBottom: '1rem' }}>
+                      <div style={{
+                        height: '100%', borderRadius: '8px',
+                        background: utilization > 90 ? 'linear-gradient(90deg, #ef4444, #dc2626)' :
+                          utilization > 70 ? 'linear-gradient(90deg, #f59e0b, #d97706)' :
+                          'linear-gradient(90deg, #22c55e, #16a34a)',
+                        width: `${utilization}%`,
+                        transition: 'width 0.5s ease'
+                      }} />
+                    </div>
+                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '1rem' }}>
+                      <div style={{ padding: '0.875rem', background: '#f8f9fa', borderRadius: '8px', textAlign: 'center' }}>
+                        <div style={{ fontSize: '0.8rem', color: '#6c757d' }}>Budget</div>
+                        <div style={{ fontWeight: '700', color: '#1F7A8C', fontSize: '1.1rem' }}>
+                          ₹{budget.toLocaleString('en-IN')}
+                        </div>
+                      </div>
+                      <div style={{ padding: '0.875rem', background: '#f8f9fa', borderRadius: '8px', textAlign: 'center' }}>
+                        <div style={{ fontSize: '0.8rem', color: '#6c757d' }}>Total Cost</div>
+                        <div style={{ fontWeight: '700', color: '#ef4444', fontSize: '1.1rem' }}>
+                          ₹{totalCost.toLocaleString('en-IN')}
+                        </div>
+                      </div>
+                      <div style={{ padding: '0.875rem', background: profitLoss >= 0 ? '#dcfce7' : '#fee2e2', borderRadius: '8px', textAlign: 'center' }}>
+                        <div style={{ fontSize: '0.8rem', color: '#6c757d' }}>{profitLoss >= 0 ? 'Surplus' : 'Over Budget'}</div>
+                        <div style={{ fontWeight: '700', color: profitLoss >= 0 ? '#16a34a' : '#dc2626', fontSize: '1.1rem' }}>
+                          {profitLoss >= 0 ? '+' : '-'}₹{Math.abs(profitLoss).toLocaleString('en-IN')}
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                );
+              })()}
+            </div>
+
+            {/* Quick Actions */}
+            <div style={{
+              background: 'white', borderRadius: '12px', padding: '1.5rem 2rem',
+              boxShadow: '0 4px 15px rgba(0,0,0,0.08)', border: '1px solid #e9ecef'
+            }}>
+              <h3 style={{ margin: '0 0 1rem 0', color: '#1F7A8C', fontSize: '1.1rem' }}>⚡ Quick Actions</h3>
+              <div style={{ display: 'flex', gap: '0.75rem', flexWrap: 'wrap' }}>
+                {[
+                  { label: '📅 Mark Attendance', path: `/projects/${id}/attendance` },
+                  { label: '💰 Add Payment', path: `/projects/${id}/payments` },
+                  { label: '💳 Bulk Payment', path: `/projects/${id}/bulk-payment` },
+                  { label: '📊 Reports', path: `/reports` },
+                  { label: '📋 Attendance History', path: `/attendance/history?project_id=${id}` },
+                ].map(action => (
+                  <button
+                    key={action.path}
+                    onClick={() => navigate(action.path)}
+                    style={{
+                      padding: '0.65rem 1.25rem', background: '#f8f9fa',
+                      border: '2px solid #1F7A8C', color: '#1F7A8C',
+                      borderRadius: '8px', fontWeight: '600', fontSize: '0.875rem',
+                      cursor: 'pointer', transition: 'all 0.2s'
+                    }}
+                    onMouseEnter={e => { e.currentTarget.style.background = '#1F7A8C'; e.currentTarget.style.color = 'white'; }}
+                    onMouseLeave={e => { e.currentTarget.style.background = '#f8f9fa'; e.currentTarget.style.color = '#1F7A8C'; }}
+                  >
+                    {action.label}
+                  </button>
+                ))}
+              </div>
+            </div>
           </div>
         );
       case 'workers':
@@ -355,6 +464,84 @@ const ProjectDetails: React.FC = () => {
                 </button>
               </div>
             </div>
+
+            {/* Worker Balance Summary Table */}
+            {workers.length > 0 && (
+              <div style={{
+                background: 'white', borderRadius: '12px', padding: '1.5rem',
+                boxShadow: '0 4px 15px rgba(0,0,0,0.08)', border: '1px solid #e9ecef',
+                marginBottom: '1.5rem', overflowX: 'auto'
+              }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
+                  <h3 style={{ margin: 0, color: '#1F7A8C', fontWeight: '700', fontSize: '1.1rem' }}>
+                    💰 Worker Balance Summary
+                  </h3>
+                  <button
+                    onClick={() => navigate(`/projects/${id}/bulk-payment`)}
+                    style={{
+                      background: 'linear-gradient(135deg, #22c55e, #16a34a)',
+                      color: 'white', border: 'none', padding: '0.5rem 1.25rem',
+                      borderRadius: '8px', fontWeight: '600', fontSize: '0.875rem',
+                      cursor: 'pointer'
+                    }}
+                  >
+                    💳 Bulk Payment
+                  </button>
+                </div>
+                <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+                  <thead>
+                    <tr style={{ background: '#f8f9fa' }}>
+                      {['Worker', 'Role', 'Wages Earned', 'Paid', 'Balance Due'].map(h => (
+                        <th key={h} style={{ padding: '0.75rem 1rem', textAlign: h === 'Worker' || h === 'Role' ? 'left' : 'right', color: '#1F7A8C', fontWeight: '600', fontSize: '0.85rem', borderBottom: '2px solid #e9ecef' }}>{h}</th>
+                      ))}
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {workers.map(w => {
+                      const wages = parseFloat(w.total_wages_earned || 0);
+                      const paid = parseFloat(w.total_payments || 0);
+                      const balance = parseFloat(w.balance_due || 0);
+                      return (
+                        <tr key={w.id} style={{ borderBottom: '1px solid #e9ecef' }}
+                          onMouseEnter={e => { e.currentTarget.style.background = '#f8f9fa'; }}
+                          onMouseLeave={e => { e.currentTarget.style.background = 'white'; }}
+                        >
+                          <td style={{ padding: '0.75rem 1rem', fontWeight: '600', color: '#1F7A8C', cursor: 'pointer' }}
+                            onClick={() => navigate(`/projects/${id}/workers/${w.id}`)}>
+                            {w.name}
+                          </td>
+                          <td style={{ padding: '0.75rem 1rem', color: '#6c757d', fontSize: '0.875rem' }}>{w.role}</td>
+                          <td style={{ padding: '0.75rem 1rem', textAlign: 'right', fontWeight: '600', color: '#374151' }}>
+                            ₹{wages.toLocaleString('en-IN')}
+                          </td>
+                          <td style={{ padding: '0.75rem 1rem', textAlign: 'right', color: '#22c55e', fontWeight: '600' }}>
+                            ₹{paid.toLocaleString('en-IN')}
+                          </td>
+                          <td style={{ padding: '0.75rem 1rem', textAlign: 'right', fontWeight: '700',
+                            color: balance > 0 ? '#ef4444' : balance < 0 ? '#22c55e' : '#6c757d' }}>
+                            {balance > 0 ? `₹${balance.toLocaleString('en-IN')} owed` : balance < 0 ? `₹${Math.abs(balance).toLocaleString('en-IN')} excess` : '✓ Settled'}
+                          </td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                  <tfoot>
+                    <tr style={{ background: '#f0f9ff', borderTop: '2px solid #1F7A8C' }}>
+                      <td colSpan={2} style={{ padding: '0.75rem 1rem', fontWeight: '700', color: '#1F7A8C' }}>TOTAL</td>
+                      <td style={{ padding: '0.75rem 1rem', textAlign: 'right', fontWeight: '700', color: '#374151' }}>
+                        ₹{workers.reduce((s, w) => s + parseFloat(w.total_wages_earned || 0), 0).toLocaleString('en-IN')}
+                      </td>
+                      <td style={{ padding: '0.75rem 1rem', textAlign: 'right', fontWeight: '700', color: '#22c55e' }}>
+                        ₹{workers.reduce((s, w) => s + parseFloat(w.total_payments || 0), 0).toLocaleString('en-IN')}
+                      </td>
+                      <td style={{ padding: '0.75rem 1rem', textAlign: 'right', fontWeight: '700', color: '#ef4444' }}>
+                        ₹{workers.reduce((s, w) => s + Math.max(0, parseFloat(w.balance_due || 0)), 0).toLocaleString('en-IN')} owed
+                      </td>
+                    </tr>
+                  </tfoot>
+                </table>
+              </div>
+            )}
 
             {workers.length > 0 ? (
               <div className="grid grid-cols-4" style={{ gap: '1.25rem' }}>

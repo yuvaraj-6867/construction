@@ -580,7 +580,7 @@ const WorkerDetails: React.FC = () => {
             Make Payment
           </button>
           <button
-            onClick={() => navigate(`/attendance?worker_id=${worker.id}`)}
+            onClick={() => navigate(`/attendance/history?worker_id=${worker.id}`)}
             style={{
               background: 'linear-gradient(135deg, #22c55e 0%, #16a34a 100%)',
               border: 'none',

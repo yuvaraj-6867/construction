@@ -4,6 +4,9 @@ class Api::V1::WorkersController < ApplicationController
   # GET /api/v1/workers
   def index
     @workers = params[:project_id] ? Worker.where(project_id: params[:project_id]) : Worker.all
+    @workers = @workers.where('LOWER(name) LIKE ?', "%#{params[:search].downcase}%") if params[:search].present?
+    @workers = @workers.where(is_active: params[:status] == 'active') if params[:status].in?(%w[active inactive])
+    @workers = @workers.where(payment_type: params[:payment_type]) if params[:payment_type].present?
     render json: @workers.map { |w| worker_json(w) }
   end
 
@@ -45,14 +48,16 @@ class Api::V1::WorkersController < ApplicationController
   end
 
   def worker_params
-    permitted = params.require(:worker).permit(:name, :phone, :role, :daily_wage, :project_id, :is_active, :joined_date, :status, :address, :advance_given)
-    
-    # Convert status string to is_active boolean
+    permitted = params.require(:worker).permit(
+      :name, :phone, :role, :daily_wage, :contract_amount, :payment_type,
+      :project_id, :is_active, :joined_date, :status, :address, :advance_given
+    )
+
     if permitted[:status]
       permitted[:is_active] = permitted[:status] == 'active'
       permitted.delete(:status)
     end
-    
+
     permitted
   end
 
@@ -62,11 +67,17 @@ class Api::V1::WorkersController < ApplicationController
       name: worker.name,
       phone: worker.phone,
       role: worker.role,
+      payment_type: worker.payment_type || 'daily',
       daily_wage: worker.daily_wage,
+      contract_amount: worker.contract_amount,
       project_id: worker.project_id,
       is_active: worker.is_active,
       status: worker.is_active ? 'active' : 'inactive',
-      joined_date: worker.joined_date
+      joined_date: worker.joined_date,
+      total_wages_earned: worker.total_wages_earned,
+      advance_given: worker.advance_given || 0,
+      total_payments: worker.total_payments,
+      balance_due: worker.balance_due
     }
   end
 
@@ -78,12 +89,13 @@ class Api::V1::WorkersController < ApplicationController
         total_payments: worker.total_payments,
         balance_due: worker.balance_due
       },
-      recent_attendances: worker.attendances.order(date: :desc).limit(10).map { |a|
+      recent_attendances: worker.attendances.order(date: :desc).limit(30).map { |a|
         {
           id: a.id,
           date: a.date,
           status: a.status,
-          wage: a.wage
+          wage: a.wage,
+          notes: a.notes
         }
       }
     )

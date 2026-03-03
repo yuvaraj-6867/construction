@@ -38,4 +38,5 @@ class User < ApplicationRecord
   has_many :client_advances, dependent: :nullify
   has_many :invoices, dependent: :nullify
   has_many :site_photos, dependent: :nullify
+  has_many :notifications, dependent: :destroy
 end

@@ -5,6 +5,9 @@ class Api::V1::AttendancesController < ApplicationController
     @attendances = @attendances.where(project_id: params[:project_id]) if params[:project_id]
     @attendances = @attendances.where(worker_id: params[:worker_id]) if params[:worker_id]
     @attendances = @attendances.where(date: params[:date]) if params[:date]
+    if params[:start_date].present? && params[:end_date].present?
+      @attendances = @attendances.where(date: Date.parse(params[:start_date])..Date.parse(params[:end_date]))
+    end
 
     render json: @attendances.order(date: :desc).map { |a| attendance_json(a) }
   end
@@ -24,6 +27,7 @@ class Api::V1::AttendancesController < ApplicationController
   def bulk_create
     attendances = []
     errors = []
+    date = params[:attendances]&.first&.[](:date)
 
     params[:attendances].each do |att_params|
       attendance = Attendance.new(att_params.permit(:worker_id, :project_id, :date, :status, :notes).merge(user: current_user))
@@ -35,6 +39,7 @@ class Api::V1::AttendancesController < ApplicationController
     end
 
     if errors.empty?
+      Notification.create_for_attendance(current_user, attendances.count, date) rescue nil
       render json: { message: 'Attendance marked successfully', count: attendances.count }, status: :created
     else
       render json: { created: attendances.count, errors: errors }, status: :partial_content
@@ -50,6 +55,13 @@ class Api::V1::AttendancesController < ApplicationController
     else
       render json: { errors: @attendance.errors.full_messages }, status: :unprocessable_entity
     end
+  end
+
+  # DELETE /api/v1/attendances/:id
+  def destroy
+    @attendance = Attendance.find(params[:id])
+    @attendance.destroy
+    head :no_content
   end
 
   private

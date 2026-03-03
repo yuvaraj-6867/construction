@@ -19,13 +19,20 @@ const WorkerList: React.FC = () => {
   const isProjectRoute = location.pathname.includes('/projects/');
   const projectId = isProjectRoute ? params.id : searchParams.get('project_id');
 
+  // Search/filter state
+  const [search, setSearch] = useState('');
+  const [statusFilter, setStatusFilter] = useState('');
+  const [paymentTypeFilter, setPaymentTypeFilter] = useState('');
+
   // Form state
   const [formData, setFormData] = useState({
     name: '',
     role: '',
     phone: '',
     address: '',
+    payment_type: 'daily',
     daily_wage: '',
+    contract_amount: '',
     advance_given: '',
     status: 'active',
     project_id: projectId || ''
@@ -101,7 +108,9 @@ const WorkerList: React.FC = () => {
       role: '',
       phone: '',
       address: '',
+      payment_type: 'daily',
       daily_wage: '',
+      contract_amount: '',
       advance_given: '',
       status: 'active',
       project_id: projectId || ''
@@ -116,8 +125,10 @@ const WorkerList: React.FC = () => {
       name: worker.name,
       role: worker.role,
       phone: worker.phone,
-      address: worker.address,
-      daily_wage: worker.daily_wage,
+      address: worker.address || '',
+      payment_type: worker.payment_type || 'daily',
+      daily_wage: worker.daily_wage || '',
+      contract_amount: worker.contract_amount || '',
       advance_given: worker.advance_given || '',
       status: worker.status,
       project_id: worker.project_id
@@ -159,6 +170,13 @@ const WorkerList: React.FC = () => {
       setFormLoading(false);
     }
   };
+
+  const filteredWorkers = workers.filter(w => {
+    const matchSearch = !search || w.name.toLowerCase().includes(search.toLowerCase()) || w.role.toLowerCase().includes(search.toLowerCase());
+    const matchStatus = !statusFilter || w.status === statusFilter;
+    const matchType = !paymentTypeFilter || (w.payment_type || 'daily') === paymentTypeFilter;
+    return matchSearch && matchStatus && matchType;
+  });
 
   if (loading) {
     return <Loading message="Loading workers..." />;
@@ -258,10 +276,57 @@ const WorkerList: React.FC = () => {
         </button>
       </div>
 
+      {/* Search & Filter Bar */}
+      <div style={{
+        display: 'flex', gap: '1rem', marginBottom: '1.5rem', flexWrap: 'wrap',
+        background: 'white', padding: '1rem 1.5rem', borderRadius: '12px',
+        boxShadow: '0 2px 12px rgba(0,0,0,0.06)'
+      }}>
+        <input
+          type="text"
+          placeholder="🔍 Search by name or role..."
+          value={search}
+          onChange={e => setSearch(e.target.value)}
+          style={{
+            flex: 1, minWidth: '200px', padding: '0.65rem 1rem', fontSize: '0.95rem',
+            border: '2px solid #e9ecef', borderRadius: '8px', outline: 'none'
+          }}
+          onFocus={e => e.currentTarget.style.borderColor = '#1F7A8C'}
+          onBlur={e => e.currentTarget.style.borderColor = '#e9ecef'}
+        />
+        <select
+          value={statusFilter}
+          onChange={e => setStatusFilter(e.target.value)}
+          style={{
+            padding: '0.65rem 1rem', fontSize: '0.95rem', border: '2px solid #e9ecef',
+            borderRadius: '8px', outline: 'none', cursor: 'pointer', minWidth: '140px'
+          }}
+        >
+          <option value="">All Status</option>
+          <option value="active">Active</option>
+          <option value="inactive">Inactive</option>
+        </select>
+        <select
+          value={paymentTypeFilter}
+          onChange={e => setPaymentTypeFilter(e.target.value)}
+          style={{
+            padding: '0.65rem 1rem', fontSize: '0.95rem', border: '2px solid #e9ecef',
+            borderRadius: '8px', outline: 'none', cursor: 'pointer', minWidth: '160px'
+          }}
+        >
+          <option value="">All Payment Types</option>
+          <option value="daily">Daily Wage</option>
+          <option value="contract">Contract</option>
+        </select>
+        <span style={{ alignSelf: 'center', color: '#666', fontSize: '0.9rem', whiteSpace: 'nowrap' }}>
+          {filteredWorkers.length} of {workers.length} workers
+        </span>
+      </div>
+
       {/* Workers Grid */}
-      {workers.length > 0 ? (
+      {filteredWorkers.length > 0 ? (
         <div className="grid grid-cols-4" style={{ gap: '1.25rem' }}>
-          {workers.map((worker, index) => (
+          {filteredWorkers.map((worker, index) => (
             <div
               key={worker.id}
               style={{
@@ -366,7 +431,7 @@ const WorkerList: React.FC = () => {
                   color: '#6c757d',
                   marginBottom: '0.15rem'
                 }}>
-                  Daily Wage
+                    {worker.payment_type === 'contract' ? 'Contract' : 'Daily Wage'}
                 </p>
                 <p style={{
                   margin: 0,
@@ -374,7 +439,9 @@ const WorkerList: React.FC = () => {
                   fontWeight: 'bold',
                   color: '#1F7A8C'
                 }}>
-                  ₹{worker.daily_wage}
+                  {worker.payment_type === 'contract'
+                    ? `₹${worker.contract_amount} (contract)`
+                    : `₹${worker.daily_wage}/day`}
                 </p>
               </div>
 
@@ -665,35 +732,61 @@ const WorkerList: React.FC = () => {
                   />
                 </div>
 
+                {/* Payment Type */}
                 <div style={{ marginBottom: '1.5rem' }}>
-                  <input
-                    type="number"
-                    name="daily_wage"
-                    value={formData.daily_wage}
+                  <label style={{ display: 'block', marginBottom: '0.5rem', color: '#1F7A8C', fontWeight: '600', fontSize: '0.95rem' }}>
+                    Payment Type *
+                  </label>
+                  <select
+                    name="payment_type"
+                    value={formData.payment_type}
                     onChange={handleFormChange}
                     required
-                    min="0"
-                    step="0.01"
-                    placeholder="Daily Wage (₹) *"
-                    style={{
-                      width: '100%',
-                      padding: '0.75rem 1rem',
-                      fontSize: '1rem',
-                      border: '2px solid #e9ecef',
-                      borderRadius: '8px',
-                      transition: 'all 0.3s',
-                      outline: 'none'
-                    }}
-                    onFocus={(e) => {
-                      e.currentTarget.style.borderColor = '#1F7A8C';
-                      e.currentTarget.style.boxShadow = '0 0 0 3px rgba(31, 122, 140, 0.1)';
-                    }}
-                    onBlur={(e) => {
-                      e.currentTarget.style.borderColor = '#e9ecef';
-                      e.currentTarget.style.boxShadow = 'none';
-                    }}
-                  />
+                    style={{ width: '100%', padding: '0.75rem 1rem', fontSize: '1rem', border: '2px solid #e9ecef', borderRadius: '8px', outline: 'none', cursor: 'pointer' }}
+                    onFocus={e => { e.currentTarget.style.borderColor = '#1F7A8C'; }}
+                    onBlur={e => { e.currentTarget.style.borderColor = '#e9ecef'; }}
+                  >
+                    <option value="daily">Daily Wage</option>
+                    <option value="contract">Contract (Fixed Amount)</option>
+                  </select>
                 </div>
+
+                {formData.payment_type === 'daily' ? (
+                  <div style={{ marginBottom: '1.5rem' }}>
+                    <input
+                      type="number"
+                      name="daily_wage"
+                      value={formData.daily_wage}
+                      onChange={handleFormChange}
+                      required
+                      min="0"
+                      step="0.01"
+                      placeholder="Daily Wage (₹) *"
+                      style={{ width: '100%', padding: '0.75rem 1rem', fontSize: '1rem', border: '2px solid #e9ecef', borderRadius: '8px', transition: 'all 0.3s', outline: 'none' }}
+                      onFocus={e => { e.currentTarget.style.borderColor = '#1F7A8C'; e.currentTarget.style.boxShadow = '0 0 0 3px rgba(31,122,140,0.1)'; }}
+                      onBlur={e => { e.currentTarget.style.borderColor = '#e9ecef'; e.currentTarget.style.boxShadow = 'none'; }}
+                    />
+                  </div>
+                ) : (
+                  <div style={{ marginBottom: '1.5rem' }}>
+                    <input
+                      type="number"
+                      name="contract_amount"
+                      value={formData.contract_amount}
+                      onChange={handleFormChange}
+                      required
+                      min="0"
+                      step="0.01"
+                      placeholder="Contract Amount (₹) *"
+                      style={{ width: '100%', padding: '0.75rem 1rem', fontSize: '1rem', border: '2px solid #e9ecef', borderRadius: '8px', transition: 'all 0.3s', outline: 'none' }}
+                      onFocus={e => { e.currentTarget.style.borderColor = '#1F7A8C'; e.currentTarget.style.boxShadow = '0 0 0 3px rgba(31,122,140,0.1)'; }}
+                      onBlur={e => { e.currentTarget.style.borderColor = '#e9ecef'; e.currentTarget.style.boxShadow = 'none'; }}
+                    />
+                    <p style={{ fontSize: '0.8rem', color: '#666', marginTop: '0.35rem' }}>
+                      Contract worker — attendance recorded but fixed amount applies
+                    </p>
+                  </div>
+                )}
 
                 <div style={{ marginBottom: '1.5rem' }}>
                   <input

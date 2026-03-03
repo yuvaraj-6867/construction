@@ -31,14 +31,22 @@ Rails.application.configure do
   # Store uploaded files on the local file system (see config/storage.yml for options).
   config.active_storage.service = :local
 
-  # Don't care if the mailer can't send.
+  # Email configuration (Gmail SMTP)
   config.action_mailer.raise_delivery_errors = false
-
-  # Disable caching for Action Mailer templates even if Action Controller
-  # caching is enabled.
   config.action_mailer.perform_caching = false
-
-  config.action_mailer.default_url_options = { host: "localhost", port: 3000 }
+  config.action_mailer.default_url_options = { host: 'localhost', port: 3000 }
+  config.action_mailer.delivery_method = :smtp
+  config.action_mailer.smtp_settings = {
+    address: 'smtp.gmail.com',
+    port: 587,
+    domain: 'gmail.com',
+    user_name: ENV.fetch('GMAIL_USERNAME', ''),
+    password: ENV.fetch('GMAIL_APP_PASSWORD', ''),
+    authentication: 'plain',
+    enable_starttls_auto: true
+  }
+  # Set to :test in development if SMTP is not configured
+  config.action_mailer.delivery_method = :test if ENV['GMAIL_USERNAME'].blank?
 
   # Print deprecation notices to the Rails logger.
   config.active_support.deprecation = :log

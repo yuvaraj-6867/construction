@@ -1,17 +1,27 @@
 Rails.application.routes.draw do
-  # Define your application routes per the DSL in https://guides.rubyonrails.org/routing.html
-
-  # Reveal health status on /up that returns 200 if the app boots with no exceptions, otherwise 500.
-  # Can be used by load balancers and uptime monitors to verify that the app is live.
   get "up" => "rails/health#show", as: :rails_health_check
 
-  # API routes
   namespace :api do
     namespace :v1 do
       # Authentication routes
       post 'auth/register', to: 'auth#register'
       post 'auth/login', to: 'auth#login'
-      get 'auth/me', to: 'auth#me'
+      get  'auth/me', to: 'auth#me'
+      post 'auth/forgot_password', to: 'auth#forgot_password'
+      post 'auth/reset_password', to: 'auth#reset_password'
+
+      # Dashboard stats
+      get 'dashboard/stats', to: 'dashboard#stats'
+
+      # Reports
+      get 'reports/worker_summary', to: 'reports#worker_summary'
+      get 'reports/project_summary', to: 'reports#project_summary'
+
+      # Notifications
+      get  'notifications', to: 'notifications#index'
+      get  'notifications/unread_count', to: 'notifications#unread_count'
+      patch 'notifications/mark_all_read', to: 'notifications#mark_all_read'
+      patch 'notifications/:id/mark_read', to: 'notifications#mark_read'
 
       # Resource routes
       resources :projects
@@ -21,7 +31,11 @@ Rails.application.routes.draw do
           post :bulk_create
         end
       end
-      resources :payments
+      resources :payments do
+        collection do
+          post :bulk_create
+        end
+      end
       resources :materials
       resources :expenses
       resources :client_advances
@@ -29,7 +43,4 @@ Rails.application.routes.draw do
       resources :site_photos
     end
   end
-
-  # Defines the root path route ("/")
-  # root "posts#index"
 end

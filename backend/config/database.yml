@@ -71,5 +71,7 @@ test:
 production:
   <<: *default
   database: construction_api_production
-  username: construction_api
-  password: <%= ENV["CONSTRUCTION_API_DATABASE_PASSWORD"] %>
+  username: <%= ENV.fetch("POSTGRES_USER", "construction_api") %>
+  password: <%= ENV.fetch("POSTGRES_PASSWORD", ENV["CONSTRUCTION_API_DATABASE_PASSWORD"]) %>
+  host: <%= ENV.fetch("POSTGRES_HOST", "db") %>
+  port: <%= ENV.fetch("POSTGRES_PORT", "5432") %>

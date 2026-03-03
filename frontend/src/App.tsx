@@ -3,6 +3,7 @@ import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-d
 import './styles/global.css';
 import { AuthProvider } from './contexts/AuthContext';
 import { LanguageProvider } from './contexts/LanguageContext';
+import { ToastProvider } from './components/Toast';
 import Login from './pages/Login';
 import Dashboard from './pages/Dashboard';
 import ProjectList from './pages/Projects/ProjectList';
@@ -11,12 +12,17 @@ import ProjectDetails from './pages/Projects/ProjectDetails';
 import WorkerList from './pages/Workers/WorkerList';
 import WorkerDetails from './pages/Workers/WorkerDetails';
 import AttendanceMarking from './pages/Attendance/AttendanceMarking';
+import AttendanceHistory from './pages/Attendance/AttendanceHistory';
 import PaymentList from './pages/Payments/PaymentList';
 import MaterialList from './pages/Materials/MaterialList';
 import ExpenseList from './pages/Expenses/ExpenseList';
 import ClientAdvanceList from './pages/ClientAdvances/ClientAdvanceList';
 import InvoiceList from './pages/Invoices/InvoiceList';
 import Settings from './pages/Settings/Settings';
+import Reports from './pages/Reports/Reports';
+import ForgotPassword from './pages/ForgotPassword';
+import ResetPassword from './pages/ResetPassword';
+import BulkPayment from './pages/Payments/BulkPayment';
 
 // Protected Route Component
 const ProtectedRoute: React.FC<{ children: React.ReactNode }> = ({ children }) => {
@@ -28,9 +34,12 @@ function App() {
   return (
     <LanguageProvider>
       <AuthProvider>
+        <ToastProvider>
         <Router>
           <Routes>
           <Route path="/" element={<Login />} />
+          <Route path="/forgot-password" element={<ForgotPassword />} />
+          <Route path="/reset-password" element={<ResetPassword />} />
           <Route
             path="/dashboard"
             element={
@@ -172,6 +181,14 @@ function App() {
             }
           />
           <Route
+            path="/attendance/history"
+            element={
+              <ProtectedRoute>
+                <AttendanceHistory />
+              </ProtectedRoute>
+            }
+          />
+          <Route
             path="/payments"
             element={
               <ProtectedRoute>
@@ -259,8 +276,25 @@ function App() {
               </ProtectedRoute>
             }
           />
+          <Route
+            path="/reports"
+            element={
+              <ProtectedRoute>
+                <Reports />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/projects/:id/bulk-payment"
+            element={
+              <ProtectedRoute>
+                <BulkPayment />
+              </ProtectedRoute>
+            }
+          />
         </Routes>
       </Router>
+      </ToastProvider>
     </AuthProvider>
     </LanguageProvider>
   );

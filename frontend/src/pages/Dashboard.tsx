@@ -1,7 +1,10 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useLanguage } from '../contexts/LanguageContext';
 import Loading from '../components/Loading';
+import NotificationBell from '../components/NotificationBell';
+import { useToast } from '../components/Toast';
+import api from '../services/api';
 import '../styles/global.css';
 
 interface User {
@@ -11,10 +14,59 @@ interface User {
   role: string;
 }
 
+interface DashboardStats {
+  projects: { total: number; active: number };
+  workers: { total: number; active: number };
+  payments: { total_wages_earned: number; total_paid: number; total_balance: number };
+  today_attendance: { present: number; half_day: number; absent: number; total: number };
+  recent_payments: {
+    id: number;
+    worker_name: string;
+    project_name: string;
+    amount: number;
+    payment_type: string;
+    date: string;
+  }[];
+  recent_projects: {
+    id: number;
+    name: string;
+    status: string;
+    budget: number;
+    client_name: string;
+    active_workers: number;
+  }[];
+}
+
+const formatCurrency = (amount: number) => {
+  if (amount >= 100000) return `₹${(amount / 100000).toFixed(1)}L`;
+  if (amount >= 1000) return `₹${(amount / 1000).toFixed(1)}K`;
+  return `₹${amount.toFixed(0)}`;
+};
+
+const statusColor: Record<string, string> = {
+  'in-progress': '#2E7D32',
+  'planning': '#E36414',
+  'completed': '#1F7A8C',
+  'on-hold': '#C62828',
+};
+
+const statusLabel: Record<string, string> = {
+  'in-progress': 'In Progress',
+  'planning': 'Planning',
+  'completed': 'Completed',
+  'on-hold': 'On Hold',
+};
+
 const Dashboard = () => {
   const navigate = useNavigate();
   const { t } = useLanguage();
+  const { showToast } = useToast();
   const [user, setUser] = useState<User | null>(null);
+  const [stats, setStats] = useState<DashboardStats | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
+  const [error, setError] = useState('');
+  const [sessionWarning, setSessionWarning] = useState(false);
 
   useEffect(() => {
     const userStr = localStorage.getItem('user');
@@ -22,8 +74,47 @@ const Dashboard = () => {
       setUser(JSON.parse(userStr));
     } else {
       navigate('/');
+      return;
     }
+    loadStats();
+    checkSessionExpiry();
+    // Auto-refresh every 5 minutes
+    const interval = setInterval(loadStats, 5 * 60 * 1000);
+    return () => clearInterval(interval);
   }, [navigate]);
+
+  const checkSessionExpiry = () => {
+    const token = localStorage.getItem('authToken');
+    if (!token) return;
+    try {
+      const payload = JSON.parse(atob(token.split('.')[1]));
+      if (payload.exp) {
+        const expiresIn = payload.exp * 1000 - Date.now();
+        const fiveMinutes = 5 * 60 * 1000;
+        if (expiresIn < fiveMinutes && expiresIn > 0) {
+          setSessionWarning(true);
+        }
+        // Warn 5 minutes before expiry
+        if (expiresIn > fiveMinutes) {
+          setTimeout(() => setSessionWarning(true), expiresIn - fiveMinutes);
+        }
+      }
+    } catch {}
+  };
+
+  const loadStats = useCallback(async (showLoader = false) => {
+    if (showLoader) setRefreshing(true);
+    try {
+      const res = await api.get('/dashboard/stats');
+      setStats(res.data);
+      if (showLoader) showToast('Dashboard refreshed', 'success');
+    } catch (err: any) {
+      setError('Failed to load dashboard data');
+    } finally {
+      setLoading(false);
+      setRefreshing(false);
+    }
+  }, [showToast]);
 
   const handleLogout = () => {
     localStorage.removeItem('authToken');
@@ -31,9 +122,17 @@ const Dashboard = () => {
     navigate('/');
   };
 
-  if (!user) {
+  if (!user || loading) {
     return <Loading message="Loading dashboard..." />;
   }
+
+  const attendanceTotal = stats?.today_attendance.total || 0;
+  const presentCount = stats?.today_attendance.present || 0;
+  const halfDayCount = stats?.today_attendance.half_day || 0;
+  const absentCount = stats?.today_attendance.absent || 0;
+  const presentPct = attendanceTotal > 0 ? Math.round((presentCount / attendanceTotal) * 100) : 0;
+  const halfDayPct = attendanceTotal > 0 ? Math.round((halfDayCount / attendanceTotal) * 100) : 0;
+  const absentPct = attendanceTotal > 0 ? Math.round((absentCount / attendanceTotal) * 100) : 0;
 
   return (
     <div className="app" style={{ background: '#f5f7fa', minHeight: '100vh' }}>
@@ -85,8 +184,56 @@ const Dashboard = () => {
           >
             📁 {t('projects')}
           </button>
+          <button
+            onClick={() => navigate('/reports')}
+            style={{
+              background: 'rgba(255,255,255,0.15)',
+              border: '1px solid rgba(255,255,255,0.3)',
+              color: 'white',
+              fontSize: '1rem',
+              cursor: 'pointer',
+              padding: '0.65rem 1.5rem',
+              borderRadius: '8px',
+              fontWeight: '500',
+              transition: 'all 0.2s',
+              backdropFilter: 'blur(10px)'
+            }}
+            onMouseEnter={(e) => {
+              e.currentTarget.style.background = 'rgba(255,255,255,0.25)';
+              e.currentTarget.style.transform = 'translateY(-2px)';
+            }}
+            onMouseLeave={(e) => {
+              e.currentTarget.style.background = 'rgba(255,255,255,0.15)';
+              e.currentTarget.style.transform = 'translateY(0)';
+            }}
+          >
+            📊 Reports
+          </button>
         </div>
-        <div style={{ display: 'flex', gap: '1.5rem', alignItems: 'center' }}>
+        <div style={{ display: 'flex', gap: '1rem', alignItems: 'center' }}>
+          <button
+            onClick={() => loadStats(true)}
+            disabled={refreshing}
+            title="Refresh dashboard"
+            style={{
+              background: 'rgba(255,255,255,0.15)',
+              border: '1px solid rgba(255,255,255,0.3)',
+              color: 'white',
+              width: '42px',
+              height: '42px',
+              borderRadius: '10px',
+              cursor: refreshing ? 'not-allowed' : 'pointer',
+              fontSize: '1.2rem',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              transition: 'all 0.2s',
+              animation: refreshing ? 'spin 1s linear infinite' : 'none'
+            }}
+          >
+            🔄
+          </button>
+          <NotificationBell />
           <div style={{
             textAlign: 'right',
             background: 'rgba(255,255,255,0.1)',
@@ -116,6 +263,44 @@ const Dashboard = () => {
       </nav>
 
       <div className="container" style={{ marginTop: '2.5rem', paddingBottom: '3rem' }}>
+
+        {sessionWarning && (
+          <div style={{
+            background: '#fffbeb',
+            border: '1px solid #fcd34d',
+            color: '#92400e',
+            padding: '0.875rem 1.5rem',
+            borderRadius: '10px',
+            marginBottom: '1.5rem',
+            display: 'flex',
+            justifyContent: 'space-between',
+            alignItems: 'center',
+            fontSize: '0.95rem'
+          }}>
+            <span>⚠️ Your session will expire soon. Please save your work and re-login.</span>
+            <button onClick={handleLogout} style={{
+              background: '#f59e0b', color: 'white', border: 'none',
+              padding: '0.4rem 1rem', borderRadius: '6px', cursor: 'pointer', fontWeight: '600'
+            }}>
+              Re-login
+            </button>
+          </div>
+        )}
+
+        {error && (
+          <div style={{
+            background: '#fef2f2',
+            border: '1px solid #fca5a5',
+            color: '#991b1b',
+            padding: '1rem 1.5rem',
+            borderRadius: '10px',
+            marginBottom: '1.5rem',
+            fontSize: '0.95rem'
+          }}>
+            ⚠️ {error}
+          </div>
+        )}
+
         {/* Stats Cards */}
         <div className="grid grid-cols-4" style={{ marginBottom: '2.5rem', gap: '1.5rem' }}>
           <div className="card" style={{
@@ -124,9 +309,11 @@ const Dashboard = () => {
             color: 'white',
             border: 'none',
             boxShadow: '0 8px 24px rgba(31, 122, 140, 0.2)',
+            cursor: 'pointer',
             transform: 'translateY(0)',
             transition: 'all 0.3s'
           }}
+          onClick={() => navigate('/projects')}
           onMouseEnter={(e) => {
             e.currentTarget.style.transform = 'translateY(-8px)';
             e.currentTarget.style.boxShadow = '0 12px 32px rgba(31, 122, 140, 0.3)';
@@ -136,8 +323,9 @@ const Dashboard = () => {
             e.currentTarget.style.boxShadow = '0 8px 24px rgba(31, 122, 140, 0.2)';
           }}>
             <div style={{ fontSize: '3rem', marginBottom: '0.5rem' }}>🏗️</div>
-            <h3 style={{ fontSize: '2.5rem', margin: '0', fontWeight: '700' }}>12</h3>
+            <h3 style={{ fontSize: '2.5rem', margin: '0', fontWeight: '700' }}>{stats?.projects.active ?? 0}</h3>
             <p style={{ opacity: 0.9, margin: '0.5rem 0 0 0', fontSize: '0.95rem' }}>{t('active_projects')}</p>
+            <p style={{ opacity: 0.7, margin: '0.25rem 0 0 0', fontSize: '0.8rem' }}>Total: {stats?.projects.total ?? 0}</p>
           </div>
 
           <div className="card" style={{
@@ -146,6 +334,7 @@ const Dashboard = () => {
             color: 'white',
             border: 'none',
             boxShadow: '0 8px 24px rgba(227, 100, 20, 0.2)',
+            cursor: 'pointer',
             transform: 'translateY(0)',
             transition: 'all 0.3s'
           }}
@@ -158,8 +347,9 @@ const Dashboard = () => {
             e.currentTarget.style.boxShadow = '0 8px 24px rgba(227, 100, 20, 0.2)';
           }}>
             <div style={{ fontSize: '3rem', marginBottom: '0.5rem' }}>👷</div>
-            <h3 style={{ fontSize: '2.5rem', margin: '0', fontWeight: '700' }}>45</h3>
+            <h3 style={{ fontSize: '2.5rem', margin: '0', fontWeight: '700' }}>{stats?.workers.active ?? 0}</h3>
             <p style={{ opacity: 0.9, margin: '0.5rem 0 0 0', fontSize: '0.95rem' }}>{t('total_workers')}</p>
+            <p style={{ opacity: 0.7, margin: '0.25rem 0 0 0', fontSize: '0.8rem' }}>Total: {stats?.workers.total ?? 0}</p>
           </div>
 
           <div className="card" style={{
@@ -180,8 +370,9 @@ const Dashboard = () => {
             e.currentTarget.style.boxShadow = '0 8px 24px rgba(46, 125, 50, 0.2)';
           }}>
             <div style={{ fontSize: '3rem', marginBottom: '0.5rem' }}>💰</div>
-            <h3 style={{ fontSize: '2.5rem', margin: '0', fontWeight: '700' }}>₹2.5L</h3>
-            <p style={{ opacity: 0.9, margin: '0.5rem 0 0 0', fontSize: '0.95rem' }}>{t('monthly_expenses')}</p>
+            <h3 style={{ fontSize: '2.5rem', margin: '0', fontWeight: '700' }}>{formatCurrency(stats?.payments.total_wages_earned ?? 0)}</h3>
+            <p style={{ opacity: 0.9, margin: '0.5rem 0 0 0', fontSize: '0.95rem' }}>Total Payable</p>
+            <p style={{ opacity: 0.7, margin: '0.25rem 0 0 0', fontSize: '0.8rem' }}>Paid: {formatCurrency(stats?.payments.total_paid ?? 0)}</p>
           </div>
 
           <div className="card" style={{
@@ -202,66 +393,15 @@ const Dashboard = () => {
             e.currentTarget.style.boxShadow = '0 8px 24px rgba(198, 40, 40, 0.2)';
           }}>
             <div style={{ fontSize: '3rem', marginBottom: '0.5rem' }}>⏰</div>
-            <h3 style={{ fontSize: '2.5rem', margin: '0', fontWeight: '700' }}>₹1.2L</h3>
+            <h3 style={{ fontSize: '2.5rem', margin: '0', fontWeight: '700' }}>{formatCurrency(stats?.payments.total_balance ?? 0)}</h3>
             <p style={{ opacity: 0.9, margin: '0.5rem 0 0 0', fontSize: '0.95rem' }}>{t('pending_payments')}</p>
+            <p style={{ opacity: 0.7, margin: '0.25rem 0 0 0', fontSize: '0.8rem' }}>Balance due</p>
           </div>
         </div>
 
-        {/* Quick Actions */}
-        {/* <div className="card" style={{ marginBottom: '2rem' }}>
-          <h2 style={{ marginTop: 0 }}>{t('quick_actions')}</h2>
-          <div className="grid grid-cols-4" style={{ gap: '1rem' }}>
-            <button className="btn btn-primary" style={{ padding: '1rem' }} onClick={() => navigate('/projects/new')}>
-              {t('new_project')}
-            </button> */}
-            {/* <button className="btn btn-secondary" style={{ padding: '1rem' }} onClick={() => navigate('/attendance')}>
-              {t('mark_attendance')}
-            </button>
-            <button className="btn btn-success" style={{ padding: '1rem' }} onClick={() => navigate('/payments/new')}>
-              {t('record_payment')}
-            </button>
-            <button className="btn" style={{ padding: '1rem', background: 'var(--warning-color)', color: 'white' }} onClick={() => navigate('/expenses/new')}>
-              {t('add_expense')}
-            </button> */}
-          {/* </div>
-        </div> */}
-
-        {/* Module Links */}
-        {/* <div className="card" style={{ marginBottom: '2rem' }}>
-          <h2 style={{ marginTop: 0 }}>{t('modules')}</h2>
-          <div className="grid grid-cols-4" style={{ gap: '1rem' }}>
-            <button className="btn" style={{ padding: '1rem' }} onClick={() => navigate('/projects')}>
-              {t('projects')}
-            </button>
-            <button className="btn" style={{ padding: '1rem' }} onClick={() => navigate('/workers')}>
-              {t('workers')}
-            </button>
-            <button className="btn" style={{ padding: '1rem' }} onClick={() => navigate('/attendance')}>
-              {t('attendance')}
-            </button>
-            <button className="btn" style={{ padding: '1rem' }} onClick={() => navigate('/payments')}>
-              {t('payments')}
-            </button>
-            <button className="btn" style={{ padding: '1rem' }} onClick={() => navigate('/materials')}>
-              {t('materials')}
-            </button>
-            <button className="btn" style={{ padding: '1rem' }} onClick={() => navigate('/expenses')}>
-              {t('expenses')}
-            </button>
-            <button className="btn" style={{ padding: '1rem' }} onClick={() => navigate('/client-advances')}>
-              {t('client_advances')}
-            </button>
-            <button className="btn" style={{ padding: '1rem' }} onClick={() => navigate('/invoices')}>
-              {t('invoices')}
-            </button>
-            <button className="btn" style={{ padding: '1rem' }} onClick={() => navigate('/settings')}>
-              {t('settings')}
-            </button>
-          </div>
-        </div> */}
-
-        {/* Recent Activity */}
+        {/* Bottom section */}
         <div className="grid grid-cols-2" style={{ gap: '2rem' }}>
+          {/* Recent Projects */}
           <div className="card" style={{
             boxShadow: '0 4px 16px rgba(0,0,0,0.08)',
             border: '1px solid rgba(0,0,0,0.05)'
@@ -276,139 +416,170 @@ const Dashboard = () => {
             }}>
               📋 {t('recent_projects')}
             </h3>
-            <ul style={{ listStyle: 'none', padding: 0, margin: 0 }}>
-              <li style={{
-                padding: '1rem',
-                borderRadius: '8px',
-                marginBottom: '0.75rem',
-                background: 'linear-gradient(135deg, rgba(31, 122, 140, 0.05) 0%, rgba(31, 122, 140, 0.02) 100%)',
-                border: '1px solid rgba(31, 122, 140, 0.1)',
-                transition: 'all 0.2s'
-              }}
-              onMouseEnter={(e) => {
-                e.currentTarget.style.transform = 'translateX(8px)';
-                e.currentTarget.style.boxShadow = '0 4px 12px rgba(31, 122, 140, 0.15)';
-              }}
-              onMouseLeave={(e) => {
-                e.currentTarget.style.transform = 'translateX(0)';
-                e.currentTarget.style.boxShadow = 'none';
-              }}>
-                <strong style={{ fontSize: '1.05rem', color: '#333' }}>Residential Complex - Anna Nagar</strong>
-                <br/>
-                <span style={{ fontSize: '0.9rem', color: '#666', marginTop: '0.25rem', display: 'inline-block' }}>
-                  <span style={{ color: '#2E7D32', fontWeight: '600' }}>● In Progress</span> | Budget: ₹50L
-                </span>
-              </li>
-              <li style={{
-                padding: '1rem',
-                borderRadius: '8px',
-                marginBottom: '0.75rem',
-                background: 'linear-gradient(135deg, rgba(227, 100, 20, 0.05) 0%, rgba(227, 100, 20, 0.02) 100%)',
-                border: '1px solid rgba(227, 100, 20, 0.1)',
-                transition: 'all 0.2s'
-              }}
-              onMouseEnter={(e) => {
-                e.currentTarget.style.transform = 'translateX(8px)';
-                e.currentTarget.style.boxShadow = '0 4px 12px rgba(227, 100, 20, 0.15)';
-              }}
-              onMouseLeave={(e) => {
-                e.currentTarget.style.transform = 'translateX(0)';
-                e.currentTarget.style.boxShadow = 'none';
-              }}>
-                <strong style={{ fontSize: '1.05rem', color: '#333' }}>Commercial Building - T.Nagar</strong>
-                <br/>
-                <span style={{ fontSize: '0.9rem', color: '#666', marginTop: '0.25rem', display: 'inline-block' }}>
-                  <span style={{ color: '#E36414', fontWeight: '600' }}>● Planning</span> | Budget: ₹80L
-                </span>
-              </li>
-              <li style={{
-                padding: '1rem',
-                borderRadius: '8px',
-                background: 'linear-gradient(135deg, rgba(46, 125, 50, 0.05) 0%, rgba(46, 125, 50, 0.02) 100%)',
-                border: '1px solid rgba(46, 125, 50, 0.1)',
-                transition: 'all 0.2s'
-              }}
-              onMouseEnter={(e) => {
-                e.currentTarget.style.transform = 'translateX(8px)';
-                e.currentTarget.style.boxShadow = '0 4px 12px rgba(46, 125, 50, 0.15)';
-              }}
-              onMouseLeave={(e) => {
-                e.currentTarget.style.transform = 'translateX(0)';
-                e.currentTarget.style.boxShadow = 'none';
-              }}>
-                <strong style={{ fontSize: '1.05rem', color: '#333' }}>Villa Construction - ECR</strong>
-                <br/>
-                <span style={{ fontSize: '0.9rem', color: '#666', marginTop: '0.25rem', display: 'inline-block' }}>
-                  <span style={{ color: '#2E7D32', fontWeight: '600' }}>● In Progress</span> | Budget: ₹35L
-                </span>
-              </li>
-            </ul>
+            {stats?.recent_projects.length === 0 ? (
+              <p style={{ color: '#999', textAlign: 'center', padding: '2rem 0' }}>No projects yet</p>
+            ) : (
+              <ul style={{ listStyle: 'none', padding: 0, margin: 0 }}>
+                {stats?.recent_projects.map((proj) => (
+                  <li
+                    key={proj.id}
+                    onClick={() => navigate(`/projects/${proj.id}`)}
+                    style={{
+                      padding: '1rem',
+                      borderRadius: '8px',
+                      marginBottom: '0.75rem',
+                      background: 'rgba(31, 122, 140, 0.04)',
+                      border: '1px solid rgba(31, 122, 140, 0.1)',
+                      cursor: 'pointer',
+                      transition: 'all 0.2s'
+                    }}
+                    onMouseEnter={(e) => {
+                      e.currentTarget.style.transform = 'translateX(8px)';
+                      e.currentTarget.style.boxShadow = '0 4px 12px rgba(31, 122, 140, 0.15)';
+                    }}
+                    onMouseLeave={(e) => {
+                      e.currentTarget.style.transform = 'translateX(0)';
+                      e.currentTarget.style.boxShadow = 'none';
+                    }}
+                  >
+                    <strong style={{ fontSize: '1.05rem', color: '#333' }}>{proj.name}</strong>
+                    <br />
+                    <span style={{ fontSize: '0.9rem', color: '#666', marginTop: '0.25rem', display: 'inline-block' }}>
+                      <span style={{ color: statusColor[proj.status] || '#666', fontWeight: '600' }}>
+                        ● {statusLabel[proj.status] || proj.status}
+                      </span>
+                      {' | '}Budget: {formatCurrency(proj.budget)}
+                      {' | '}👷 {proj.active_workers}
+                    </span>
+                  </li>
+                ))}
+              </ul>
+            )}
           </div>
 
-          <div className="card" style={{
-            boxShadow: '0 4px 16px rgba(0,0,0,0.08)',
-            border: '1px solid rgba(0,0,0,0.05)'
-          }}>
-            <h3 style={{
-              margin: '0 0 1.5rem 0',
-              fontSize: '1.25rem',
-              color: '#1F7A8C',
-              display: 'flex',
-              alignItems: 'center',
-              gap: '0.5rem'
+          {/* Right column: Attendance + Payments */}
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '2rem' }}>
+            {/* Today Attendance */}
+            <div className="card" style={{
+              boxShadow: '0 4px 16px rgba(0,0,0,0.08)',
+              border: '1px solid rgba(0,0,0,0.05)'
             }}>
-              📊 {t('today_attendance')}
-            </h3>
-            <div style={{ marginTop: '1.5rem' }}>
-              <div style={{
-                marginBottom: '2rem',
-                padding: '1.25rem',
-                borderRadius: '12px',
-                background: 'linear-gradient(135deg, rgba(46, 125, 50, 0.08) 0%, rgba(46, 125, 50, 0.03) 100%)',
-                border: '1px solid rgba(46, 125, 50, 0.15)'
+              <h3 style={{
+                margin: '0 0 1.25rem 0',
+                fontSize: '1.25rem',
+                color: '#1F7A8C',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '0.5rem'
               }}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.75rem' }}>
-                  <span style={{ fontSize: '1rem', fontWeight: '600', color: '#333' }}>✓ {t('present')}</span>
-                  <strong style={{ color: '#2E7D32', fontSize: '1.25rem' }}>38/45</strong>
-                </div>
-                <div style={{
-                  background: 'rgba(46, 125, 50, 0.15)',
-                  height: '12px',
-                  borderRadius: '6px',
-                  overflow: 'hidden'
-                }}>
+                📊 {t('today_attendance')}
+                <span style={{ fontSize: '0.85rem', color: '#999', fontWeight: 400 }}>
+                  — {attendanceTotal} marked
+                </span>
+              </h3>
+              {attendanceTotal === 0 ? (
+                <p style={{ color: '#999', textAlign: 'center', padding: '1rem 0', fontSize: '0.95rem' }}>
+                  No attendance marked today
+                </p>
+              ) : (
+                <div>
                   <div style={{
-                    background: 'linear-gradient(90deg, #2E7D32 0%, #43A047 100%)',
-                    height: '100%',
-                    width: '84%',
-                    transition: 'width 0.5s ease'
-                  }}></div>
+                    marginBottom: '1rem',
+                    padding: '1rem',
+                    borderRadius: '10px',
+                    background: 'rgba(46, 125, 50, 0.07)',
+                    border: '1px solid rgba(46, 125, 50, 0.15)'
+                  }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.6rem' }}>
+                      <span style={{ fontWeight: '600', color: '#333' }}>✓ {t('present')}</span>
+                      <strong style={{ color: '#2E7D32' }}>{presentCount}/{attendanceTotal}</strong>
+                    </div>
+                    <div style={{ background: 'rgba(46,125,50,0.15)', height: '10px', borderRadius: '5px', overflow: 'hidden' }}>
+                      <div style={{ background: 'linear-gradient(90deg,#2E7D32,#43A047)', height: '100%', width: `${presentPct}%`, transition: 'width 0.5s' }} />
+                    </div>
+                  </div>
+                  {halfDayCount > 0 && (
+                    <div style={{
+                      marginBottom: '1rem',
+                      padding: '1rem',
+                      borderRadius: '10px',
+                      background: 'rgba(227, 100, 20, 0.07)',
+                      border: '1px solid rgba(227, 100, 20, 0.15)'
+                    }}>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.6rem' }}>
+                        <span style={{ fontWeight: '600', color: '#333' }}>◑ Half Day</span>
+                        <strong style={{ color: '#E36414' }}>{halfDayCount}/{attendanceTotal}</strong>
+                      </div>
+                      <div style={{ background: 'rgba(227,100,20,0.15)', height: '10px', borderRadius: '5px', overflow: 'hidden' }}>
+                        <div style={{ background: 'linear-gradient(90deg,#E36414,#F97316)', height: '100%', width: `${halfDayPct}%`, transition: 'width 0.5s' }} />
+                      </div>
+                    </div>
+                  )}
+                  <div style={{
+                    padding: '1rem',
+                    borderRadius: '10px',
+                    background: 'rgba(198, 40, 40, 0.07)',
+                    border: '1px solid rgba(198, 40, 40, 0.15)'
+                  }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.6rem' }}>
+                      <span style={{ fontWeight: '600', color: '#333' }}>✗ {t('absent')}</span>
+                      <strong style={{ color: '#C62828' }}>{absentCount}/{attendanceTotal}</strong>
+                    </div>
+                    <div style={{ background: 'rgba(198,40,40,0.15)', height: '10px', borderRadius: '5px', overflow: 'hidden' }}>
+                      <div style={{ background: 'linear-gradient(90deg,#C62828,#E53935)', height: '100%', width: `${absentPct}%`, transition: 'width 0.5s' }} />
+                    </div>
+                  </div>
                 </div>
-              </div>
-              <div style={{
-                padding: '1.25rem',
-                borderRadius: '12px',
-                background: 'linear-gradient(135deg, rgba(198, 40, 40, 0.08) 0%, rgba(198, 40, 40, 0.03) 100%)',
-                border: '1px solid rgba(198, 40, 40, 0.15)'
+              )}
+            </div>
+
+            {/* Recent Payments */}
+            <div className="card" style={{
+              boxShadow: '0 4px 16px rgba(0,0,0,0.08)',
+              border: '1px solid rgba(0,0,0,0.05)'
+            }}>
+              <h3 style={{
+                margin: '0 0 1.25rem 0',
+                fontSize: '1.25rem',
+                color: '#1F7A8C',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '0.5rem'
               }}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.75rem' }}>
-                  <span style={{ fontSize: '1rem', fontWeight: '600', color: '#333' }}>✗ {t('absent')}</span>
-                  <strong style={{ color: '#C62828', fontSize: '1.25rem' }}>7/45</strong>
-                </div>
-                <div style={{
-                  background: 'rgba(198, 40, 40, 0.15)',
-                  height: '12px',
-                  borderRadius: '6px',
-                  overflow: 'hidden'
-                }}>
-                  <div style={{
-                    background: 'linear-gradient(90deg, #C62828 0%, #E53935 100%)',
-                    height: '100%',
-                    width: '16%',
-                    transition: 'width 0.5s ease'
-                  }}></div>
-                </div>
-              </div>
+                💳 Recent Payments
+              </h3>
+              {stats?.recent_payments.length === 0 ? (
+                <p style={{ color: '#999', textAlign: 'center', padding: '1rem 0', fontSize: '0.95rem' }}>No payments yet</p>
+              ) : (
+                <ul style={{ listStyle: 'none', padding: 0, margin: 0 }}>
+                  {stats?.recent_payments.map((pay) => (
+                    <li key={pay.id} style={{
+                      display: 'flex',
+                      justifyContent: 'space-between',
+                      alignItems: 'center',
+                      padding: '0.75rem 0',
+                      borderBottom: '1px solid #f0f0f0'
+                    }}>
+                      <div>
+                        <div style={{ fontWeight: '600', fontSize: '0.95rem', color: '#333' }}>{pay.worker_name}</div>
+                        <div style={{ fontSize: '0.8rem', color: '#999' }}>{pay.project_name} · {pay.date}</div>
+                      </div>
+                      <div style={{ textAlign: 'right' }}>
+                        <div style={{ fontWeight: '700', color: '#2E7D32' }}>{formatCurrency(pay.amount)}</div>
+                        <div style={{
+                          fontSize: '0.75rem',
+                          padding: '0.15rem 0.5rem',
+                          borderRadius: '4px',
+                          background: pay.payment_type === 'advance' ? '#fff3cd' : '#d4edda',
+                          color: pay.payment_type === 'advance' ? '#856404' : '#155724'
+                        }}>
+                          {pay.payment_type}
+                        </div>
+                      </div>
+                    </li>
+                  ))}
+                </ul>
+              )}
             </div>
           </div>
         </div>
