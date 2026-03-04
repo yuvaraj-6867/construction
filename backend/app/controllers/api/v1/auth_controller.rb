@@ -38,6 +38,24 @@ class Api::V1::AuthController < ApplicationController
     end
   end
 
+  # GET /api/v1/auth/users_list
+  def users_list
+    users = User.select(:id, :name, :email, :role).order(:name)
+    render json: { users: users.map { |u| { id: u.id, name: u.name, email: u.email, role: u.role } } }
+  end
+
+  # POST /api/v1/auth/quick_login
+  def quick_login
+    user = User.find_by(id: params[:user_id])
+    return render json: { error: 'User not found' }, status: :not_found unless user
+
+    token = JWT.encode(
+      { user_id: user.id, exp: 24.hours.from_now.to_i },
+      Rails.application.secret_key_base
+    )
+    render json: { token: token, user: { id: user.id, name: user.name, email: user.email, role: user.role }, expires_at: 24.hours.from_now.iso8601 }
+  end
+
   # POST /api/v1/auth/forgot_password
   def forgot_password
     user = User.find_by(email: params[:email])

@@ -9,6 +9,8 @@ Rails.application.routes.draw do
       get  'auth/me', to: 'auth#me'
       post 'auth/forgot_password', to: 'auth#forgot_password'
       post 'auth/reset_password', to: 'auth#reset_password'
+      get  'auth/users_list', to: 'auth#users_list'
+      post 'auth/quick_login', to: 'auth#quick_login'
 
       # Dashboard stats
       get 'dashboard/stats', to: 'dashboard#stats'

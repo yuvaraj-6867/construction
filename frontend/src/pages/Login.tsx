@@ -1,6 +1,28 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import '../styles/global.css';
+
+interface QuickUser {
+  id: number;
+  name: string;
+  email: string;
+  role: string;
+}
+
+const roleColors: Record<string, string> = {
+  admin: '#e74c3c',
+  manager: '#e67e22',
+  supervisor: '#2980b9',
+  accountant: '#8e44ad',
+};
+
+const roleAbbr = (name: string) =>
+  name
+    .split(' ')
+    .map((w) => w[0])
+    .join('')
+    .toUpperCase()
+    .slice(0, 2);
 
 const Login = () => {
   const navigate = useNavigate();
@@ -9,6 +31,8 @@ const Login = () => {
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
+  const [quickUsers, setQuickUsers] = useState<QuickUser[]>([]);
+  const [selectedUser, setSelectedUser] = useState<number | null>(null);
 
   const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
   const phoneRegex = /^[0-9]{10}$/;
@@ -32,6 +56,39 @@ const Login = () => {
 
   const isFormValid = isEmailOrPhoneValid && isPasswordValid;
 
+  // Fetch users for quick login
+  useEffect(() => {
+    fetch('/api/v1/auth/users_list')
+      .then((r) => r.json())
+      .then((data) => setQuickUsers(data.users || []))
+      .catch(() => {});
+  }, []);
+
+  const handleQuickSelect = async (user: QuickUser) => {
+    setSelectedUser(user.id);
+    setError('');
+    setLoading(true);
+    try {
+      const response = await fetch('/api/v1/auth/quick_login', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ user_id: user.id }),
+      });
+      if (response.ok) {
+        const data = await response.json();
+        localStorage.setItem('authToken', data.token);
+        localStorage.setItem('user', JSON.stringify(data.user));
+        window.location.href = '/dashboard';
+      } else {
+        setError('Quick login failed');
+      }
+    } catch {
+      setError('Connection error');
+    } finally {
+      setLoading(false);
+    }
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
@@ -49,14 +106,11 @@ const Login = () => {
     setLoading(true);
 
     try {
-      const response = await fetch(
-        'http://localhost:3001/api/v1/auth/login',
-        {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ email, password }),
-        }
-      );
+      const response = await fetch('/api/v1/auth/login', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email, password }),
+      });
 
       if (response.ok) {
         const data = await response.json();
@@ -68,9 +122,7 @@ const Login = () => {
         setError(errorData.error || 'Invalid email or password');
       }
     } catch {
-      setError(
-        'Backend connection error. Please ensure Rails server is running on port 3001'
-      );
+      setError('Backend connection error. Please ensure Rails server is running on port 3001');
     } finally {
       setLoading(false);
     }
@@ -79,14 +131,104 @@ const Login = () => {
   return (
     <div className="app">
       <div
-        className="container"
         style={{
           minHeight: '100vh',
           display: 'flex',
+          flexDirection: 'column',
           justifyContent: 'center',
           alignItems: 'center',
+          padding: '1.5rem',
+          gap: '1.5rem',
         }}
       >
+        {/* Back to landing */}
+        <button
+          onClick={() => navigate('/')}
+          style={{ position: 'fixed', top: '1rem', left: '1rem', background: 'none', border: 'none', cursor: 'pointer', color: '#1F7A8C', fontWeight: 600, fontSize: '0.9rem' }}
+        >
+          ← Home
+        </button>
+
+        {/* QUICK LOGIN SECTION */}
+        {quickUsers.length > 0 && (
+          <div style={{ width: '100%', maxWidth: '520px' }}>
+            <p style={{ fontSize: '0.8rem', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.08em', color: '#888', marginBottom: '0.75rem', textAlign: 'center' }}>
+              Quick Login — Select Account
+            </p>
+            <div
+              style={{
+                display: 'grid',
+                gridTemplateColumns: 'repeat(auto-fill, minmax(110px, 1fr))',
+                gap: '0.65rem',
+              }}
+            >
+              {quickUsers.map((user) => {
+                const color = roleColors[user.role?.toLowerCase()] || '#1F7A8C';
+                const isSelected = selectedUser === user.id;
+                return (
+                  <button
+                    key={user.id}
+                    type="button"
+                    onClick={() => handleQuickSelect(user)}
+                    style={{
+                      background: isSelected ? color : 'var(--card-bg, #fff)',
+                      border: `2px solid ${isSelected ? color : 'var(--border-color, #e0e0e0)'}`,
+                      borderRadius: '12px',
+                      padding: '0.85rem 0.5rem',
+                      cursor: 'pointer',
+                      textAlign: 'center',
+                      transition: 'all 0.18s',
+                      boxShadow: isSelected ? `0 4px 16px ${color}44` : '0 1px 4px rgba(0,0,0,0.06)',
+                    }}
+                  >
+                    {/* Avatar circle */}
+                    <div
+                      style={{
+                        width: '42px',
+                        height: '42px',
+                        borderRadius: '50%',
+                        background: isSelected ? 'rgba(255,255,255,0.25)' : color,
+                        color: '#fff',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        fontWeight: 700,
+                        fontSize: '1rem',
+                        margin: '0 auto 0.5rem',
+                      }}
+                    >
+                      {roleAbbr(user.name)}
+                    </div>
+                    <div
+                      style={{
+                        fontSize: '0.78rem',
+                        fontWeight: 700,
+                        color: isSelected ? '#fff' : 'var(--text-color, #333)',
+                        whiteSpace: 'nowrap',
+                        overflow: 'hidden',
+                        textOverflow: 'ellipsis',
+                      }}
+                    >
+                      {user.name.split(' ')[0]}
+                    </div>
+                    <div
+                      style={{
+                        fontSize: '0.68rem',
+                        color: isSelected ? 'rgba(255,255,255,0.8)' : '#999',
+                        marginTop: '0.15rem',
+                        textTransform: 'capitalize',
+                      }}
+                    >
+                      {user.role || 'user'}
+                    </div>
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+        )}
+
+        {/* LOGIN FORM CARD */}
         <div className="card" style={{ maxWidth: '450px', width: '100%' }}>
           <h1 style={{ textAlign: 'center', marginBottom: '1.5rem' }}>
             🏗️ Construction Management
@@ -101,9 +243,11 @@ const Login = () => {
                 className="input"
                 placeholder="Enter email or 10-digit phone number"
                 value={email}
-                onChange={(e) => setEmail(e.target.value)}
+                onChange={(e) => {
+                  setEmail(e.target.value);
+                  setSelectedUser(null);
+                }}
               />
-
               {email && !isEmailOrPhoneValid && (
                 <small style={{ color: 'red', fontSize: '0.85rem' }}>
                   Please enter a valid email or 10-digit phone number
@@ -114,100 +258,43 @@ const Login = () => {
             {/* PASSWORD */}
             <div className="form-group">
               <label className="label">Password</label>
-
               <div style={{ position: 'relative' }}>
                 <input
+                  id="password-input"
                   type={showPassword ? 'text' : 'password'}
                   className="input"
                   placeholder="Enter your password"
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                 />
-
                 <button
                   type="button"
                   onClick={() => setShowPassword(!showPassword)}
-                  style={{
-                    position: 'absolute',
-                    right: '10px',
-                    top: '50%',
-                    transform: 'translateY(-50%)',
-                    background: 'none',
-                    border: 'none',
-                    cursor: 'pointer',
-                    fontSize: '0.85rem',
-                  }}
+                  style={{ position: 'absolute', right: '10px', top: '50%', transform: 'translateY(-50%)', background: 'none', border: 'none', cursor: 'pointer', fontSize: '0.85rem' }}
                 >
                   {showPassword ? 'Hide' : 'Show'}
                 </button>
               </div>
 
-              {/* PASSWORD RULES (hide when all green) */}
               {password && !isPasswordValid && (
-                <ul
-                  style={{
-                    fontSize: '0.85rem',
-                    marginTop: '6px',
-                    paddingLeft: '18px',
-                  }}
-                >
-                  <li
-                    style={{
-                      color: passwordRules.length(password)
-                        ? 'green'
-                        : 'red',
-                    }}
-                  >
-                    Minimum 8 characters
-                  </li>
-                  <li
-                    style={{
-                      color: passwordRules.uppercase(password)
-                        ? 'green'
-                        : 'red',
-                    }}
-                  >
-                    At least 1 uppercase letter
-                  </li>
-                  <li
-                    style={{
-                      color: passwordRules.number(password)
-                        ? 'green'
-                        : 'red',
-                    }}
-                  >
-                    At least 1 number
-                  </li>
-                  <li
-                    style={{
-                      color: passwordRules.special(password)
-                        ? 'green'
-                        : 'red',
-                    }}
-                  >
-                    At least 1 special character
-                  </li>
+                <ul style={{ fontSize: '0.85rem', marginTop: '6px', paddingLeft: '18px' }}>
+                  <li style={{ color: passwordRules.length(password) ? 'green' : 'red' }}>Minimum 8 characters</li>
+                  <li style={{ color: passwordRules.uppercase(password) ? 'green' : 'red' }}>At least 1 uppercase letter</li>
+                  <li style={{ color: passwordRules.number(password) ? 'green' : 'red' }}>At least 1 number</li>
+                  <li style={{ color: passwordRules.special(password) ? 'green' : 'red' }}>At least 1 special character</li>
                 </ul>
               )}
             </div>
 
-            {/* BACKEND ERROR */}
             {error && (
-              <small style={{ color: 'red', display: 'block', marginBottom: '1rem' }}>
-                {error}
-              </small>
+              <small style={{ color: 'red', display: 'block', marginBottom: '1rem' }}>{error}</small>
             )}
 
-            {/* BUTTON */}
             <button
               type="submit"
               className="btn btn-primary"
               disabled={!isFormValid || loading}
-              style={{
-                width: '100%',
-                opacity: isFormValid && !loading ? 1 : 0.6,
-                cursor: isFormValid && !loading ? 'pointer' : 'not-allowed',
-              }}
+              style={{ width: '100%', opacity: isFormValid && !loading ? 1 : 0.6, cursor: isFormValid && !loading ? 'pointer' : 'not-allowed' }}
             >
               {loading ? 'Logging in...' : 'Login'}
             </button>
