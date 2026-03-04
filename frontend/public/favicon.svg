@@ -1,0 +1,12 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" width="64" height="64">
+  <rect width="64" height="64" rx="12" fill="#1F7A8C"/>
+  <!-- Hard hat shape -->
+  <ellipse cx="32" cy="42" rx="22" ry="6" fill="#FFD700"/>
+  <path d="M10 42 Q10 36 32 30 Q54 36 54 42 Z" fill="#FFD700"/>
+  <!-- Dome highlight -->
+  <path d="M18 38 Q32 28 46 38" fill="none" stroke="#FFA500" stroke-width="2" stroke-linecap="round"/>
+  <!-- Brim -->
+  <rect x="8" y="40" width="48" height="5" rx="2.5" fill="#FFA500"/>
+  <!-- Construction cross beams -->
+  <text x="32" y="28" text-anchor="middle" font-size="10" fill="white" font-family="Arial" font-weight="bold">🏗</text>
+</svg>
