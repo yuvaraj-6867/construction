@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import './styles/global.css';
 import { AuthProvider } from './contexts/AuthContext';
@@ -14,6 +14,7 @@ import WorkerList from './pages/Workers/WorkerList';
 import WorkerDetails from './pages/Workers/WorkerDetails';
 import AttendanceMarking from './pages/Attendance/AttendanceMarking';
 import AttendanceHistory from './pages/Attendance/AttendanceHistory';
+import AttendanceCalendar from './pages/Attendance/AttendanceCalendar';
 import PaymentList from './pages/Payments/PaymentList';
 import MaterialList from './pages/Materials/MaterialList';
 import ExpenseList from './pages/Expenses/ExpenseList';
@@ -24,6 +25,8 @@ import Reports from './pages/Reports/Reports';
 import ForgotPassword from './pages/ForgotPassword';
 import ResetPassword from './pages/ResetPassword';
 import BulkPayment from './pages/Payments/BulkPayment';
+import EquipmentList from './pages/Equipment/EquipmentList';
+import WorkDiaryList from './pages/WorkDiary/WorkDiaryList';
 
 // Protected Route Component
 const ProtectedRoute: React.FC<{ children: React.ReactNode }> = ({ children }) => {
@@ -32,6 +35,25 @@ const ProtectedRoute: React.FC<{ children: React.ReactNode }> = ({ children }) =
 };
 
 function App() {
+  // Auto dark mode: follow system preference
+  useEffect(() => {
+    const saved = localStorage.getItem('theme');
+    if (saved) {
+      document.documentElement.setAttribute('data-theme', saved);
+    } else {
+      const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+      document.documentElement.setAttribute('data-theme', prefersDark ? 'dark' : 'light');
+    }
+    const mediaQuery = window.matchMedia('(prefers-color-scheme: dark)');
+    const handler = (e: MediaQueryListEvent) => {
+      if (!localStorage.getItem('theme')) {
+        document.documentElement.setAttribute('data-theme', e.matches ? 'dark' : 'light');
+      }
+    };
+    mediaQuery.addEventListener('change', handler);
+    return () => mediaQuery.removeEventListener('change', handler);
+  }, []);
+
   return (
     <LanguageProvider>
       <AuthProvider>
@@ -291,6 +313,30 @@ function App() {
             element={
               <ProtectedRoute>
                 <BulkPayment />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/projects/:id/equipment"
+            element={
+              <ProtectedRoute>
+                <EquipmentList />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/projects/:id/diary"
+            element={
+              <ProtectedRoute>
+                <WorkDiaryList />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/workers/:id/attendance-calendar"
+            element={
+              <ProtectedRoute>
+                <AttendanceCalendar />
               </ProtectedRoute>
             }
           />

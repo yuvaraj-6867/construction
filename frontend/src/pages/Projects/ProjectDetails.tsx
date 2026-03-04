@@ -288,9 +288,19 @@ const ProjectDetails: React.FC = () => {
               background: 'white', borderRadius: '12px', padding: '2rem',
               boxShadow: '0 4px 15px rgba(0,0,0,0.08)', border: '1px solid #e9ecef', marginBottom: '1.5rem'
             }}>
-              <h2 style={{ margin: '0 0 1.5rem 0', fontSize: '1.5rem', color: '#1F7A8C', fontWeight: 'bold', borderBottom: '2px solid #e9ecef', paddingBottom: '0.75rem' }}>
-                📊 Financial Summary
-              </h2>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '1rem', marginBottom: '1.5rem', borderBottom: '2px solid #e9ecef', paddingBottom: '0.75rem' }}>
+                <h2 style={{ margin: 0, fontSize: '1.5rem', color: '#1F7A8C', fontWeight: 'bold' }}>
+                  📊 Financial Summary
+                </h2>
+                {(() => {
+                  const budget = parseFloat(project.budget || 0);
+                  const total = parseFloat(stats.total_labor_cost || 0) + parseFloat(stats.total_material_cost || 0) + parseFloat(stats.total_expenses || 0);
+                  const pct = budget > 0 ? Math.round((total / budget) * 100) : 0;
+                  if (pct >= 100) return <span style={{ background: '#C62828', color: 'white', padding: '0.3rem 0.8rem', borderRadius: '20px', fontSize: '0.8rem', fontWeight: '700' }}>🚨 Over Budget ({pct}%)</span>;
+                  if (pct >= 80) return <span style={{ background: '#F57C00', color: 'white', padding: '0.3rem 0.8rem', borderRadius: '20px', fontSize: '0.8rem', fontWeight: '700' }}>⚠️ Budget Alert ({pct}%)</span>;
+                  return null;
+                })()}
+              </div>
               <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '1rem', marginBottom: '1.5rem' }}>
                 {[
                   { label: 'Labor Cost', value: stats.total_labor_cost || 0, color: '#3b82f6', icon: '👷' },
@@ -371,6 +381,8 @@ const ProjectDetails: React.FC = () => {
                   { label: '📅 Mark Attendance', path: `/projects/${id}/attendance` },
                   { label: '💰 Add Payment', path: `/projects/${id}/payments` },
                   { label: '💳 Bulk Payment', path: `/projects/${id}/bulk-payment` },
+                  { label: '🔧 Equipment', path: `/projects/${id}/equipment` },
+                  { label: '📓 Work Diary', path: `/projects/${id}/diary` },
                   { label: '📊 Reports', path: `/reports` },
                   { label: '📋 Attendance History', path: `/attendance/history?project_id=${id}` },
                 ].map(action => (

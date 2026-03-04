@@ -18,6 +18,8 @@ Rails.application.routes.draw do
       # Reports
       get 'reports/worker_summary', to: 'reports#worker_summary'
       get 'reports/project_summary', to: 'reports#project_summary'
+      get 'reports/monthly_payroll', to: 'reports#monthly_payroll'
+      get 'reports/worker_performance', to: 'reports#worker_performance'
 
       # Notifications
       get  'notifications', to: 'notifications#index'
@@ -43,6 +45,8 @@ Rails.application.routes.draw do
       resources :client_advances
       resources :invoices
       resources :site_photos
+      resources :equipments
+      resources :work_diaries
     end
   end
 end

@@ -7,6 +7,7 @@ class Api::V1::MaterialsController < ApplicationController
   def create
     @material = Material.new(material_params.merge(user: current_user))
     if @material.save
+      @material.project.check_budget_alert!(current_user) rescue nil
       render json: @material, status: :created
     else
       render json: { errors: @material.errors.full_messages }, status: :unprocessable_entity

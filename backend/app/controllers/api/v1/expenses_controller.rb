@@ -7,6 +7,7 @@ class Api::V1::ExpensesController < ApplicationController
   def create
     @expense = Expense.new(expense_params.merge(user: current_user))
     if @expense.save
+      @expense.project.check_budget_alert!(current_user) rescue nil
       render json: @expense, status: :created
     else
       render json: { errors: @expense.errors.full_messages }, status: :unprocessable_entity

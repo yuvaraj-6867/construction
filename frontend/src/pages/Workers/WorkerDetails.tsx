@@ -1,6 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate, useParams, useLocation } from 'react-router-dom';
+import { QRCodeSVG } from 'qrcode.react';
 import workerService from '../../services/workerService';
+import api from '../../services/api';
 import Loading from '../../components/Loading';
 import ConfirmDialog from '../../components/ConfirmDialog';
 
@@ -17,9 +19,12 @@ const WorkerDetails: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [confirmDialog, setConfirmDialog] = useState({ isOpen: false });
+  const [advances, setAdvances] = useState<any[]>([]);
+  const [showQR, setShowQR] = useState(false);
 
   useEffect(() => {
     loadWorker();
+    loadAdvances();
   }, [workerId]);
 
   const loadWorker = async () => {
@@ -33,6 +38,14 @@ const WorkerDetails: React.FC = () => {
     } finally {
       setLoading(false);
     }
+  };
+
+  const loadAdvances = async () => {
+    try {
+      const res = await api.get('/payments', { params: { worker_id: workerId } });
+      const all = Array.isArray(res.data) ? res.data : res.data?.payments || [];
+      setAdvances(all.filter((p: any) => p.payment_type === 'advance'));
+    } catch { /* ignore */ }
   };
 
   const handleDeleteClick = () => {
@@ -604,8 +617,75 @@ const WorkerDetails: React.FC = () => {
           >
             View Attendance History
           </button>
+          <button
+            onClick={() => navigate(`/workers/${workerId}/attendance-calendar`)}
+            style={{ background: 'linear-gradient(135deg, #8b5cf6 0%, #7c3aed 100%)', border: 'none', color: 'white', padding: '1rem 1.5rem', fontSize: '1rem', fontWeight: '600', borderRadius: '10px', cursor: 'pointer', transition: 'all 0.3s' }}
+          >
+            📅 Calendar View
+          </button>
+          <button
+            onClick={() => setShowQR(!showQR)}
+            style={{ background: 'linear-gradient(135deg, #f59e0b 0%, #d97706 100%)', border: 'none', color: 'white', padding: '1rem 1.5rem', fontSize: '1rem', fontWeight: '600', borderRadius: '10px', cursor: 'pointer', transition: 'all 0.3s' }}
+          >
+            QR Code
+          </button>
         </div>
       </div>
+
+      {/* QR Code Section */}
+      {showQR && (
+        <div style={{ background: 'white', borderRadius: '12px', padding: '2rem', boxShadow: '0 4px 15px rgba(0,0,0,0.08)', border: '1px solid #e9ecef', marginTop: '2rem', textAlign: 'center' }}>
+          <h2 style={{ margin: '0 0 1rem 0', fontSize: '1.3rem', color: '#1F7A8C' }}>Worker QR Code</h2>
+          <p style={{ color: '#666', fontSize: '0.9rem', marginBottom: '1.5rem' }}>Scan to quickly access {worker.name}'s profile</p>
+          <div style={{ display: 'inline-block', padding: '1rem', background: 'white', borderRadius: '12px', border: '2px solid #e9ecef' }}>
+            <QRCodeSVG
+              value={`${window.location.origin}/workers/${workerId}`}
+              size={180}
+              level="H"
+              includeMargin
+            />
+          </div>
+          <p style={{ color: '#999', fontSize: '0.8rem', marginTop: '1rem' }}>Worker ID: #{workerId}</p>
+        </div>
+      )}
+
+      {/* Advances Section */}
+      {advances.length > 0 && (
+        <div style={{ background: 'white', borderRadius: '12px', padding: '2rem', boxShadow: '0 4px 15px rgba(0,0,0,0.08)', border: '1px solid #e9ecef', marginTop: '2rem' }}>
+          <h2 style={{ margin: '0 0 1rem 0', fontSize: '1.3rem', color: '#1F7A8C', borderBottom: '2px solid #e9ecef', paddingBottom: '0.75rem' }}>
+            Salary Advances ({advances.length})
+          </h2>
+          <div style={{ overflowX: 'auto' }}>
+            <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.9rem' }}>
+              <thead>
+                <tr style={{ background: '#f8f9fa' }}>
+                  <th style={{ padding: '0.75rem', textAlign: 'left', color: '#666' }}>Date</th>
+                  <th style={{ padding: '0.75rem', textAlign: 'right', color: '#666' }}>Amount</th>
+                  <th style={{ padding: '0.75rem', textAlign: 'left', color: '#666' }}>Notes</th>
+                </tr>
+              </thead>
+              <tbody>
+                {advances.map((a: any) => (
+                  <tr key={a.id} style={{ borderBottom: '1px solid #f0f0f0' }}>
+                    <td style={{ padding: '0.75rem' }}>{new Date(a.payment_date || a.date).toLocaleDateString('en-IN')}</td>
+                    <td style={{ padding: '0.75rem', textAlign: 'right', fontWeight: 700, color: '#E36414' }}>₹{parseFloat(a.amount).toLocaleString()}</td>
+                    <td style={{ padding: '0.75rem', color: '#666' }}>{a.notes || '—'}</td>
+                  </tr>
+                ))}
+              </tbody>
+              <tfoot>
+                <tr style={{ background: '#FFF3E0' }}>
+                  <td style={{ padding: '0.75rem', fontWeight: 700 }}>Total Advances</td>
+                  <td style={{ padding: '0.75rem', textAlign: 'right', fontWeight: 700, color: '#E36414' }}>
+                    ₹{advances.reduce((s: number, a: any) => s + parseFloat(a.amount || 0), 0).toLocaleString()}
+                  </td>
+                  <td />
+                </tr>
+              </tfoot>
+            </table>
+          </div>
+        </div>
+      )}
 
       <ConfirmDialog
         isOpen={confirmDialog.isOpen}

@@ -1029,7 +1029,7 @@ const PaymentList: React.FC = () => {
             </div>
 
             {/* Actions */}
-            <div style={{ display: 'flex', gap: '0.75rem', marginTop: '1.5rem' }}>
+            <div style={{ display: 'flex', gap: '0.75rem', marginTop: '1.5rem', flexWrap: 'wrap' }}>
               <button
                 onClick={() => window.print()}
                 style={{
@@ -1039,6 +1039,19 @@ const PaymentList: React.FC = () => {
                 }}
               >
                 🖨️ Print Receipt
+              </button>
+              <button
+                onClick={() => {
+                  const text = `Payment Receipt\nWorker: ${receiptPayment.worker?.name || 'N/A'}\nProject: ${receiptPayment.project?.name || 'N/A'}\nAmount: ₹${parseFloat(receiptPayment.amount).toLocaleString('en-IN')}\nDate: ${new Date(receiptPayment.payment_date).toLocaleDateString('en-IN')}\nReceipt No: #PAY-${receiptPayment.id}`;
+                  window.open(`https://wa.me/?text=${encodeURIComponent(text)}`, '_blank');
+                }}
+                style={{
+                  flex: 1, background: '#25D366', border: 'none',
+                  color: 'white', padding: '0.875rem', borderRadius: '10px',
+                  fontWeight: '600', cursor: 'pointer', fontSize: '0.95rem'
+                }}
+              >
+                WhatsApp
               </button>
               <button
                 onClick={() => setReceiptPayment(null)}

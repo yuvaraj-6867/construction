@@ -79,6 +79,70 @@ class Api::V1::ReportsController < ApplicationController
     render json: { projects: data, generated_at: Time.current }
   end
 
+  # GET /api/v1/reports/monthly_payroll?year=2026
+  def monthly_payroll
+    year = (params[:year] || Time.current.year).to_i
+    project_ids = Project.where(user: current_user).pluck(:id)
+
+    data = (1..12).map do |month|
+      start_date = Date.new(year, month, 1)
+      end_date = start_date.end_of_month
+
+      wages = Payment.where(project_id: project_ids, payment_type: 'wage')
+                     .where(date: start_date..end_date).sum(:amount)
+      advances = Payment.where(project_id: project_ids, payment_type: 'advance')
+                        .where(date: start_date..end_date).sum(:amount)
+      workers_paid = Payment.where(project_id: project_ids)
+                            .where(date: start_date..end_date).distinct.count(:worker_id)
+
+      {
+        month: start_date.strftime('%b'),
+        month_num: month,
+        wages: wages.to_f.round(2),
+        advances: advances.to_f.round(2),
+        total: (wages + advances).to_f.round(2),
+        workers_paid: workers_paid
+      }
+    end
+
+    render json: { year: year, months: data }
+  end
+
+  # GET /api/v1/reports/worker_performance?project_id=
+  def worker_performance
+    project_ids = if params[:project_id].present?
+                    [params[:project_id]]
+                  else
+                    Project.where(user: current_user).pluck(:id)
+                  end
+
+    workers = Worker.where(project_id: project_ids)
+
+    data = workers.map do |w|
+      total_days = w.attendances.count
+      present_days = w.attendances.where(status: 'present').count
+      half_days = w.attendances.where(status: 'half-day').count
+      attendance_pct = total_days > 0 ? (((present_days + half_days * 0.5) / total_days) * 100).round(1) : 0
+
+      {
+        id: w.id,
+        name: w.name,
+        role: w.role,
+        project_name: w.project.name,
+        total_days: total_days,
+        present_days: present_days,
+        half_days: half_days,
+        absent_days: w.attendances.where(status: 'absent').count,
+        attendance_pct: attendance_pct,
+        wages_earned: w.total_wages_earned.to_f.round(2),
+        balance_due: w.balance_due.to_f.round(2),
+        is_active: w.is_active
+      }
+    end
+
+    render json: { workers: data, generated_at: Time.current }
+  end
+
   private
 
   def date_range_params
