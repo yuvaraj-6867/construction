@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[7.2].define(version: 2026_01_08_175351) do
+ActiveRecord::Schema[7.2].define(version: 2026_03_04_000003) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "plpgsql"
 
@@ -92,6 +92,19 @@ ActiveRecord::Schema[7.2].define(version: 2026_01_08_175351) do
     t.index ["user_id"], name: "index_materials_on_user_id"
   end
 
+  create_table "notifications", force: :cascade do |t|
+    t.bigint "user_id", null: false
+    t.string "title", null: false
+    t.string "message", null: false
+    t.string "notification_type", default: "info"
+    t.boolean "read", default: false
+    t.jsonb "data", default: {}
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["user_id", "read"], name: "index_notifications_on_user_id_and_read"
+    t.index ["user_id"], name: "index_notifications_on_user_id"
+  end
+
   create_table "payments", force: :cascade do |t|
     t.bigint "worker_id", null: false
     t.bigint "project_id", null: false
@@ -141,7 +154,10 @@ ActiveRecord::Schema[7.2].define(version: 2026_01_08_175351) do
     t.string "phone"
     t.datetime "created_at", null: false
     t.datetime "updated_at", null: false
+    t.string "reset_password_token"
+    t.datetime "reset_password_sent_at"
     t.index ["email"], name: "index_users_on_email", unique: true
+    t.index ["reset_password_token"], name: "index_users_on_reset_password_token", unique: true
   end
 
   create_table "workers", force: :cascade do |t|
@@ -154,6 +170,8 @@ ActiveRecord::Schema[7.2].define(version: 2026_01_08_175351) do
     t.date "joined_date"
     t.datetime "created_at", null: false
     t.datetime "updated_at", null: false
+    t.string "payment_type", default: "daily"
+    t.decimal "contract_amount", precision: 10, scale: 2
     t.index ["project_id"], name: "index_workers_on_project_id"
   end
 
@@ -168,6 +186,7 @@ ActiveRecord::Schema[7.2].define(version: 2026_01_08_175351) do
   add_foreign_key "invoices", "users"
   add_foreign_key "materials", "projects"
   add_foreign_key "materials", "users"
+  add_foreign_key "notifications", "users"
   add_foreign_key "payments", "projects"
   add_foreign_key "payments", "users"
   add_foreign_key "payments", "workers"
