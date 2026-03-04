@@ -383,6 +383,7 @@ const ProjectDetails: React.FC = () => {
                   { label: '💳 Bulk Payment', path: `/projects/${id}/bulk-payment` },
                   { label: '🔧 Equipment', path: `/projects/${id}/equipment` },
                   { label: '📓 Work Diary', path: `/projects/${id}/diary` },
+                  { label: '📸 Photos', path: `/projects/${id}/photos` },
                   { label: '📊 Reports', path: `/reports` },
                   { label: '📋 Attendance History', path: `/attendance/history?project_id=${id}` },
                 ].map(action => (

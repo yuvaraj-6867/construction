@@ -1,5 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate, useSearchParams, useParams, useLocation } from 'react-router-dom';
+import jsPDF from 'jspdf';
+import autoTable from 'jspdf-autotable';
 import invoiceService from '../../services/invoiceService';
 import projectService from '../../services/projectService';
 import ConfirmDialog from '../../components/ConfirmDialog';
@@ -169,6 +171,59 @@ const InvoiceList: React.FC = () => {
     } finally {
       setFormLoading(false);
     }
+  };
+
+  const downloadInvoicePDF = (inv: any) => {
+    const doc = new jsPDF();
+    // Header
+    doc.setFillColor(31, 122, 140);
+    doc.rect(0, 0, 210, 38, 'F');
+    doc.setTextColor(255, 255, 255);
+    doc.setFontSize(22);
+    doc.setFont('helvetica', 'bold');
+    doc.text('INVOICE', 14, 18);
+    doc.setFontSize(11);
+    doc.setFont('helvetica', 'normal');
+    doc.text(inv.invoice_number, 14, 30);
+    doc.setTextColor(50, 50, 50);
+    // Project & Dates
+    autoTable(doc, {
+      startY: 46,
+      body: [
+        ['Project', inv.project?.name || 'N/A', 'Issue Date', inv.issue_date ? new Date(inv.issue_date).toLocaleDateString('en-IN') : 'N/A'],
+        ['Client', inv.project?.client_name || 'N/A', 'Due Date', inv.due_date ? new Date(inv.due_date).toLocaleDateString('en-IN') : 'N/A'],
+        ['Status', inv.status?.toUpperCase() || 'N/A', 'Payment Date', inv.payment_date ? new Date(inv.payment_date).toLocaleDateString('en-IN') : 'N/A'],
+      ],
+      styles: { fontSize: 10 },
+      columnStyles: { 0: { fontStyle: 'bold', fillColor: [240, 249, 255] }, 2: { fontStyle: 'bold', fillColor: [240, 249, 255] } },
+      theme: 'plain',
+    });
+    // Amount
+    const y = (doc as any).lastAutoTable.finalY + 10;
+    autoTable(doc, {
+      startY: y,
+      head: [['Description', 'Amount']],
+      body: [['Invoice Amount', `₹${parseFloat(inv.amount).toLocaleString('en-IN')}`]],
+      foot: [['TOTAL', `₹${parseFloat(inv.amount).toLocaleString('en-IN')}`]],
+      headStyles: { fillColor: [31, 122, 140] },
+      footStyles: { fillColor: [220, 252, 231], textColor: [22, 101, 52], fontStyle: 'bold', fontSize: 13 },
+      columnStyles: { 1: { halign: 'right' } },
+      styles: { fontSize: 11 },
+    });
+    // Notes
+    if (inv.notes) {
+      const y2 = (doc as any).lastAutoTable.finalY + 8;
+      doc.setFontSize(10);
+      doc.setFont('helvetica', 'bold');
+      doc.text('Notes:', 14, y2);
+      doc.setFont('helvetica', 'normal');
+      doc.text(inv.notes, 14, y2 + 6);
+    }
+    const yf = (doc as any).lastAutoTable.finalY + 20;
+    doc.setFontSize(9);
+    doc.setTextColor(150, 150, 150);
+    doc.text(`Generated on ${new Date().toLocaleDateString('en-IN')} | Construction Worker Tracker`, 14, yf);
+    doc.save(`invoice_${inv.invoice_number}.pdf`);
   };
 
   const totalAmount = invoices.reduce((sum, inv) => sum + parseFloat(inv.amount), 0);
@@ -536,6 +591,13 @@ const InvoiceList: React.FC = () => {
                     </td>
                     <td style={{ padding: '1rem' }}>
                       <div style={{ display: 'flex', gap: '0.5rem', justifyContent: 'center' }}>
+                        <button
+                          onClick={() => downloadInvoicePDF(inv)}
+                          style={{ background: '#1F7A8C', border: 'none', color: 'white', padding: '0.5rem 0.75rem', fontSize: '0.85rem', fontWeight: '600', borderRadius: '6px', cursor: 'pointer' }}
+                          title="Download PDF"
+                        >
+                          📄
+                        </button>
                         <button
                           onClick={() => openEditDrawer(inv)}
                           style={{

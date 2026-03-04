@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
+import * as XLSX from 'xlsx';
 import api from '../../services/api';
 import projectService from '../../services/projectService';
 
@@ -165,6 +166,43 @@ const Reports: React.FC = () => {
     URL.revokeObjectURL(url);
   };
 
+  const exportExcel = () => {
+    let sheetData: any[][] = [];
+    let sheetName = 'Report';
+
+    if (activeTab === 'worker' && workerData.length > 0) {
+      sheetName = 'Workers';
+      sheetData = [
+        ['Name', 'Role', 'Phone', 'Project', 'Type', 'Present', 'Half', 'Absent', 'Earned', 'Advance', 'Paid', 'Balance'],
+        ...workerData.map(w => [w.name, w.role, w.phone, w.project_name, w.payment_type, w.total_days_present, w.total_half_days, w.total_days_absent, w.total_wages_earned, w.total_advances, w.total_payments, w.balance_due]),
+      ];
+    } else if (activeTab === 'project' && projectData.length > 0) {
+      sheetName = 'Projects';
+      sheetData = [
+        ['Project', 'Client', 'Status', 'Budget', 'Labor', 'Material', 'Expenses', 'Total Cost', 'Received', 'Balance Due', 'P/L', 'Budget%'],
+        ...projectData.map(p => [p.name, p.client_name, p.status, p.budget, p.total_labor_cost, p.total_material_cost, p.total_expenses, p.total_cost, p.total_received, p.worker_balance_due, p.profit_loss, p.budget_utilization]),
+      ];
+    } else if (activeTab === 'monthly' && monthlyData.length > 0) {
+      sheetName = 'Monthly Payroll';
+      sheetData = [
+        ['Month', 'Wages', 'Advances', 'Workers Paid', 'Total Outflow'],
+        ...monthlyData.map(m => [m.month, m.wages, m.advances, m.workers_paid, Number(m.wages || 0) + Number(m.advances || 0)]),
+      ];
+    } else if (activeTab === 'performance' && performanceData.length > 0) {
+      sheetName = 'Performance';
+      sheetData = [
+        ['Name', 'Project', 'Total Days', 'Present', 'Half', 'Absent', 'Attendance%', 'Wages'],
+        ...performanceData.map(w => [w.name, w.project_name, w.total_days, w.present_days, w.half_days, w.absent_days, w.attendance_pct, w.wages_earned]),
+      ];
+    }
+
+    if (sheetData.length === 0) return;
+    const ws = XLSX.utils.aoa_to_sheet(sheetData);
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, sheetName);
+    XLSX.writeFile(wb, `report_${activeTab}_${new Date().toISOString().split('T')[0]}.xlsx`);
+  };
+
   const printReport = () => window.print();
 
   return (
@@ -195,6 +233,10 @@ const Reports: React.FC = () => {
                 📥 CSV
               </button>
             )}
+            <button onClick={exportExcel}
+              style={{ background: '#1565C0', color: 'white', border: 'none', padding: '0.65rem 1.5rem', borderRadius: '8px', cursor: 'pointer', fontWeight: '600', fontSize: '0.9rem' }}>
+              📊 Excel
+            </button>
             <button onClick={exportPDF}
               style={{ background: '#C62828', color: 'white', border: 'none', padding: '0.65rem 1.5rem', borderRadius: '8px', cursor: 'pointer', fontWeight: '600', fontSize: '0.9rem' }}>
               📄 PDF

@@ -1,5 +1,6 @@
 import React, { useEffect, useState, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { PieChart, Pie, Cell, Tooltip, Legend, ResponsiveContainer, BarChart, Bar, XAxis, YAxis, CartesianGrid } from 'recharts';
 import { useLanguage } from '../contexts/LanguageContext';
 import Loading from '../components/Loading';
 import NotificationBell from '../components/NotificationBell';
@@ -484,51 +485,29 @@ const Dashboard = () => {
                 </p>
               ) : (
                 <div>
-                  <div style={{
-                    marginBottom: '1rem',
-                    padding: '1rem',
-                    borderRadius: '10px',
-                    background: 'rgba(46, 125, 50, 0.07)',
-                    border: '1px solid rgba(46, 125, 50, 0.15)'
-                  }}>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.6rem' }}>
-                      <span style={{ fontWeight: '600', color: '#333' }}>✓ {t('present')}</span>
-                      <strong style={{ color: '#2E7D32' }}>{presentCount}/{attendanceTotal}</strong>
-                    </div>
-                    <div style={{ background: 'rgba(46,125,50,0.15)', height: '10px', borderRadius: '5px', overflow: 'hidden' }}>
-                      <div style={{ background: 'linear-gradient(90deg,#2E7D32,#43A047)', height: '100%', width: `${presentPct}%`, transition: 'width 0.5s' }} />
-                    </div>
-                  </div>
-                  {halfDayCount > 0 && (
-                    <div style={{
-                      marginBottom: '1rem',
-                      padding: '1rem',
-                      borderRadius: '10px',
-                      background: 'rgba(227, 100, 20, 0.07)',
-                      border: '1px solid rgba(227, 100, 20, 0.15)'
-                    }}>
-                      <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.6rem' }}>
-                        <span style={{ fontWeight: '600', color: '#333' }}>◑ Half Day</span>
-                        <strong style={{ color: '#E36414' }}>{halfDayCount}/{attendanceTotal}</strong>
-                      </div>
-                      <div style={{ background: 'rgba(227,100,20,0.15)', height: '10px', borderRadius: '5px', overflow: 'hidden' }}>
-                        <div style={{ background: 'linear-gradient(90deg,#E36414,#F97316)', height: '100%', width: `${halfDayPct}%`, transition: 'width 0.5s' }} />
-                      </div>
-                    </div>
-                  )}
-                  <div style={{
-                    padding: '1rem',
-                    borderRadius: '10px',
-                    background: 'rgba(198, 40, 40, 0.07)',
-                    border: '1px solid rgba(198, 40, 40, 0.15)'
-                  }}>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.6rem' }}>
-                      <span style={{ fontWeight: '600', color: '#333' }}>✗ {t('absent')}</span>
-                      <strong style={{ color: '#C62828' }}>{absentCount}/{attendanceTotal}</strong>
-                    </div>
-                    <div style={{ background: 'rgba(198,40,40,0.15)', height: '10px', borderRadius: '5px', overflow: 'hidden' }}>
-                      <div style={{ background: 'linear-gradient(90deg,#C62828,#E53935)', height: '100%', width: `${absentPct}%`, transition: 'width 0.5s' }} />
-                    </div>
+                  <ResponsiveContainer width="100%" height={180}>
+                    <PieChart>
+                      <Pie
+                        data={[
+                          { name: `Present (${presentCount})`, value: presentCount },
+                          ...(halfDayCount > 0 ? [{ name: `Half Day (${halfDayCount})`, value: halfDayCount }] : []),
+                          ...(absentCount > 0 ? [{ name: `Absent (${absentCount})`, value: absentCount }] : []),
+                        ]}
+                        cx="50%" cy="50%" innerRadius={45} outerRadius={70}
+                        paddingAngle={3} dataKey="value"
+                      >
+                        <Cell fill="#2E7D32" />
+                        <Cell fill="#E36414" />
+                        <Cell fill="#C62828" />
+                      </Pie>
+                      <Tooltip formatter={(v: any) => [`${v} workers`, '']} />
+                      <Legend iconType="circle" iconSize={10} wrapperStyle={{ fontSize: '0.82rem' }} />
+                    </PieChart>
+                  </ResponsiveContainer>
+                  <div style={{ display: 'flex', justifyContent: 'center', gap: '1.5rem', marginTop: '0.5rem' }}>
+                    <span style={{ fontWeight: '700', color: '#2E7D32', fontSize: '0.9rem' }}>{presentPct}% Present</span>
+                    {halfDayCount > 0 && <span style={{ fontWeight: '700', color: '#E36414', fontSize: '0.9rem' }}>{halfDayPct}% Half</span>}
+                    {absentCount > 0 && <span style={{ fontWeight: '700', color: '#C62828', fontSize: '0.9rem' }}>{absentPct}% Absent</span>}
                   </div>
                 </div>
               )}

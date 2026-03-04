@@ -27,6 +27,7 @@ import ResetPassword from './pages/ResetPassword';
 import BulkPayment from './pages/Payments/BulkPayment';
 import EquipmentList from './pages/Equipment/EquipmentList';
 import WorkDiaryList from './pages/WorkDiary/WorkDiaryList';
+import SitePhotoList from './pages/SitePhotos/SitePhotoList';
 
 // Protected Route Component
 const ProtectedRoute: React.FC<{ children: React.ReactNode }> = ({ children }) => {
@@ -169,6 +170,14 @@ function App() {
             element={
               <ProtectedRoute>
                 <ClientAdvanceList />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/projects/:id/photos"
+            element={
+              <ProtectedRoute>
+                <SitePhotoList />
               </ProtectedRoute>
             }
           />
