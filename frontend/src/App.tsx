@@ -5,6 +5,7 @@ import { AuthProvider } from './contexts/AuthContext';
 import { LanguageProvider } from './contexts/LanguageContext';
 import { ToastProvider } from './components/Toast';
 import Login from './pages/Login';
+import LandingPage from './pages/LandingPage';
 import Dashboard from './pages/Dashboard';
 import ProjectList from './pages/Projects/ProjectList';
 import ProjectForm from './pages/Projects/ProjectForm';
@@ -27,7 +28,7 @@ import BulkPayment from './pages/Payments/BulkPayment';
 // Protected Route Component
 const ProtectedRoute: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const token = localStorage.getItem('authToken');
-  return token ? <>{children}</> : <Navigate to="/" replace />;
+  return token ? <>{children}</> : <Navigate to="/login" replace />;
 };
 
 function App() {
@@ -37,7 +38,8 @@ function App() {
         <ToastProvider>
         <Router>
           <Routes>
-          <Route path="/" element={<Login />} />
+          <Route path="/" element={<LandingPage />} />
+          <Route path="/login" element={<Login />} />
           <Route path="/forgot-password" element={<ForgotPassword />} />
           <Route path="/reset-password" element={<ResetPassword />} />
           <Route
