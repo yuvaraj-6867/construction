@@ -304,8 +304,7 @@ const ExpenseList: React.FC = () => {
                 cx="50%" cy="50%"
                 outerRadius={100}
                 dataKey="value"
-                label={({ name, percent }: { name: string; percent?: number }) => `${name} (${((percent || 0) * 100).toFixed(0)}%)`}
-                labelLine={false}
+                label={false}
               >
                 {Object.keys(expensesByCategory).map((_, i) => (
                   <Cell key={i} fill={PIE_COLORS[i % PIE_COLORS.length]} />
