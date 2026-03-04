@@ -401,6 +401,86 @@ const Dashboard = () => {
           </div>
         </div>
 
+        {/* Quick Entry + Labor Cost Forecast */}
+        <div className="grid grid-cols-2" style={{ gap: '2rem', marginBottom: '2rem' }}>
+          {/* Quick Entry */}
+          <div className="card" style={{ boxShadow: '0 4px 16px rgba(0,0,0,0.08)', border: '1px solid rgba(0,0,0,0.05)' }}>
+            <h3 style={{ margin: '0 0 1.25rem 0', fontSize: '1.25rem', color: '#1F7A8C', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+              ⚡ Quick Entry
+            </h3>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
+              {(stats?.recent_projects || []).filter(p => p.status === 'in-progress' || p.status === 'planning').slice(0, 4).map(proj => (
+                <div key={proj.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '0.75rem 1rem', background: '#f8f9fa', borderRadius: '8px' }}>
+                  <div>
+                    <div style={{ fontWeight: '600', color: '#333', fontSize: '0.95rem' }}>{proj.name}</div>
+                    <div style={{ fontSize: '0.78rem', color: '#888' }}>{proj.active_workers} workers</div>
+                  </div>
+                  <div style={{ display: 'flex', gap: '0.5rem' }}>
+                    <button onClick={() => navigate(`/projects/${proj.id}/attendance`)}
+                      style={{ background: '#2E7D32', color: 'white', border: 'none', padding: '0.4rem 0.9rem', borderRadius: '6px', cursor: 'pointer', fontSize: '0.82rem', fontWeight: '600' }}>
+                      ✓ Attendance
+                    </button>
+                    <button onClick={() => navigate(`/projects/${proj.id}/payments`)}
+                      style={{ background: '#1F7A8C', color: 'white', border: 'none', padding: '0.4rem 0.9rem', borderRadius: '6px', cursor: 'pointer', fontSize: '0.82rem', fontWeight: '600' }}>
+                      ₹ Pay
+                    </button>
+                  </div>
+                </div>
+              ))}
+              {(stats?.recent_projects || []).filter(p => p.status === 'in-progress' || p.status === 'planning').length === 0 && (
+                <p style={{ color: '#999', textAlign: 'center', padding: '1rem 0' }}>No active projects</p>
+              )}
+            </div>
+          </div>
+
+          {/* Labor Cost Forecast */}
+          <div className="card" style={{ boxShadow: '0 4px 16px rgba(0,0,0,0.08)', border: '1px solid rgba(0,0,0,0.05)' }}>
+            <h3 style={{ margin: '0 0 1.25rem 0', fontSize: '1.25rem', color: '#1F7A8C', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+              📈 Labor Cost Forecast
+              <span style={{ fontSize: '0.8rem', color: '#999', fontWeight: 400 }}>— Next Month</span>
+            </h3>
+            {(() => {
+              const activeWorkers = stats?.workers.active || 0;
+              const totalWages = stats?.payments.total_wages_earned || 0;
+              const totalPaid = stats?.payments.total_paid || 0;
+              // Estimate avg daily wage from data: total wages / (active workers * ~22 days avg)
+              const avgDailyWageEst = activeWorkers > 0 ? (totalWages / Math.max(activeWorkers * 22, 1)) : 0;
+              // Next month working days (Mon-Sat = 26 days)
+              const nextMonth = new Date();
+              nextMonth.setMonth(nextMonth.getMonth() + 1);
+              const daysInNextMonth = new Date(nextMonth.getFullYear(), nextMonth.getMonth() + 1, 0).getDate();
+              const workingDays = Math.round(daysInNextMonth * (26 / 30));
+              const forecastAmount = avgDailyWageEst * activeWorkers * workingDays;
+              const balance = totalWages - totalPaid;
+              return (
+                <div>
+                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem', marginBottom: '1rem' }}>
+                    <div style={{ background: '#f0f9ff', borderRadius: '8px', padding: '1rem', textAlign: 'center' }}>
+                      <div style={{ fontSize: '1.6rem', fontWeight: '800', color: '#1F7A8C' }}>{formatCurrency(forecastAmount)}</div>
+                      <div style={{ fontSize: '0.8rem', color: '#666', marginTop: '0.25rem' }}>Est. Next Month Cost</div>
+                    </div>
+                    <div style={{ background: '#fff7ed', borderRadius: '8px', padding: '1rem', textAlign: 'center' }}>
+                      <div style={{ fontSize: '1.6rem', fontWeight: '800', color: '#E36414' }}>{formatCurrency(balance)}</div>
+                      <div style={{ fontSize: '0.8rem', color: '#666', marginTop: '0.25rem' }}>Current Balance Due</div>
+                    </div>
+                  </div>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.88rem', color: '#666' }}>
+                      <span>Active Workers</span><span style={{ fontWeight: '600', color: '#333' }}>{activeWorkers}</span>
+                    </div>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.88rem', color: '#666' }}>
+                      <span>Working Days (est.)</span><span style={{ fontWeight: '600', color: '#333' }}>{workingDays} days</span>
+                    </div>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.88rem', color: '#666' }}>
+                      <span>Avg Daily Wage (est.)</span><span style={{ fontWeight: '600', color: '#333' }}>{formatCurrency(avgDailyWageEst)}</span>
+                    </div>
+                  </div>
+                </div>
+              );
+            })()}
+          </div>
+        </div>
+
         {/* Bottom section */}
         <div className="grid grid-cols-2" style={{ gap: '2rem' }}>
           {/* Recent Projects */}

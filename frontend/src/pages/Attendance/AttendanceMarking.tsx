@@ -238,21 +238,34 @@ const AttendanceMarking: React.FC = () => {
 
       {/* Success Message */}
       {success && (
-        <div style={{
-          background: 'linear-gradient(135deg, #22c55e 0%, #16a34a 100%)',
-          color: 'white',
-          padding: '1rem 1.5rem',
-          borderRadius: '12px',
-          marginBottom: '2rem',
-          boxShadow: '0 4px 15px rgba(34, 197, 94, 0.3)',
-          display: 'flex',
-          alignItems: 'center',
-          gap: '0.75rem'
-        }}>
-          <span style={{ fontSize: '1.5rem' }}>✓</span>
-          <span style={{ fontWeight: '600' }}>
-            Attendance {isEditMode ? 'updated' : 'marked'} successfully!
-          </span>
+        <div style={{ marginBottom: '2rem' }}>
+          <div style={{
+            background: 'linear-gradient(135deg, #22c55e 0%, #16a34a 100%)',
+            color: 'white',
+            padding: '1rem 1.5rem',
+            borderRadius: '12px',
+            boxShadow: '0 4px 15px rgba(34, 197, 94, 0.3)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            gap: '0.75rem',
+            marginBottom: '0.75rem'
+          }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+              <span style={{ fontSize: '1.5rem' }}>✓</span>
+              <span style={{ fontWeight: '600' }}>
+                Attendance {isEditMode ? 'updated' : 'marked'} successfully! — {presentCount} present, {halfDayCount} half day, {absentCount} absent
+              </span>
+            </div>
+            <a
+              href={`https://wa.me/?text=${encodeURIComponent(`Attendance for ${date}:\n✅ Present: ${presentCount} workers\n🟡 Half Day: ${halfDayCount} workers\n❌ Absent: ${absentCount} workers\n\nAbsent: ${workers.filter(w => attendances[w.id] === 'absent').map(w => w.name).join(', ') || 'None'}`)}`}
+              target="_blank"
+              rel="noopener noreferrer"
+              style={{ background: '#25d366', color: 'white', padding: '0.5rem 1rem', borderRadius: '8px', textDecoration: 'none', fontWeight: '600', fontSize: '0.85rem', whiteSpace: 'nowrap' }}
+            >
+              💬 Share on WhatsApp
+            </a>
+          </div>
         </div>
       )}
 

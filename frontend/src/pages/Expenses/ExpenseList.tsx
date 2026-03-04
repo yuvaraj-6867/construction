@@ -1,9 +1,12 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate, useSearchParams, useParams, useLocation } from 'react-router-dom';
+import { PieChart, Pie, Cell, Tooltip, Legend, ResponsiveContainer } from 'recharts';
 import expenseService from '../../services/expenseService';
 import projectService from '../../services/projectService';
 import ConfirmDialog from '../../components/ConfirmDialog';
 import Loading from '../../components/Loading';
+
+const PIE_COLORS = ['#1F7A8C','#ef4444','#f59e0b','#22c55e','#8b5cf6','#ec4899','#0891b2','#16a34a','#d97706','#7c3aed'];
 
 const ExpenseList: React.FC = () => {
   const navigate = useNavigate();
@@ -287,6 +290,31 @@ const ExpenseList: React.FC = () => {
           fontWeight: '500'
         }}>
           {error}
+        </div>
+      )}
+
+      {/* Expense Category Pie Chart */}
+      {Object.keys(expensesByCategory).length > 0 && (
+        <div style={{ background: 'white', borderRadius: '16px', padding: '1.5rem 2rem', boxShadow: '0 4px 20px rgba(0,0,0,0.08)', marginBottom: '2rem' }}>
+          <h2 style={{ margin: '0 0 1rem 0', fontSize: '1.3rem', color: '#1F7A8C', fontWeight: 'bold' }}>Expenses by Category</h2>
+          <ResponsiveContainer width="100%" height={260}>
+            <PieChart>
+              <Pie
+                data={Object.entries(expensesByCategory).map(([name, value]) => ({ name, value: Number(value) }))}
+                cx="50%" cy="50%"
+                outerRadius={100}
+                dataKey="value"
+                label={({ name, percent }) => `${name} (${(percent * 100).toFixed(0)}%)`}
+                labelLine={false}
+              >
+                {Object.keys(expensesByCategory).map((_, i) => (
+                  <Cell key={i} fill={PIE_COLORS[i % PIE_COLORS.length]} />
+                ))}
+              </Pie>
+              <Tooltip formatter={(v: any) => `₹${Number(v).toLocaleString('en-IN')}`} />
+              <Legend />
+            </PieChart>
+          </ResponsiveContainer>
         </div>
       )}
 

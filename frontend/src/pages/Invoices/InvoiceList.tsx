@@ -226,6 +226,53 @@ const InvoiceList: React.FC = () => {
     doc.save(`invoice_${inv.invoice_number}.pdf`);
   };
 
+  const downloadClientStatement = () => {
+    const doc = new jsPDF();
+    const project = invoices[0]?.project || {};
+    doc.setFillColor(31, 122, 140);
+    doc.rect(0, 0, 210, 40, 'F');
+    doc.setTextColor(255, 255, 255);
+    doc.setFontSize(20); doc.setFont('helvetica', 'bold');
+    doc.text('CLIENT STATEMENT', 14, 18);
+    doc.setFontSize(11); doc.setFont('helvetica', 'normal');
+    doc.text(`Project: ${project.name || 'All Projects'} | Client: ${project.client_name || 'N/A'}`, 14, 30);
+    doc.setTextColor(50, 50, 50);
+    doc.setFontSize(9);
+    doc.text(`Generated: ${new Date().toLocaleDateString('en-IN')}`, 150, 30);
+
+    autoTable(doc, {
+      startY: 50,
+      head: [['Invoice #', 'Issue Date', 'Due Date', 'Status', 'Amount']],
+      body: invoices.map(inv => [
+        inv.invoice_number,
+        inv.issue_date ? new Date(inv.issue_date).toLocaleDateString('en-IN') : 'N/A',
+        inv.due_date ? new Date(inv.due_date).toLocaleDateString('en-IN') : 'N/A',
+        (inv.status || '').toUpperCase(),
+        `\u20B9${parseFloat(inv.amount).toLocaleString('en-IN')}`
+      ]),
+      foot: [['', '', '', 'TOTAL', `\u20B9${totalAmount.toLocaleString('en-IN')}`]],
+      headStyles: { fillColor: [31, 122, 140] },
+      footStyles: { fillColor: [220, 252, 231], textColor: [22, 101, 52], fontStyle: 'bold', fontSize: 11 },
+      styles: { fontSize: 9 },
+      columnStyles: { 4: { halign: 'right' } },
+    });
+
+    const y = (doc as any).lastAutoTable.finalY + 10;
+    autoTable(doc, {
+      startY: y,
+      body: [
+        ['Total Invoiced', `\u20B9${totalAmount.toLocaleString('en-IN')}`],
+        ['Total Paid', `\u20B9${paidAmount.toLocaleString('en-IN')}`],
+        ['Outstanding', `\u20B9${pendingAmount.toLocaleString('en-IN')}`],
+      ],
+      styles: { fontSize: 10, fontStyle: 'bold' },
+      columnStyles: { 0: { fillColor: [240, 249, 255] }, 1: { halign: 'right' } },
+      theme: 'plain',
+    });
+
+    doc.save(`client_statement_${project.name || 'all'}.pdf`);
+  };
+
   const totalAmount = invoices.reduce((sum, inv) => sum + parseFloat(inv.amount), 0);
   const paidAmount = invoices.filter(i => i.status === 'paid').reduce((sum, inv) => sum + parseFloat(inv.amount), 0);
   const pendingAmount = totalAmount - paidAmount;
@@ -307,31 +354,39 @@ const InvoiceList: React.FC = () => {
             </p>
           </div>
         </div>
-        <button
-          onClick={openAddDrawer}
-          style={{
-            background: 'linear-gradient(135deg, #1F7A8C 0%, #16616F 100%)',
-            border: 'none',
-            color: 'white',
-            padding: '0.875rem 2rem',
-            fontSize: '1rem',
-            fontWeight: '600',
-            borderRadius: '10px',
-            boxShadow: '0 4px 15px rgba(31, 122, 140, 0.3)',
-            cursor: 'pointer',
-            transition: 'all 0.3s'
-          }}
-          onMouseEnter={(e) => {
-            e.currentTarget.style.transform = 'translateY(-2px)';
-            e.currentTarget.style.boxShadow = '0 6px 20px rgba(31, 122, 140, 0.4)';
-          }}
-          onMouseLeave={(e) => {
-            e.currentTarget.style.transform = 'translateY(0)';
-            e.currentTarget.style.boxShadow = '0 4px 15px rgba(31, 122, 140, 0.3)';
-          }}
-        >
-          + Create Invoice
-        </button>
+        <div style={{ display: 'flex', gap: '0.75rem' }}>
+          {invoices.length > 0 && (
+            <button onClick={downloadClientStatement}
+              style={{ background: '#1565C0', border: 'none', color: 'white', padding: '0.875rem 1.5rem', fontSize: '0.95rem', fontWeight: '600', borderRadius: '10px', cursor: 'pointer' }}>
+              📋 Client Statement PDF
+            </button>
+          )}
+          <button
+            onClick={openAddDrawer}
+            style={{
+              background: 'linear-gradient(135deg, #1F7A8C 0%, #16616F 100%)',
+              border: 'none',
+              color: 'white',
+              padding: '0.875rem 2rem',
+              fontSize: '1rem',
+              fontWeight: '600',
+              borderRadius: '10px',
+              boxShadow: '0 4px 15px rgba(31, 122, 140, 0.3)',
+              cursor: 'pointer',
+              transition: 'all 0.3s'
+            }}
+            onMouseEnter={(e) => {
+              e.currentTarget.style.transform = 'translateY(-2px)';
+              e.currentTarget.style.boxShadow = '0 6px 20px rgba(31, 122, 140, 0.4)';
+            }}
+            onMouseLeave={(e) => {
+              e.currentTarget.style.transform = 'translateY(0)';
+              e.currentTarget.style.boxShadow = '0 4px 15px rgba(31, 122, 140, 0.3)';
+            }}
+          >
+            + Create Invoice
+          </button>
+        </div>
       </div>
 
       {error && (

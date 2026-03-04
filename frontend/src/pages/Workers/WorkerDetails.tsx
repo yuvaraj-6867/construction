@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate, useParams, useLocation } from 'react-router-dom';
-import { QRCodeSVG } from 'qrcode.react';
+import { QRCodeSVG, QRCodeCanvas } from 'qrcode.react';
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
 import workerService from '../../services/workerService';
@@ -24,6 +24,7 @@ const WorkerDetails: React.FC = () => {
   const [advances, setAdvances] = useState<any[]>([]);
   const [showQR, setShowQR] = useState(false);
   const [showSlipModal, setShowSlipModal] = useState(false);
+  const [showIDCardModal, setShowIDCardModal] = useState(false);
   const today = new Date();
   const [slipMonth, setSlipMonth] = useState(today.getMonth() + 1);
   const [slipYear, setSlipYear] = useState(today.getFullYear());
@@ -142,6 +143,55 @@ const WorkerDetails: React.FC = () => {
     } catch (e) {
       console.error('Salary slip error:', e);
     }
+  };
+
+  const downloadIDCard = async () => {
+    const canvas = document.getElementById('worker-id-qr') as HTMLCanvasElement;
+    const qrDataUrl = canvas ? canvas.toDataURL('image/png') : null;
+
+    const doc = new jsPDF({ orientation: 'landscape', unit: 'mm', format: [85, 54] });
+
+    // Card background
+    doc.setFillColor(31, 122, 140);
+    doc.rect(0, 0, 85, 18, 'F');
+
+    // Header text
+    doc.setTextColor(255, 255, 255);
+    doc.setFontSize(9);
+    doc.setFont('helvetica', 'bold');
+    doc.text('WORKER ID CARD', 42.5, 7, { align: 'center' });
+    doc.setFontSize(6);
+    doc.setFont('helvetica', 'normal');
+    doc.text('Construction Worker Tracker', 42.5, 13, { align: 'center' });
+
+    // Worker name
+    doc.setTextColor(20, 20, 20);
+    doc.setFontSize(12);
+    doc.setFont('helvetica', 'bold');
+    doc.text(worker.name, 5, 25);
+
+    // Worker details
+    doc.setFontSize(7.5);
+    doc.setFont('helvetica', 'normal');
+    doc.setTextColor(60, 60, 60);
+    doc.text(`Role: ${worker.role}`, 5, 31);
+    doc.text(`Phone: ${worker.phone || 'N/A'}`, 5, 36);
+    doc.text(`Project: ${(worker.project?.name || 'N/A').substring(0, 22)}`, 5, 41);
+    doc.text(`ID: #${workerId}`, 5, 46);
+    doc.text(`Wage: \u20B9${Number(worker.daily_wage || 0).toLocaleString('en-IN')}/day`, 5, 51);
+
+    // QR code
+    if (qrDataUrl) {
+      doc.addImage(qrDataUrl, 'PNG', 62, 20, 20, 20);
+    }
+
+    // Border line
+    doc.setDrawColor(31, 122, 140);
+    doc.setLineWidth(0.5);
+    doc.rect(1, 1, 83, 52);
+
+    doc.save(`id_card_${worker.name.replace(/\s+/g, '_')}.pdf`);
+    setShowIDCardModal(false);
   };
 
   const handleDeleteClick = () => {
@@ -731,6 +781,18 @@ const WorkerDetails: React.FC = () => {
           >
             📄 Salary Slip
           </button>
+          <button
+            onClick={downloadIDCard}
+            style={{ background: 'linear-gradient(135deg, #0891b2 0%, #0e7490 100%)', border: 'none', color: 'white', padding: '1rem 1.5rem', fontSize: '1rem', fontWeight: '600', borderRadius: '10px', cursor: 'pointer', transition: 'all 0.3s' }}
+          >
+            🪪 ID Card PDF
+          </button>
+          <button
+            onClick={() => navigate(`/workers/${workerId}/loans`)}
+            style={{ background: 'linear-gradient(135deg, #d97706 0%, #b45309 100%)', border: 'none', color: 'white', padding: '1rem 1.5rem', fontSize: '1rem', fontWeight: '600', borderRadius: '10px', cursor: 'pointer', transition: 'all 0.3s' }}
+          >
+            💰 Loans
+          </button>
         </div>
       </div>
 
@@ -823,6 +885,11 @@ const WorkerDetails: React.FC = () => {
           </div>
         </div>
       )}
+
+      {/* Hidden QR canvas for ID card PDF */}
+      <div style={{ position: 'absolute', left: '-9999px', visibility: 'hidden' }}>
+        <QRCodeCanvas id="worker-id-qr" value={`${window.location.origin}/workers/${workerId}`} size={200} level="H" />
+      </div>
 
       <ConfirmDialog
         isOpen={confirmDialog.isOpen}

@@ -28,6 +28,9 @@ import BulkPayment from './pages/Payments/BulkPayment';
 import EquipmentList from './pages/Equipment/EquipmentList';
 import WorkDiaryList from './pages/WorkDiary/WorkDiaryList';
 import SitePhotoList from './pages/SitePhotos/SitePhotoList';
+import WorkerLoanList from './pages/WorkerLoans/WorkerLoanList';
+import MilestoneList from './pages/Milestones/MilestoneList';
+import SubcontractorList from './pages/Subcontractors/SubcontractorList';
 
 // Protected Route Component
 const ProtectedRoute: React.FC<{ children: React.ReactNode }> = ({ children }) => {
@@ -346,6 +349,30 @@ function App() {
             element={
               <ProtectedRoute>
                 <AttendanceCalendar />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/workers/:id/loans"
+            element={
+              <ProtectedRoute>
+                <WorkerLoanList />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/projects/:id/milestones"
+            element={
+              <ProtectedRoute>
+                <MilestoneList />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/projects/:id/subcontractors"
+            element={
+              <ProtectedRoute>
+                <SubcontractorList />
               </ProtectedRoute>
             }
           />

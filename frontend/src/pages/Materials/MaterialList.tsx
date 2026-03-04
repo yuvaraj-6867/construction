@@ -1,5 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate, useSearchParams, useParams, useLocation } from 'react-router-dom';
+import jsPDF from 'jspdf';
+import autoTable from 'jspdf-autotable';
 import materialService from '../../services/materialService';
 import projectService from '../../services/projectService';
 import ConfirmDialog from '../../components/ConfirmDialog';
@@ -179,6 +181,60 @@ const MaterialList: React.FC = () => {
     }
   };
 
+  const downloadPurchaseOrder = () => {
+    const doc = new jsPDF();
+    const project = projects.find(p => String(p.id) === String(projectId));
+    const poNumber = `PO-${new Date().getFullYear()}${String(new Date().getMonth()+1).padStart(2,'0')}${String(new Date().getDate()).padStart(2,'0')}`;
+
+    doc.setFillColor(31, 122, 140);
+    doc.rect(0, 0, 210, 40, 'F');
+    doc.setTextColor(255, 255, 255);
+    doc.setFontSize(20); doc.setFont('helvetica', 'bold');
+    doc.text('PURCHASE ORDER', 14, 18);
+    doc.setFontSize(10); doc.setFont('helvetica', 'normal');
+    doc.text(`PO#: ${poNumber}  |  Date: ${new Date().toLocaleDateString('en-IN')}`, 14, 30);
+    doc.setTextColor(50, 50, 50);
+
+    if (project) {
+      autoTable(doc, {
+        startY: 46,
+        body: [
+          ['Project', project.name, 'Client', project.client_name || 'N/A'],
+          ['Location', project.location || 'N/A', 'Date', new Date().toLocaleDateString('en-IN')],
+        ],
+        styles: { fontSize: 9 },
+        columnStyles: { 0: { fontStyle: 'bold', fillColor: [240, 249, 255] }, 2: { fontStyle: 'bold', fillColor: [240, 249, 255] } },
+        theme: 'plain',
+      });
+    }
+
+    const startY = project ? (doc as any).lastAutoTable.finalY + 8 : 46;
+    autoTable(doc, {
+      startY,
+      head: [['#', 'Material', 'Qty', 'Unit', 'Unit Price', 'Total Cost', 'Supplier']],
+      body: materials.map((m, i) => [
+        i + 1,
+        m.name,
+        m.quantity,
+        m.unit,
+        `\u20B9${parseFloat(m.unit_price || 0).toLocaleString('en-IN')}`,
+        `\u20B9${parseFloat(m.total_cost).toLocaleString('en-IN')}`,
+        m.supplier_name || '—'
+      ]),
+      foot: [['', '', '', '', '', `\u20B9${totalCost.toLocaleString('en-IN')}`, '']],
+      headStyles: { fillColor: [31, 122, 140] },
+      footStyles: { fillColor: [220, 252, 231], textColor: [22, 101, 52], fontStyle: 'bold' },
+      styles: { fontSize: 8 },
+      columnStyles: { 5: { halign: 'right' }, 4: { halign: 'right' } },
+    });
+
+    const yf = (doc as any).lastAutoTable.finalY + 20;
+    doc.setFontSize(9); doc.setTextColor(150, 150, 150);
+    doc.text(`Generated on ${new Date().toLocaleDateString('en-IN')} | Construction Worker Tracker`, 14, yf);
+
+    doc.save(`purchase_order_${poNumber}.pdf`);
+  };
+
   const totalCost = materials.reduce((sum, material) => sum + parseFloat(material.total_cost), 0);
   const totalQuantity = materials.reduce((sum, material) => sum + parseFloat(material.quantity), 0);
 
@@ -259,31 +315,39 @@ const MaterialList: React.FC = () => {
             </p>
           </div>
         </div>
-        <button
-          onClick={openAddDrawer}
-          style={{
-            background: 'linear-gradient(135deg, #1F7A8C 0%, #16616F 100%)',
-            border: 'none',
-            color: 'white',
-            padding: '0.875rem 2rem',
-            fontSize: '1rem',
-            fontWeight: '600',
-            borderRadius: '10px',
-            boxShadow: '0 4px 15px rgba(31, 122, 140, 0.3)',
-            cursor: 'pointer',
-            transition: 'all 0.3s'
-          }}
-          onMouseEnter={(e) => {
-            e.currentTarget.style.transform = 'translateY(-2px)';
-            e.currentTarget.style.boxShadow = '0 6px 20px rgba(31, 122, 140, 0.4)';
-          }}
-          onMouseLeave={(e) => {
-            e.currentTarget.style.transform = 'translateY(0)';
-            e.currentTarget.style.boxShadow = '0 4px 15px rgba(31, 122, 140, 0.3)';
-          }}
-        >
-          + Add Material
-        </button>
+        <div style={{ display: 'flex', gap: '0.75rem' }}>
+          {materials.length > 0 && (
+            <button onClick={downloadPurchaseOrder}
+              style={{ background: '#7c3aed', border: 'none', color: 'white', padding: '0.875rem 1.5rem', fontSize: '0.95rem', fontWeight: '600', borderRadius: '10px', cursor: 'pointer' }}>
+              📋 Purchase Order PDF
+            </button>
+          )}
+          <button
+            onClick={openAddDrawer}
+            style={{
+              background: 'linear-gradient(135deg, #1F7A8C 0%, #16616F 100%)',
+              border: 'none',
+              color: 'white',
+              padding: '0.875rem 2rem',
+              fontSize: '1rem',
+              fontWeight: '600',
+              borderRadius: '10px',
+              boxShadow: '0 4px 15px rgba(31, 122, 140, 0.3)',
+              cursor: 'pointer',
+              transition: 'all 0.3s'
+            }}
+            onMouseEnter={(e) => {
+              e.currentTarget.style.transform = 'translateY(-2px)';
+              e.currentTarget.style.boxShadow = '0 6px 20px rgba(31, 122, 140, 0.4)';
+            }}
+            onMouseLeave={(e) => {
+              e.currentTarget.style.transform = 'translateY(0)';
+              e.currentTarget.style.boxShadow = '0 4px 15px rgba(31, 122, 140, 0.3)';
+            }}
+          >
+            + Add Material
+          </button>
+        </div>
       </div>
 
       {error && (

@@ -47,6 +47,9 @@ Rails.application.routes.draw do
       resources :site_photos
       resources :equipments
       resources :work_diaries
+      resources :worker_loans
+      resources :project_milestones
+      resources :subcontractors
     end
   end
 end
