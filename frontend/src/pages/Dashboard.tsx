@@ -38,9 +38,10 @@ interface DashboardStats {
 }
 
 const formatCurrency = (amount: number) => {
-  if (amount >= 100000) return `₹${(amount / 100000).toFixed(1)}L`;
-  if (amount >= 1000) return `₹${(amount / 1000).toFixed(1)}K`;
-  return `₹${amount.toFixed(0)}`;
+  const n = Number(amount) || 0;
+  if (n >= 100000) return `₹${(n / 100000).toFixed(1)}L`;
+  if (n >= 1000) return `₹${(n / 1000).toFixed(1)}K`;
+  return `₹${n.toFixed(0)}`;
 };
 
 const statusColor: Record<string, string> = {
