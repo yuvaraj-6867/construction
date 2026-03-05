@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[7.2].define(version: 2026_03_04_000003) do
+ActiveRecord::Schema[7.2].define(version: 2026_03_05_000006) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "plpgsql"
 
@@ -41,6 +41,23 @@ ActiveRecord::Schema[7.2].define(version: 2026_03_04_000003) do
     t.datetime "updated_at", null: false
     t.index ["project_id"], name: "index_client_advances_on_project_id"
     t.index ["user_id"], name: "index_client_advances_on_user_id"
+  end
+
+  create_table "equipments", force: :cascade do |t|
+    t.bigint "project_id", null: false
+    t.string "name", null: false
+    t.string "equipment_type"
+    t.date "usage_date"
+    t.decimal "hours_used", precision: 8, scale: 2
+    t.decimal "daily_rate", precision: 10, scale: 2
+    t.decimal "total_cost", precision: 10, scale: 2
+    t.string "operator_name"
+    t.text "notes"
+    t.bigint "user_id", null: false
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["project_id"], name: "index_equipments_on_project_id"
+    t.index ["user_id"], name: "index_equipments_on_user_id"
   end
 
   create_table "expenses", force: :cascade do |t|
@@ -120,6 +137,20 @@ ActiveRecord::Schema[7.2].define(version: 2026_03_04_000003) do
     t.index ["worker_id"], name: "index_payments_on_worker_id"
   end
 
+  create_table "project_milestones", force: :cascade do |t|
+    t.bigint "project_id", null: false
+    t.string "title", null: false
+    t.date "target_date"
+    t.boolean "completed", default: false
+    t.integer "completion_pct", default: 0
+    t.text "notes"
+    t.bigint "user_id", null: false
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["project_id"], name: "index_project_milestones_on_project_id"
+    t.index ["user_id"], name: "index_project_milestones_on_user_id"
+  end
+
   create_table "projects", force: :cascade do |t|
     t.string "name"
     t.string "client_name"
@@ -146,6 +177,21 @@ ActiveRecord::Schema[7.2].define(version: 2026_03_04_000003) do
     t.index ["user_id"], name: "index_site_photos_on_user_id"
   end
 
+  create_table "subcontractors", force: :cascade do |t|
+    t.bigint "project_id", null: false
+    t.string "name", null: false
+    t.string "specialty"
+    t.decimal "contract_amount", precision: 10, scale: 2, default: "0.0"
+    t.decimal "paid_amount", precision: 10, scale: 2, default: "0.0"
+    t.string "phone"
+    t.text "notes"
+    t.bigint "user_id", null: false
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["project_id"], name: "index_subcontractors_on_project_id"
+    t.index ["user_id"], name: "index_subcontractors_on_user_id"
+  end
+
   create_table "users", force: :cascade do |t|
     t.string "email"
     t.string "password_digest", comment: "Password must be at least 8 characters with 1 uppercase, 1 number, 1 special character (@$!%*?&#)"
@@ -160,6 +206,39 @@ ActiveRecord::Schema[7.2].define(version: 2026_03_04_000003) do
     t.index ["reset_password_token"], name: "index_users_on_reset_password_token", unique: true
   end
 
+  create_table "work_diaries", force: :cascade do |t|
+    t.bigint "project_id", null: false
+    t.date "date", null: false
+    t.string "title"
+    t.text "description"
+    t.string "weather"
+    t.integer "workers_present_count", default: 0
+    t.text "work_done"
+    t.text "issues"
+    t.bigint "user_id", null: false
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["project_id", "date"], name: "index_work_diaries_on_project_id_and_date", unique: true
+    t.index ["project_id"], name: "index_work_diaries_on_project_id"
+    t.index ["user_id"], name: "index_work_diaries_on_user_id"
+  end
+
+  create_table "worker_loans", force: :cascade do |t|
+    t.bigint "worker_id", null: false
+    t.bigint "project_id", null: false
+    t.decimal "loan_amount", precision: 10, scale: 2, null: false
+    t.decimal "repaid_amount", precision: 10, scale: 2, default: "0.0"
+    t.date "loan_date", null: false
+    t.string "purpose"
+    t.text "notes"
+    t.bigint "user_id", null: false
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["project_id"], name: "index_worker_loans_on_project_id"
+    t.index ["user_id"], name: "index_worker_loans_on_user_id"
+    t.index ["worker_id"], name: "index_worker_loans_on_worker_id"
+  end
+
   create_table "workers", force: :cascade do |t|
     t.string "name"
     t.string "phone"
@@ -172,6 +251,7 @@ ActiveRecord::Schema[7.2].define(version: 2026_03_04_000003) do
     t.datetime "updated_at", null: false
     t.string "payment_type", default: "daily"
     t.decimal "contract_amount", precision: 10, scale: 2
+    t.string "address"
     t.index ["project_id"], name: "index_workers_on_project_id"
   end
 
@@ -180,6 +260,8 @@ ActiveRecord::Schema[7.2].define(version: 2026_03_04_000003) do
   add_foreign_key "attendances", "workers"
   add_foreign_key "client_advances", "projects"
   add_foreign_key "client_advances", "users"
+  add_foreign_key "equipments", "projects"
+  add_foreign_key "equipments", "users"
   add_foreign_key "expenses", "projects"
   add_foreign_key "expenses", "users"
   add_foreign_key "invoices", "projects"
@@ -190,8 +272,17 @@ ActiveRecord::Schema[7.2].define(version: 2026_03_04_000003) do
   add_foreign_key "payments", "projects"
   add_foreign_key "payments", "users"
   add_foreign_key "payments", "workers"
+  add_foreign_key "project_milestones", "projects"
+  add_foreign_key "project_milestones", "users"
   add_foreign_key "projects", "users"
   add_foreign_key "site_photos", "projects"
   add_foreign_key "site_photos", "users"
+  add_foreign_key "subcontractors", "projects"
+  add_foreign_key "subcontractors", "users"
+  add_foreign_key "work_diaries", "projects"
+  add_foreign_key "work_diaries", "users"
+  add_foreign_key "worker_loans", "projects"
+  add_foreign_key "worker_loans", "users"
+  add_foreign_key "worker_loans", "workers"
   add_foreign_key "workers", "projects"
 end
