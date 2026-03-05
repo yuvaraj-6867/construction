@@ -26,11 +26,17 @@ import ForgotPassword from './pages/ForgotPassword';
 import ResetPassword from './pages/ResetPassword';
 import BulkPayment from './pages/Payments/BulkPayment';
 import EquipmentList from './pages/Equipment/EquipmentList';
+import EquipmentDetails from './pages/Equipment/EquipmentDetails';
 import WorkDiaryList from './pages/WorkDiary/WorkDiaryList';
+import WorkDiaryDetails from './pages/WorkDiary/WorkDiaryDetails';
 import SitePhotoList from './pages/SitePhotos/SitePhotoList';
+import SitePhotoDetails from './pages/SitePhotos/SitePhotoDetails';
 import WorkerLoanList from './pages/WorkerLoans/WorkerLoanList';
+import WorkerLoanDetails from './pages/WorkerLoans/WorkerLoanDetails';
 import MilestoneList from './pages/Milestones/MilestoneList';
+import MilestoneDetails from './pages/Milestones/MilestoneDetails';
 import SubcontractorList from './pages/Subcontractors/SubcontractorList';
+import SubcontractorDetails from './pages/Subcontractors/SubcontractorDetails';
 
 // Protected Route Component
 const ProtectedRoute: React.FC<{ children: React.ReactNode }> = ({ children }) => {
@@ -181,6 +187,14 @@ function App() {
             element={
               <ProtectedRoute>
                 <SitePhotoList />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/projects/:id/photos/:photoId"
+            element={
+              <ProtectedRoute>
+                <SitePhotoDetails />
               </ProtectedRoute>
             }
           />
@@ -337,10 +351,26 @@ function App() {
             }
           />
           <Route
+            path="/projects/:id/equipment/:equipmentId"
+            element={
+              <ProtectedRoute>
+                <EquipmentDetails />
+              </ProtectedRoute>
+            }
+          />
+          <Route
             path="/projects/:id/diary"
             element={
               <ProtectedRoute>
                 <WorkDiaryList />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/projects/:id/diary/:diaryId"
+            element={
+              <ProtectedRoute>
+                <WorkDiaryDetails />
               </ProtectedRoute>
             }
           />
@@ -361,6 +391,14 @@ function App() {
             }
           />
           <Route
+            path="/workers/:id/loans/:loanId"
+            element={
+              <ProtectedRoute>
+                <WorkerLoanDetails />
+              </ProtectedRoute>
+            }
+          />
+          <Route
             path="/projects/:id/milestones"
             element={
               <ProtectedRoute>
@@ -369,10 +407,26 @@ function App() {
             }
           />
           <Route
+            path="/projects/:id/milestones/:milestoneId"
+            element={
+              <ProtectedRoute>
+                <MilestoneDetails />
+              </ProtectedRoute>
+            }
+          />
+          <Route
             path="/projects/:id/subcontractors"
             element={
               <ProtectedRoute>
                 <SubcontractorList />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/projects/:id/subcontractors/:subcontractorId"
+            element={
+              <ProtectedRoute>
+                <SubcontractorDetails />
               </ProtectedRoute>
             }
           />
