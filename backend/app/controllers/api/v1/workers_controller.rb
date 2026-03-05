@@ -50,8 +50,12 @@ class Api::V1::WorkersController < ApplicationController
   def worker_params
     permitted = params.require(:worker).permit(
       :name, :phone, :role, :daily_wage, :contract_amount, :payment_type,
-      :project_id, :is_active, :joined_date, :status, :address, :advance_given
+      :project_id, :is_active, :joined_date, :status
     )
+
+    # Convert empty strings to nil for numeric fields
+    permitted[:daily_wage] = nil if permitted[:daily_wage].blank?
+    permitted[:contract_amount] = nil if permitted[:contract_amount].blank?
 
     if permitted[:status]
       permitted[:is_active] = permitted[:status] == 'active'
@@ -75,7 +79,6 @@ class Api::V1::WorkersController < ApplicationController
       status: worker.is_active ? 'active' : 'inactive',
       joined_date: worker.joined_date,
       total_wages_earned: worker.total_wages_earned,
-      advance_given: worker.advance_given || 0,
       total_payments: worker.total_payments,
       balance_due: worker.balance_due
     }
