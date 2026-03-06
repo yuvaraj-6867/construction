@@ -57,6 +57,7 @@ const AttendanceHistory: React.FC = () => {
       if (startDate) filters.start_date = startDate;
       if (endDate) filters.end_date = endDate;
       const data = await attendanceService.getAll(filters);
+      console.log('Attendance data received:', data);
       // Sort descending by date
       data.sort((a: any, b: any) => new Date(b.date).getTime() - new Date(a.date).getTime());
       setAttendances(data);
@@ -265,15 +266,15 @@ const AttendanceHistory: React.FC = () => {
                       onMouseLeave={e => { e.currentTarget.style.background = idx % 2 === 0 ? 'white' : '#fafafa'; }}
                     >
                       <td style={{ padding: '0.875rem 1rem', fontWeight: '600', color: '#374151' }}>
-                        {d.toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' })}
+                        {record.date ? new Date(record.date + 'T00:00:00').toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' }) : 'N/A'}
                       </td>
                       {!workerId && (
                         <td style={{ padding: '0.875rem 1rem' }}>
                           <span
-                            onClick={() => navigate(`/workers/${record.worker_id}`)}
-                            style={{ color: '#1F7A8C', fontWeight: '500', cursor: 'pointer' }}
+                            onClick={() => record.worker_id && navigate(`/workers/${record.worker_id}`)}
+                            style={{ color: '#1F7A8C', fontWeight: '500', cursor: record.worker_id ? 'pointer' : 'default' }}
                           >
-                            {record.worker_name || record.worker?.name || `Worker #${record.worker_id}`}
+                            {record.worker_name || (record.worker && record.worker.name) || `Worker #${record.worker_id || 'Unknown'}`}
                           </span>
                         </td>
                       )}
