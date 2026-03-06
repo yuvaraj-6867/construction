@@ -79,6 +79,7 @@ class Api::V1::WorkersController < ApplicationController
       status: worker.is_active ? 'active' : 'inactive',
       joined_date: worker.joined_date,
       total_wages_earned: worker.total_wages_earned,
+      total_advances: worker.total_advances,
       total_payments: worker.total_payments,
       balance_due: worker.balance_due
     }

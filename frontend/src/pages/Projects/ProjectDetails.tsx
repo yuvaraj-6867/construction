@@ -232,93 +232,41 @@ const ProjectDetails: React.FC = () => {
                 Project Information
               </h2>
               <div style={{ display: 'grid', gap: '0.5rem' }}>
-                <div style={{
-                  display: 'grid',
-                  gridTemplateColumns: '120px 1fr',
-                  padding: '0.5rem 0.6rem',
-                  borderRadius: '6px',
-                  background: '#f8f9fa',
-                  fontSize: '0.875rem'
-                }}>
-                  <strong style={{ color: '#1F7A8C' }}>Client</strong>
-                  <span>{project.client_name}</span>
-                </div>
-                <div style={{
-                  display: 'grid',
-                  gridTemplateColumns: '120px 1fr',
-                  padding: '0.5rem 0.6rem',
-                  borderRadius: '6px',
-                  background: 'white',
-                  fontSize: '0.875rem'
-                }}>
-                  <strong style={{ color: '#1F7A8C' }}>Budget</strong>
-                  <span>₹{(project.budget / 100000).toFixed(2)}L</span>
-                </div>
-                <div style={{
-                  display: 'grid',
-                  gridTemplateColumns: '120px 1fr',
-                  padding: '0.5rem 0.6rem',
-                  borderRadius: '6px',
-                  background: '#f8f9fa',
-                  fontSize: '0.875rem'
-                }}>
-                  <strong style={{ color: '#1F7A8C' }}>Start Date</strong>
-                  <span>{project.start_date}</span>
-                </div>
-                <div style={{
-                  display: 'grid',
-                  gridTemplateColumns: '120px 1fr',
-                  padding: '0.5rem 0.6rem',
-                  borderRadius: '6px',
-                  background: 'white',
-                  fontSize: '0.875rem'
-                }}>
-                  <strong style={{ color: '#1F7A8C' }}>End Date</strong>
-                  <span>{project.end_date || 'Not set'}</span>
-                </div>
-                <div style={{
-                  display: 'grid',
-                  gridTemplateColumns: '120px 1fr',
-                  padding: '0.5rem 0.6rem',
-                  borderRadius: '6px',
-                  background: '#f8f9fa',
-                  fontSize: '0.875rem'
-                }}>
-                  <strong style={{ color: '#1F7A8C' }}>Status</strong>
-                  <span style={{
-                    display: 'inline-block',
-                    padding: '0.35rem 0.75rem',
-                    borderRadius: '16px',
-                    fontSize: '0.75rem',
-                    fontWeight: '600',
-                    textTransform: 'uppercase',
-                    letterSpacing: '0.5px',
-                    width: 'fit-content',
-                    background: project.status === 'in-progress'
-                      ? 'linear-gradient(135deg, #22c55e 0%, #16a34a 100%)'
-                      : project.status === 'completed'
-                      ? 'linear-gradient(135deg, #3b82f6 0%, #2563eb 100%)'
-                      : 'linear-gradient(135deg, #f59e0b 0%, #d97706 100%)',
-                    color: 'white',
-                    boxShadow: project.status === 'in-progress'
-                      ? '0 2px 8px rgba(34, 197, 94, 0.3)'
-                      : project.status === 'completed'
-                      ? '0 2px 8px rgba(59, 130, 246, 0.3)'
-                      : '0 2px 8px rgba(245, 158, 11, 0.3)'
+                {[
+                  { label: 'Project', value: project.name || '-' },
+                  { label: 'Client', value: project.client_name || '-' },
+                  { label: 'Location', value: project.location || '-' },
+                  { label: 'Budget', value: project.budget ? `₹${parseFloat(project.budget).toLocaleString('en-IN')}` : '-' },
+                  { label: 'Start Date', value: project.start_date || '-' },
+                  { label: 'End Date', value: project.end_date || 'Not set' },
+                ].map((row, i) => (
+                  <div key={row.label} style={{
+                    display: 'grid',
+                    gridTemplateColumns: '100px 1fr',
+                    padding: '0.45rem 0.6rem',
+                    borderRadius: '6px',
+                    background: i % 2 === 0 ? '#f8f9fa' : 'white',
+                    fontSize: '0.875rem',
+                    alignItems: 'center'
                   }}>
-                    {project.status.replace('-', ' ')}
+                    <strong style={{ color: '#1F7A8C', fontSize: '0.8rem' }}>{row.label}</strong>
+                    <span style={{ color: '#374151' }}>{row.value}</span>
+                  </div>
+                ))}
+                <div style={{ display: 'grid', gridTemplateColumns: '100px 1fr', padding: '0.45rem 0.6rem', borderRadius: '6px', background: '#f8f9fa', fontSize: '0.875rem', alignItems: 'center' }}>
+                  <strong style={{ color: '#1F7A8C', fontSize: '0.8rem' }}>Status</strong>
+                  <span style={{
+                    display: 'inline-block', padding: '0.2rem 0.6rem', borderRadius: '12px',
+                    fontSize: '0.72rem', fontWeight: '600', textTransform: 'uppercase', width: 'fit-content',
+                    background: project.status === 'in-progress' ? '#22c55e' : project.status === 'completed' ? '#3b82f6' : '#f59e0b',
+                    color: 'white'
+                  }}>
+                    {(project.status || 'unknown').replace('-', ' ')}
                   </span>
                 </div>
-                <div style={{
-                  display: 'grid',
-                  gridTemplateColumns: '120px 1fr',
-                  padding: '0.5rem 0.6rem',
-                  borderRadius: '6px',
-                  background: 'white',
-                  fontSize: '0.875rem'
-                }}>
-                  <strong style={{ color: '#1F7A8C' }}>Description</strong>
-                  <span>{project.description || 'No description'}</span>
+                <div style={{ display: 'grid', gridTemplateColumns: '100px 1fr', padding: '0.45rem 0.6rem', borderRadius: '6px', background: 'white', fontSize: '0.875rem', alignItems: 'start' }}>
+                  <strong style={{ color: '#1F7A8C', fontSize: '0.8rem' }}>Description</strong>
+                  <span style={{ color: '#374151' }}>{project.description || 'No description'}</span>
                 </div>
               </div>
             </div>
