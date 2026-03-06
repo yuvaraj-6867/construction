@@ -3,7 +3,7 @@ name: Deploy to EC2
 on:
   push:
     branches:
-      - master
+      - main
 
 jobs:
   deploy:
@@ -24,7 +24,7 @@ jobs:
             cd /home/ec2-user/construction
 
             echo ">>> Pulling latest code..."
-            git pull origin master
+            git pull origin main
 
             echo ">>> Building Docker images..."
             docker-compose -f docker-compose.prod.yml build
