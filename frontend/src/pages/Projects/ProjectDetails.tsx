@@ -6,6 +6,8 @@ import attendanceService from '../../services/attendanceService';
 import paymentService from '../../services/paymentService';
 import materialService from '../../services/materialService';
 import expenseService from '../../services/expenseService';
+import invoiceService from '../../services/invoiceService';
+import clientAdvanceService from '../../services/clientAdvanceService';
 import Modal from '../../components/Modal';
 import Loading from '../../components/Loading';
 
@@ -35,6 +37,30 @@ const ProjectDetails: React.FC = () => {
   const [showAddWorker, setShowAddWorker] = useState(false);
   const [addForm, setAddForm] = useState<any>({ name: '', phone: '', role: '', daily_wage: '', payment_type: 'daily', contract_amount: '', status: 'active' });
   const [addSaving, setAddSaving] = useState(false);
+  // Attendance modal
+  const [showAddAttendance, setShowAddAttendance] = useState(false);
+  const [attForm, setAttForm] = useState<any>({ worker_id: '', date: new Date().toISOString().split('T')[0], status: 'present', notes: '' });
+  const [attSaving, setAttSaving] = useState(false);
+  // Payment modal
+  const [showAddPayment, setShowAddPayment] = useState(false);
+  const [payForm, setPayForm] = useState<any>({ worker_id: '', amount: '', payment_date: new Date().toISOString().split('T')[0], payment_method: 'cash', payment_type: 'salary', notes: '' });
+  const [paySaving, setPaySaving] = useState(false);
+  // Material modal
+  const [showAddMaterial, setShowAddMaterial] = useState(false);
+  const [matForm, setMatForm] = useState<any>({ name: '', quantity: '', unit: 'kg', cost: '', supplier: '', purchase_date: new Date().toISOString().split('T')[0] });
+  const [matSaving, setMatSaving] = useState(false);
+  // Expense modal
+  const [showAddExpense, setShowAddExpense] = useState(false);
+  const [expForm, setExpForm] = useState<any>({ category: 'miscellaneous', description: '', amount: '', date: new Date().toISOString().split('T')[0], bill_number: '', notes: '' });
+  const [expSaving, setExpSaving] = useState(false);
+  // Invoice modal
+  const [showAddInvoice, setShowAddInvoice] = useState(false);
+  const [invForm, setInvForm] = useState<any>({ invoice_number: '', amount: '', date: new Date().toISOString().split('T')[0], due_date: '', status: 'pending', notes: '' });
+  const [invSaving, setInvSaving] = useState(false);
+  // Client Advance modal
+  const [showAddAdvance, setShowAddAdvance] = useState(false);
+  const [advForm, setAdvForm] = useState<any>({ amount: '', date: new Date().toISOString().split('T')[0], payment_method: 'cash', reference_number: '', notes: '' });
+  const [advSaving, setAdvSaving] = useState(false);
 
   useEffect(() => {
     loadProject();
@@ -149,6 +175,64 @@ const ProjectDetails: React.FC = () => {
     } finally {
       setAddSaving(false);
     }
+  };
+
+  const handleAddAttendance = async () => {
+    setAttSaving(true);
+    try {
+      await attendanceService.bulkCreate({ project_id: id, records: [attForm] });
+      setShowAddAttendance(false);
+      setAttForm({ worker_id: '', date: new Date().toISOString().split('T')[0], status: 'present', notes: '' });
+      loadAttendances();
+    } catch { alert('Failed to add attendance'); } finally { setAttSaving(false); }
+  };
+
+  const handleAddPayment = async () => {
+    setPaySaving(true);
+    try {
+      await paymentService.create({ ...payForm, project_id: id });
+      setShowAddPayment(false);
+      setPayForm({ worker_id: '', amount: '', payment_date: new Date().toISOString().split('T')[0], payment_method: 'cash', payment_type: 'salary', notes: '' });
+      loadPayments();
+    } catch { alert('Failed to add payment'); } finally { setPaySaving(false); }
+  };
+
+  const handleAddMaterial = async () => {
+    setMatSaving(true);
+    try {
+      await materialService.create({ ...matForm, project_id: id });
+      setShowAddMaterial(false);
+      setMatForm({ name: '', quantity: '', unit: 'kg', cost: '', supplier: '', purchase_date: new Date().toISOString().split('T')[0] });
+      loadMaterials();
+    } catch { alert('Failed to add material'); } finally { setMatSaving(false); }
+  };
+
+  const handleAddExpense = async () => {
+    setExpSaving(true);
+    try {
+      await expenseService.create({ ...expForm, project_id: id });
+      setShowAddExpense(false);
+      setExpForm({ category: 'miscellaneous', description: '', amount: '', date: new Date().toISOString().split('T')[0], bill_number: '', notes: '' });
+      loadExpenses();
+    } catch { alert('Failed to add expense'); } finally { setExpSaving(false); }
+  };
+
+  const handleAddInvoice = async () => {
+    setInvSaving(true);
+    try {
+      await invoiceService.create({ ...invForm, project_id: id });
+      setShowAddInvoice(false);
+      setInvForm({ invoice_number: '', amount: '', date: new Date().toISOString().split('T')[0], due_date: '', status: 'pending', notes: '' });
+    } catch { alert('Failed to add invoice'); } finally { setInvSaving(false); }
+  };
+
+  const handleAddClientAdvance = async () => {
+    setAdvSaving(true);
+    try {
+      await clientAdvanceService.create({ ...advForm, project_id: id });
+      setShowAddAdvance(false);
+      setAdvForm({ amount: '', date: new Date().toISOString().split('T')[0], payment_method: 'cash', reference_number: '', notes: '' });
+    } catch { alert('Failed to add advance'); } finally { setAdvSaving(false); }
   };
 
   const handleOpenModal = async (type: ModalType) => {
@@ -392,32 +476,6 @@ const ProjectDetails: React.FC = () => {
                 Project Workers ({workers.length})
               </h2>
               <div style={{ display: 'flex', gap: '0.75rem' }}>
-                <button
-                  onClick={() => navigate(`/projects/${id}/workers`)}
-                  style={{
-                    background: '#f8f9fa',
-                    border: '2px solid #1F7A8C',
-                    color: '#1F7A8C',
-                    padding: '0.75rem 1.5rem',
-                    fontSize: '0.95rem',
-                    fontWeight: '600',
-                    borderRadius: '10px',
-                    cursor: 'pointer',
-                    transition: 'all 0.3s'
-                  }}
-                  onMouseEnter={(e) => {
-                    e.currentTarget.style.background = '#1F7A8C';
-                    e.currentTarget.style.color = 'white';
-                    e.currentTarget.style.transform = 'translateY(-2px)';
-                  }}
-                  onMouseLeave={(e) => {
-                    e.currentTarget.style.background = '#f8f9fa';
-                    e.currentTarget.style.color = '#1F7A8C';
-                    e.currentTarget.style.transform = 'translateY(0)';
-                  }}
-                >
-                  View All Workers
-                </button>
                 <button
                   onClick={() => setShowAddWorker(true)}
                   style={{
@@ -677,56 +735,9 @@ const ProjectDetails: React.FC = () => {
                 Recent Attendance ({attendances.length})
               </h2>
               <div style={{ display: 'flex', gap: '0.75rem' }}>
-                <button
-                  onClick={() => navigate(`/projects/${id}/attendance`)}
-                  style={{
-                    background: '#f8f9fa',
-                    border: '2px solid #1F7A8C',
-                    color: '#1F7A8C',
-                    padding: '0.75rem 1.5rem',
-                    fontSize: '0.95rem',
-                    fontWeight: '600',
-                    borderRadius: '10px',
-                    cursor: 'pointer',
-                    transition: 'all 0.3s'
-                  }}
-                  onMouseEnter={(e) => {
-                    e.currentTarget.style.background = '#1F7A8C';
-                    e.currentTarget.style.color = 'white';
-                    e.currentTarget.style.transform = 'translateY(-2px)';
-                  }}
-                  onMouseLeave={(e) => {
-                    e.currentTarget.style.background = '#f8f9fa';
-                    e.currentTarget.style.color = '#1F7A8C';
-                    e.currentTarget.style.transform = 'translateY(0)';
-                  }}
-                >
-                  View All Attendance
-                </button>
-                <button
-                  onClick={() => navigate(`/attendance?project_id=${id}`)}
-                  style={{
-                    background: 'linear-gradient(135deg, #1F7A8C 0%, #16616F 100%)',
-                    border: 'none',
-                    color: 'white',
-                    padding: '0.75rem 1.5rem',
-                    fontSize: '0.95rem',
-                    fontWeight: '600',
-                    borderRadius: '10px',
-                    boxShadow: '0 4px 15px rgba(31, 122, 140, 0.3)',
-                    cursor: 'pointer',
-                    transition: 'all 0.3s'
-                  }}
-                  onMouseEnter={(e) => {
-                    e.currentTarget.style.transform = 'translateY(-2px)';
-                    e.currentTarget.style.boxShadow = '0 6px 20px rgba(31, 122, 140, 0.4)';
-                  }}
-                  onMouseLeave={(e) => {
-                    e.currentTarget.style.transform = 'translateY(0)';
-                    e.currentTarget.style.boxShadow = '0 4px 15px rgba(31, 122, 140, 0.3)';
-                  }}
-                >
-                  Mark Attendance
+                <button onClick={() => { loadWorkers(); setShowAddAttendance(true); }}
+                  style={{ background: 'linear-gradient(135deg, #1F7A8C 0%, #16616F 100%)', border: 'none', color: 'white', padding: '0.75rem 1.5rem', fontSize: '0.95rem', fontWeight: '600', borderRadius: '10px', cursor: 'pointer' }}>
+                  + Mark Attendance
                 </button>
               </div>
             </div>
@@ -809,69 +820,12 @@ const ProjectDetails: React.FC = () => {
                 Recent Payments ({payments.length})
               </h2>
               <div style={{ display: 'flex', gap: '0.75rem' }}>
-                <button
-                  onClick={() => navigate(`/projects/${id}/payments`)}
-                  style={{
-                    background: '#f8f9fa',
-                    border: '2px solid #1F7A8C',
-                    color: '#1F7A8C',
-                    padding: '0.75rem 1.5rem',
-                    fontSize: '0.95rem',
-                    fontWeight: '600',
-                    borderRadius: '10px',
-                    cursor: 'pointer',
-                    transition: 'all 0.3s'
-                  }}
-                  onMouseEnter={(e) => {
-                    e.currentTarget.style.background = '#1F7A8C';
-                    e.currentTarget.style.color = 'white';
-                    e.currentTarget.style.transform = 'translateY(-2px)';
-                  }}
-                  onMouseLeave={(e) => {
-                    e.currentTarget.style.background = '#f8f9fa';
-                    e.currentTarget.style.color = '#1F7A8C';
-                    e.currentTarget.style.transform = 'translateY(0)';
-                  }}
-                >
-                  View All Payments
-                </button>
-                <button
-                  onClick={() => navigate(`/projects/${id}/bulk-payment`)}
-                  style={{
-                    background: 'linear-gradient(135deg, #22c55e, #16a34a)',
-                    border: 'none', color: 'white',
-                    padding: '0.75rem 1.5rem', fontSize: '0.95rem', fontWeight: '600',
-                    borderRadius: '10px', boxShadow: '0 4px 15px rgba(34,197,94,0.3)',
-                    cursor: 'pointer', transition: 'all 0.3s'
-                  }}
-                  onMouseEnter={(e) => { e.currentTarget.style.transform = 'translateY(-2px)'; }}
-                  onMouseLeave={(e) => { e.currentTarget.style.transform = 'translateY(0)'; }}
-                >
+                <button onClick={() => navigate(`/projects/${id}/bulk-payment`)}
+                  style={{ background: 'linear-gradient(135deg, #22c55e, #16a34a)', border: 'none', color: 'white', padding: '0.75rem 1.5rem', fontSize: '0.95rem', fontWeight: '600', borderRadius: '10px', cursor: 'pointer' }}>
                   💳 Bulk Payment
                 </button>
-                <button
-                  onClick={() => navigate(`/projects/${id}/payments`)}
-                  style={{
-                    background: 'linear-gradient(135deg, #1F7A8C 0%, #16616F 100%)',
-                    border: 'none',
-                    color: 'white',
-                    padding: '0.75rem 1.5rem',
-                    fontSize: '0.95rem',
-                    fontWeight: '600',
-                    borderRadius: '10px',
-                    boxShadow: '0 4px 15px rgba(31, 122, 140, 0.3)',
-                    cursor: 'pointer',
-                    transition: 'all 0.3s'
-                  }}
-                  onMouseEnter={(e) => {
-                    e.currentTarget.style.transform = 'translateY(-2px)';
-                    e.currentTarget.style.boxShadow = '0 6px 20px rgba(31, 122, 140, 0.4)';
-                  }}
-                  onMouseLeave={(e) => {
-                    e.currentTarget.style.transform = 'translateY(0)';
-                    e.currentTarget.style.boxShadow = '0 4px 15px rgba(31, 122, 140, 0.3)';
-                  }}
-                >
+                <button onClick={() => { loadWorkers(); setShowAddPayment(true); }}
+                  style={{ background: 'linear-gradient(135deg, #1F7A8C 0%, #16616F 100%)', border: 'none', color: 'white', padding: '0.75rem 1.5rem', fontSize: '0.95rem', fontWeight: '600', borderRadius: '10px', cursor: 'pointer' }}>
                   + Add Payment
                 </button>
               </div>
@@ -971,55 +925,8 @@ const ProjectDetails: React.FC = () => {
                 Project Materials ({materials.length})
               </h2>
               <div style={{ display: 'flex', gap: '0.75rem' }}>
-                <button
-                  onClick={() => navigate(`/projects/${id}/materials`)}
-                  style={{
-                    background: '#f8f9fa',
-                    border: '2px solid #1F7A8C',
-                    color: '#1F7A8C',
-                    padding: '0.75rem 1.5rem',
-                    fontSize: '0.95rem',
-                    fontWeight: '600',
-                    borderRadius: '10px',
-                    cursor: 'pointer',
-                    transition: 'all 0.3s'
-                  }}
-                  onMouseEnter={(e) => {
-                    e.currentTarget.style.background = '#1F7A8C';
-                    e.currentTarget.style.color = 'white';
-                    e.currentTarget.style.transform = 'translateY(-2px)';
-                  }}
-                  onMouseLeave={(e) => {
-                    e.currentTarget.style.background = '#f8f9fa';
-                    e.currentTarget.style.color = '#1F7A8C';
-                    e.currentTarget.style.transform = 'translateY(0)';
-                  }}
-                >
-                  View All Materials
-                </button>
-                <button
-                  onClick={() => navigate(`/projects/${id}/materials`)}
-                  style={{
-                    background: 'linear-gradient(135deg, #1F7A8C 0%, #16616F 100%)',
-                    border: 'none',
-                    color: 'white',
-                    padding: '0.75rem 1.5rem',
-                    fontSize: '0.95rem',
-                    fontWeight: '600',
-                    borderRadius: '10px',
-                    boxShadow: '0 4px 15px rgba(31, 122, 140, 0.3)',
-                    cursor: 'pointer',
-                    transition: 'all 0.3s'
-                  }}
-                  onMouseEnter={(e) => {
-                    e.currentTarget.style.transform = 'translateY(-2px)';
-                    e.currentTarget.style.boxShadow = '0 6px 20px rgba(31, 122, 140, 0.4)';
-                  }}
-                  onMouseLeave={(e) => {
-                    e.currentTarget.style.transform = 'translateY(0)';
-                    e.currentTarget.style.boxShadow = '0 4px 15px rgba(31, 122, 140, 0.3)';
-                  }}
-                >
+                <button onClick={() => setShowAddMaterial(true)}
+                  style={{ background: 'linear-gradient(135deg, #1F7A8C 0%, #16616F 100%)', border: 'none', color: 'white', padding: '0.75rem 1.5rem', fontSize: '0.95rem', fontWeight: '600', borderRadius: '10px', cursor: 'pointer' }}>
                   + Add Material
                 </button>
               </div>
@@ -1113,55 +1020,8 @@ const ProjectDetails: React.FC = () => {
                 Recent Expenses ({expenses.length})
               </h2>
               <div style={{ display: 'flex', gap: '0.75rem' }}>
-                <button
-                  onClick={() => navigate(`/projects/${id}/expenses`)}
-                  style={{
-                    background: '#f8f9fa',
-                    border: '2px solid #1F7A8C',
-                    color: '#1F7A8C',
-                    padding: '0.75rem 1.5rem',
-                    fontSize: '0.95rem',
-                    fontWeight: '600',
-                    borderRadius: '10px',
-                    cursor: 'pointer',
-                    transition: 'all 0.3s'
-                  }}
-                  onMouseEnter={(e) => {
-                    e.currentTarget.style.background = '#1F7A8C';
-                    e.currentTarget.style.color = 'white';
-                    e.currentTarget.style.transform = 'translateY(-2px)';
-                  }}
-                  onMouseLeave={(e) => {
-                    e.currentTarget.style.background = '#f8f9fa';
-                    e.currentTarget.style.color = '#1F7A8C';
-                    e.currentTarget.style.transform = 'translateY(0)';
-                  }}
-                >
-                  View All Expenses
-                </button>
-                <button
-                  onClick={() => navigate(`/projects/${id}/expenses`)}
-                  style={{
-                    background: 'linear-gradient(135deg, #1F7A8C 0%, #16616F 100%)',
-                    border: 'none',
-                    color: 'white',
-                    padding: '0.75rem 1.5rem',
-                    fontSize: '0.95rem',
-                    fontWeight: '600',
-                    borderRadius: '10px',
-                    boxShadow: '0 4px 15px rgba(31, 122, 140, 0.3)',
-                    cursor: 'pointer',
-                    transition: 'all 0.3s'
-                  }}
-                  onMouseEnter={(e) => {
-                    e.currentTarget.style.transform = 'translateY(-2px)';
-                    e.currentTarget.style.boxShadow = '0 6px 20px rgba(31, 122, 140, 0.4)';
-                  }}
-                  onMouseLeave={(e) => {
-                    e.currentTarget.style.transform = 'translateY(0)';
-                    e.currentTarget.style.boxShadow = '0 4px 15px rgba(31, 122, 140, 0.3)';
-                  }}
-                >
+                <button onClick={() => setShowAddExpense(true)}
+                  style={{ background: 'linear-gradient(135deg, #1F7A8C 0%, #16616F 100%)', border: 'none', color: 'white', padding: '0.75rem 1.5rem', fontSize: '0.95rem', fontWeight: '600', borderRadius: '10px', cursor: 'pointer' }}>
                   + Add Expense
                 </button>
               </div>
@@ -1257,55 +1117,8 @@ const ProjectDetails: React.FC = () => {
                 Invoices
               </h2>
               <div style={{ display: 'flex', gap: '0.75rem' }}>
-                <button
-                  onClick={() => navigate(`/projects/${id}/invoices`)}
-                  style={{
-                    background: '#f8f9fa',
-                    border: '2px solid #1F7A8C',
-                    color: '#1F7A8C',
-                    padding: '0.75rem 1.5rem',
-                    fontSize: '0.95rem',
-                    fontWeight: '600',
-                    borderRadius: '10px',
-                    cursor: 'pointer',
-                    transition: 'all 0.3s'
-                  }}
-                  onMouseEnter={(e) => {
-                    e.currentTarget.style.background = '#1F7A8C';
-                    e.currentTarget.style.color = 'white';
-                    e.currentTarget.style.transform = 'translateY(-2px)';
-                  }}
-                  onMouseLeave={(e) => {
-                    e.currentTarget.style.background = '#f8f9fa';
-                    e.currentTarget.style.color = '#1F7A8C';
-                    e.currentTarget.style.transform = 'translateY(0)';
-                  }}
-                >
-                  View All Invoices
-                </button>
-                <button
-                  onClick={() => navigate(`/projects/${id}/invoices`)}
-                  style={{
-                    background: 'linear-gradient(135deg, #1F7A8C 0%, #16616F 100%)',
-                    border: 'none',
-                    color: 'white',
-                    padding: '0.75rem 1.5rem',
-                    fontSize: '0.95rem',
-                    fontWeight: '600',
-                    borderRadius: '10px',
-                    boxShadow: '0 4px 15px rgba(31, 122, 140, 0.3)',
-                    cursor: 'pointer',
-                    transition: 'all 0.3s'
-                  }}
-                  onMouseEnter={(e) => {
-                    e.currentTarget.style.transform = 'translateY(-2px)';
-                    e.currentTarget.style.boxShadow = '0 6px 20px rgba(31, 122, 140, 0.4)';
-                  }}
-                  onMouseLeave={(e) => {
-                    e.currentTarget.style.transform = 'translateY(0)';
-                    e.currentTarget.style.boxShadow = '0 4px 15px rgba(31, 122, 140, 0.3)';
-                  }}
-                >
+                <button onClick={() => setShowAddInvoice(true)}
+                  style={{ background: 'linear-gradient(135deg, #1F7A8C 0%, #16616F 100%)', border: 'none', color: 'white', padding: '0.75rem 1.5rem', fontSize: '0.95rem', fontWeight: '600', borderRadius: '10px', cursor: 'pointer' }}>
                   + Create Invoice
                 </button>
               </div>
@@ -1343,55 +1156,8 @@ const ProjectDetails: React.FC = () => {
                 Client Advances
               </h2>
               <div style={{ display: 'flex', gap: '0.75rem' }}>
-                <button
-                  onClick={() => navigate(`/projects/${id}/client-advances`)}
-                  style={{
-                    background: '#f8f9fa',
-                    border: '2px solid #1F7A8C',
-                    color: '#1F7A8C',
-                    padding: '0.75rem 1.5rem',
-                    fontSize: '0.95rem',
-                    fontWeight: '600',
-                    borderRadius: '10px',
-                    cursor: 'pointer',
-                    transition: 'all 0.3s'
-                  }}
-                  onMouseEnter={(e) => {
-                    e.currentTarget.style.background = '#1F7A8C';
-                    e.currentTarget.style.color = 'white';
-                    e.currentTarget.style.transform = 'translateY(-2px)';
-                  }}
-                  onMouseLeave={(e) => {
-                    e.currentTarget.style.background = '#f8f9fa';
-                    e.currentTarget.style.color = '#1F7A8C';
-                    e.currentTarget.style.transform = 'translateY(0)';
-                  }}
-                >
-                  View All Advances
-                </button>
-                <button
-                  onClick={() => navigate(`/projects/${id}/client-advances`)}
-                  style={{
-                    background: 'linear-gradient(135deg, #1F7A8C 0%, #16616F 100%)',
-                    border: 'none',
-                    color: 'white',
-                    padding: '0.75rem 1.5rem',
-                    fontSize: '0.95rem',
-                    fontWeight: '600',
-                    borderRadius: '10px',
-                    boxShadow: '0 4px 15px rgba(31, 122, 140, 0.3)',
-                    cursor: 'pointer',
-                    transition: 'all 0.3s'
-                  }}
-                  onMouseEnter={(e) => {
-                    e.currentTarget.style.transform = 'translateY(-2px)';
-                    e.currentTarget.style.boxShadow = '0 6px 20px rgba(31, 122, 140, 0.4)';
-                  }}
-                  onMouseLeave={(e) => {
-                    e.currentTarget.style.transform = 'translateY(0)';
-                    e.currentTarget.style.boxShadow = '0 4px 15px rgba(31, 122, 140, 0.3)';
-                  }}
-                >
+                <button onClick={() => setShowAddAdvance(true)}
+                  style={{ background: 'linear-gradient(135deg, #1F7A8C 0%, #16616F 100%)', border: 'none', color: 'white', padding: '0.75rem 1.5rem', fontSize: '0.95rem', fontWeight: '600', borderRadius: '10px', cursor: 'pointer' }}>
                   + Record Advance
                 </button>
               </div>
@@ -1692,6 +1458,310 @@ const ProjectDetails: React.FC = () => {
       }}>
         {renderTabContent()}
       </div>
+
+      {/* ── Attendance Modal ── */}
+      {showAddAttendance && (
+        <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.5)', zIndex: 1000, display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+          onClick={(e) => { if (e.target === e.currentTarget) setShowAddAttendance(false); }}>
+          <div style={{ background: 'white', borderRadius: '16px', padding: '2rem', width: '420px', maxWidth: '95vw', boxShadow: '0 20px 60px rgba(0,0,0,0.3)' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem', borderBottom: '2px solid #e9ecef', paddingBottom: '0.75rem' }}>
+              <h3 style={{ margin: 0, color: '#1F7A8C', fontWeight: '700' }}>Mark Attendance</h3>
+              <button onClick={() => setShowAddAttendance(false)} style={{ background: 'none', border: 'none', fontSize: '1.5rem', cursor: 'pointer', color: '#6c757d' }}>&times;</button>
+            </div>
+            <div style={{ display: 'grid', gap: '1rem' }}>
+              <div>
+                <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: '600', color: '#374151', marginBottom: '0.3rem' }}>Worker *</label>
+                <select value={attForm.worker_id} onChange={e => setAttForm((p: any) => ({ ...p, worker_id: e.target.value }))}
+                  style={{ width: '100%', padding: '0.6rem 0.75rem', border: '1px solid #d1d5db', borderRadius: '8px', fontSize: '0.9rem' }}>
+                  <option value="">Select Worker</option>
+                  {workers.map((w: any) => <option key={w.id} value={w.id}>{w.name}</option>)}
+                </select>
+              </div>
+              <div>
+                <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: '600', color: '#374151', marginBottom: '0.3rem' }}>Date</label>
+                <input type="date" value={attForm.date} onChange={e => setAttForm((p: any) => ({ ...p, date: e.target.value }))}
+                  style={{ width: '100%', padding: '0.6rem 0.75rem', border: '1px solid #d1d5db', borderRadius: '8px', fontSize: '0.9rem', boxSizing: 'border-box' }} />
+              </div>
+              <div>
+                <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: '600', color: '#374151', marginBottom: '0.3rem' }}>Status</label>
+                <select value={attForm.status} onChange={e => setAttForm((p: any) => ({ ...p, status: e.target.value }))}
+                  style={{ width: '100%', padding: '0.6rem 0.75rem', border: '1px solid #d1d5db', borderRadius: '8px', fontSize: '0.9rem' }}>
+                  <option value="present">Present</option>
+                  <option value="half-day">Half Day</option>
+                  <option value="absent">Absent</option>
+                </select>
+              </div>
+              <div>
+                <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: '600', color: '#374151', marginBottom: '0.3rem' }}>Notes</label>
+                <input type="text" value={attForm.notes} onChange={e => setAttForm((p: any) => ({ ...p, notes: e.target.value }))}
+                  style={{ width: '100%', padding: '0.6rem 0.75rem', border: '1px solid #d1d5db', borderRadius: '8px', fontSize: '0.9rem', boxSizing: 'border-box' }} />
+              </div>
+            </div>
+            <div style={{ display: 'flex', gap: '0.75rem', marginTop: '1.5rem', justifyContent: 'flex-end' }}>
+              <button onClick={() => setShowAddAttendance(false)} style={{ padding: '0.6rem 1.25rem', background: '#f8f9fa', border: '1px solid #d1d5db', borderRadius: '8px', fontSize: '0.9rem', cursor: 'pointer', fontWeight: '600' }}>Cancel</button>
+              <button onClick={handleAddAttendance} disabled={attSaving || !attForm.worker_id}
+                style={{ padding: '0.6rem 1.5rem', background: attSaving || !attForm.worker_id ? '#93c5fd' : '#1F7A8C', color: 'white', border: 'none', borderRadius: '8px', fontSize: '0.9rem', cursor: 'pointer', fontWeight: '600' }}>
+                {attSaving ? 'Saving...' : 'Mark Attendance'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ── Payment Modal ── */}
+      {showAddPayment && (
+        <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.5)', zIndex: 1000, display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+          onClick={(e) => { if (e.target === e.currentTarget) setShowAddPayment(false); }}>
+          <div style={{ background: 'white', borderRadius: '16px', padding: '2rem', width: '420px', maxWidth: '95vw', boxShadow: '0 20px 60px rgba(0,0,0,0.3)' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem', borderBottom: '2px solid #e9ecef', paddingBottom: '0.75rem' }}>
+              <h3 style={{ margin: 0, color: '#1F7A8C', fontWeight: '700' }}>Add Payment</h3>
+              <button onClick={() => setShowAddPayment(false)} style={{ background: 'none', border: 'none', fontSize: '1.5rem', cursor: 'pointer', color: '#6c757d' }}>&times;</button>
+            </div>
+            <div style={{ display: 'grid', gap: '1rem' }}>
+              <div>
+                <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: '600', color: '#374151', marginBottom: '0.3rem' }}>Worker *</label>
+                <select value={payForm.worker_id} onChange={e => setPayForm((p: any) => ({ ...p, worker_id: e.target.value }))}
+                  style={{ width: '100%', padding: '0.6rem 0.75rem', border: '1px solid #d1d5db', borderRadius: '8px', fontSize: '0.9rem' }}>
+                  <option value="">Select Worker</option>
+                  {workers.map((w: any) => <option key={w.id} value={w.id}>{w.name}</option>)}
+                </select>
+              </div>
+              <div>
+                <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: '600', color: '#374151', marginBottom: '0.3rem' }}>Amount (₹) *</label>
+                <input type="number" value={payForm.amount} onChange={e => setPayForm((p: any) => ({ ...p, amount: e.target.value }))}
+                  style={{ width: '100%', padding: '0.6rem 0.75rem', border: '1px solid #d1d5db', borderRadius: '8px', fontSize: '0.9rem', boxSizing: 'border-box' }} />
+              </div>
+              <div>
+                <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: '600', color: '#374151', marginBottom: '0.3rem' }}>Date</label>
+                <input type="date" value={payForm.payment_date} onChange={e => setPayForm((p: any) => ({ ...p, payment_date: e.target.value }))}
+                  style={{ width: '100%', padding: '0.6rem 0.75rem', border: '1px solid #d1d5db', borderRadius: '8px', fontSize: '0.9rem', boxSizing: 'border-box' }} />
+              </div>
+              <div>
+                <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: '600', color: '#374151', marginBottom: '0.3rem' }}>Method</label>
+                <select value={payForm.payment_method} onChange={e => setPayForm((p: any) => ({ ...p, payment_method: e.target.value }))}
+                  style={{ width: '100%', padding: '0.6rem 0.75rem', border: '1px solid #d1d5db', borderRadius: '8px', fontSize: '0.9rem' }}>
+                  <option value="cash">Cash</option>
+                  <option value="bank_transfer">Bank Transfer</option>
+                  <option value="upi">UPI</option>
+                  <option value="cheque">Cheque</option>
+                </select>
+              </div>
+              <div>
+                <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: '600', color: '#374151', marginBottom: '0.3rem' }}>Type</label>
+                <select value={payForm.payment_type} onChange={e => setPayForm((p: any) => ({ ...p, payment_type: e.target.value }))}
+                  style={{ width: '100%', padding: '0.6rem 0.75rem', border: '1px solid #d1d5db', borderRadius: '8px', fontSize: '0.9rem' }}>
+                  <option value="salary">Salary</option>
+                  <option value="advance">Advance</option>
+                </select>
+              </div>
+              <div>
+                <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: '600', color: '#374151', marginBottom: '0.3rem' }}>Notes</label>
+                <input type="text" value={payForm.notes} onChange={e => setPayForm((p: any) => ({ ...p, notes: e.target.value }))}
+                  style={{ width: '100%', padding: '0.6rem 0.75rem', border: '1px solid #d1d5db', borderRadius: '8px', fontSize: '0.9rem', boxSizing: 'border-box' }} />
+              </div>
+            </div>
+            <div style={{ display: 'flex', gap: '0.75rem', marginTop: '1.5rem', justifyContent: 'flex-end' }}>
+              <button onClick={() => setShowAddPayment(false)} style={{ padding: '0.6rem 1.25rem', background: '#f8f9fa', border: '1px solid #d1d5db', borderRadius: '8px', fontSize: '0.9rem', cursor: 'pointer', fontWeight: '600' }}>Cancel</button>
+              <button onClick={handleAddPayment} disabled={paySaving || !payForm.worker_id || !payForm.amount}
+                style={{ padding: '0.6rem 1.5rem', background: paySaving || !payForm.worker_id || !payForm.amount ? '#93c5fd' : '#1F7A8C', color: 'white', border: 'none', borderRadius: '8px', fontSize: '0.9rem', cursor: 'pointer', fontWeight: '600' }}>
+                {paySaving ? 'Saving...' : 'Add Payment'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ── Material Modal ── */}
+      {showAddMaterial && (
+        <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.5)', zIndex: 1000, display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+          onClick={(e) => { if (e.target === e.currentTarget) setShowAddMaterial(false); }}>
+          <div style={{ background: 'white', borderRadius: '16px', padding: '2rem', width: '420px', maxWidth: '95vw', boxShadow: '0 20px 60px rgba(0,0,0,0.3)' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem', borderBottom: '2px solid #e9ecef', paddingBottom: '0.75rem' }}>
+              <h3 style={{ margin: 0, color: '#1F7A8C', fontWeight: '700' }}>Add Material</h3>
+              <button onClick={() => setShowAddMaterial(false)} style={{ background: 'none', border: 'none', fontSize: '1.5rem', cursor: 'pointer', color: '#6c757d' }}>&times;</button>
+            </div>
+            <div style={{ display: 'grid', gap: '1rem' }}>
+              {[
+                { label: 'Material Name *', key: 'name', type: 'text' },
+                { label: 'Quantity', key: 'quantity', type: 'number' },
+                { label: 'Unit (kg/m/pcs...)', key: 'unit', type: 'text' },
+                { label: 'Cost per Unit (₹)', key: 'cost', type: 'number' },
+                { label: 'Supplier', key: 'supplier', type: 'text' },
+              ].map(f => (
+                <div key={f.key}>
+                  <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: '600', color: '#374151', marginBottom: '0.3rem' }}>{f.label}</label>
+                  <input type={f.type} value={matForm[f.key] || ''} onChange={e => setMatForm((p: any) => ({ ...p, [f.key]: e.target.value }))}
+                    style={{ width: '100%', padding: '0.6rem 0.75rem', border: '1px solid #d1d5db', borderRadius: '8px', fontSize: '0.9rem', boxSizing: 'border-box' }} />
+                </div>
+              ))}
+              <div>
+                <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: '600', color: '#374151', marginBottom: '0.3rem' }}>Purchase Date</label>
+                <input type="date" value={matForm.purchase_date} onChange={e => setMatForm((p: any) => ({ ...p, purchase_date: e.target.value }))}
+                  style={{ width: '100%', padding: '0.6rem 0.75rem', border: '1px solid #d1d5db', borderRadius: '8px', fontSize: '0.9rem', boxSizing: 'border-box' }} />
+              </div>
+            </div>
+            <div style={{ display: 'flex', gap: '0.75rem', marginTop: '1.5rem', justifyContent: 'flex-end' }}>
+              <button onClick={() => setShowAddMaterial(false)} style={{ padding: '0.6rem 1.25rem', background: '#f8f9fa', border: '1px solid #d1d5db', borderRadius: '8px', fontSize: '0.9rem', cursor: 'pointer', fontWeight: '600' }}>Cancel</button>
+              <button onClick={handleAddMaterial} disabled={matSaving || !matForm.name}
+                style={{ padding: '0.6rem 1.5rem', background: matSaving || !matForm.name ? '#93c5fd' : '#1F7A8C', color: 'white', border: 'none', borderRadius: '8px', fontSize: '0.9rem', cursor: 'pointer', fontWeight: '600' }}>
+                {matSaving ? 'Saving...' : 'Add Material'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ── Expense Modal ── */}
+      {showAddExpense && (
+        <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.5)', zIndex: 1000, display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+          onClick={(e) => { if (e.target === e.currentTarget) setShowAddExpense(false); }}>
+          <div style={{ background: 'white', borderRadius: '16px', padding: '2rem', width: '420px', maxWidth: '95vw', boxShadow: '0 20px 60px rgba(0,0,0,0.3)' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem', borderBottom: '2px solid #e9ecef', paddingBottom: '0.75rem' }}>
+              <h3 style={{ margin: 0, color: '#1F7A8C', fontWeight: '700' }}>Add Expense</h3>
+              <button onClick={() => setShowAddExpense(false)} style={{ background: 'none', border: 'none', fontSize: '1.5rem', cursor: 'pointer', color: '#6c757d' }}>&times;</button>
+            </div>
+            <div style={{ display: 'grid', gap: '1rem' }}>
+              <div>
+                <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: '600', color: '#374151', marginBottom: '0.3rem' }}>Category</label>
+                <select value={expForm.category} onChange={e => setExpForm((p: any) => ({ ...p, category: e.target.value }))}
+                  style={{ width: '100%', padding: '0.6rem 0.75rem', border: '1px solid #d1d5db', borderRadius: '8px', fontSize: '0.9rem' }}>
+                  {['tools', 'transport', 'food', 'fuel', 'electricity', 'water', 'rent', 'miscellaneous'].map(c => (
+                    <option key={c} value={c}>{c.charAt(0).toUpperCase() + c.slice(1)}</option>
+                  ))}
+                </select>
+              </div>
+              {[
+                { label: 'Description', key: 'description', type: 'text' },
+                { label: 'Amount (₹) *', key: 'amount', type: 'number' },
+                { label: 'Bill Number', key: 'bill_number', type: 'text' },
+                { label: 'Notes', key: 'notes', type: 'text' },
+              ].map(f => (
+                <div key={f.key}>
+                  <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: '600', color: '#374151', marginBottom: '0.3rem' }}>{f.label}</label>
+                  <input type={f.type} value={expForm[f.key] || ''} onChange={e => setExpForm((p: any) => ({ ...p, [f.key]: e.target.value }))}
+                    style={{ width: '100%', padding: '0.6rem 0.75rem', border: '1px solid #d1d5db', borderRadius: '8px', fontSize: '0.9rem', boxSizing: 'border-box' }} />
+                </div>
+              ))}
+              <div>
+                <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: '600', color: '#374151', marginBottom: '0.3rem' }}>Date</label>
+                <input type="date" value={expForm.date} onChange={e => setExpForm((p: any) => ({ ...p, date: e.target.value }))}
+                  style={{ width: '100%', padding: '0.6rem 0.75rem', border: '1px solid #d1d5db', borderRadius: '8px', fontSize: '0.9rem', boxSizing: 'border-box' }} />
+              </div>
+            </div>
+            <div style={{ display: 'flex', gap: '0.75rem', marginTop: '1.5rem', justifyContent: 'flex-end' }}>
+              <button onClick={() => setShowAddExpense(false)} style={{ padding: '0.6rem 1.25rem', background: '#f8f9fa', border: '1px solid #d1d5db', borderRadius: '8px', fontSize: '0.9rem', cursor: 'pointer', fontWeight: '600' }}>Cancel</button>
+              <button onClick={handleAddExpense} disabled={expSaving || !expForm.amount}
+                style={{ padding: '0.6rem 1.5rem', background: expSaving || !expForm.amount ? '#93c5fd' : '#1F7A8C', color: 'white', border: 'none', borderRadius: '8px', fontSize: '0.9rem', cursor: 'pointer', fontWeight: '600' }}>
+                {expSaving ? 'Saving...' : 'Add Expense'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ── Invoice Modal ── */}
+      {showAddInvoice && (
+        <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.5)', zIndex: 1000, display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+          onClick={(e) => { if (e.target === e.currentTarget) setShowAddInvoice(false); }}>
+          <div style={{ background: 'white', borderRadius: '16px', padding: '2rem', width: '420px', maxWidth: '95vw', boxShadow: '0 20px 60px rgba(0,0,0,0.3)' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem', borderBottom: '2px solid #e9ecef', paddingBottom: '0.75rem' }}>
+              <h3 style={{ margin: 0, color: '#1F7A8C', fontWeight: '700' }}>Create Invoice</h3>
+              <button onClick={() => setShowAddInvoice(false)} style={{ background: 'none', border: 'none', fontSize: '1.5rem', cursor: 'pointer', color: '#6c757d' }}>&times;</button>
+            </div>
+            <div style={{ display: 'grid', gap: '1rem' }}>
+              {[
+                { label: 'Invoice Number *', key: 'invoice_number', type: 'text' },
+                { label: 'Amount (₹) *', key: 'amount', type: 'number' },
+                { label: 'Notes', key: 'notes', type: 'text' },
+              ].map(f => (
+                <div key={f.key}>
+                  <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: '600', color: '#374151', marginBottom: '0.3rem' }}>{f.label}</label>
+                  <input type={f.type} value={invForm[f.key] || ''} onChange={e => setInvForm((p: any) => ({ ...p, [f.key]: e.target.value }))}
+                    style={{ width: '100%', padding: '0.6rem 0.75rem', border: '1px solid #d1d5db', borderRadius: '8px', fontSize: '0.9rem', boxSizing: 'border-box' }} />
+                </div>
+              ))}
+              <div>
+                <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: '600', color: '#374151', marginBottom: '0.3rem' }}>Invoice Date</label>
+                <input type="date" value={invForm.date} onChange={e => setInvForm((p: any) => ({ ...p, date: e.target.value }))}
+                  style={{ width: '100%', padding: '0.6rem 0.75rem', border: '1px solid #d1d5db', borderRadius: '8px', fontSize: '0.9rem', boxSizing: 'border-box' }} />
+              </div>
+              <div>
+                <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: '600', color: '#374151', marginBottom: '0.3rem' }}>Due Date</label>
+                <input type="date" value={invForm.due_date} onChange={e => setInvForm((p: any) => ({ ...p, due_date: e.target.value }))}
+                  style={{ width: '100%', padding: '0.6rem 0.75rem', border: '1px solid #d1d5db', borderRadius: '8px', fontSize: '0.9rem', boxSizing: 'border-box' }} />
+              </div>
+              <div>
+                <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: '600', color: '#374151', marginBottom: '0.3rem' }}>Status</label>
+                <select value={invForm.status} onChange={e => setInvForm((p: any) => ({ ...p, status: e.target.value }))}
+                  style={{ width: '100%', padding: '0.6rem 0.75rem', border: '1px solid #d1d5db', borderRadius: '8px', fontSize: '0.9rem' }}>
+                  <option value="pending">Pending</option>
+                  <option value="paid">Paid</option>
+                  <option value="overdue">Overdue</option>
+                </select>
+              </div>
+            </div>
+            <div style={{ display: 'flex', gap: '0.75rem', marginTop: '1.5rem', justifyContent: 'flex-end' }}>
+              <button onClick={() => setShowAddInvoice(false)} style={{ padding: '0.6rem 1.25rem', background: '#f8f9fa', border: '1px solid #d1d5db', borderRadius: '8px', fontSize: '0.9rem', cursor: 'pointer', fontWeight: '600' }}>Cancel</button>
+              <button onClick={handleAddInvoice} disabled={invSaving || !invForm.invoice_number || !invForm.amount}
+                style={{ padding: '0.6rem 1.5rem', background: invSaving || !invForm.invoice_number || !invForm.amount ? '#93c5fd' : '#1F7A8C', color: 'white', border: 'none', borderRadius: '8px', fontSize: '0.9rem', cursor: 'pointer', fontWeight: '600' }}>
+                {invSaving ? 'Saving...' : 'Create Invoice'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ── Client Advance Modal ── */}
+      {showAddAdvance && (
+        <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.5)', zIndex: 1000, display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+          onClick={(e) => { if (e.target === e.currentTarget) setShowAddAdvance(false); }}>
+          <div style={{ background: 'white', borderRadius: '16px', padding: '2rem', width: '420px', maxWidth: '95vw', boxShadow: '0 20px 60px rgba(0,0,0,0.3)' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem', borderBottom: '2px solid #e9ecef', paddingBottom: '0.75rem' }}>
+              <h3 style={{ margin: 0, color: '#1F7A8C', fontWeight: '700' }}>Record Client Advance</h3>
+              <button onClick={() => setShowAddAdvance(false)} style={{ background: 'none', border: 'none', fontSize: '1.5rem', cursor: 'pointer', color: '#6c757d' }}>&times;</button>
+            </div>
+            <div style={{ display: 'grid', gap: '1rem' }}>
+              <div>
+                <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: '600', color: '#374151', marginBottom: '0.3rem' }}>Amount (₹) *</label>
+                <input type="number" value={advForm.amount} onChange={e => setAdvForm((p: any) => ({ ...p, amount: e.target.value }))}
+                  style={{ width: '100%', padding: '0.6rem 0.75rem', border: '1px solid #d1d5db', borderRadius: '8px', fontSize: '0.9rem', boxSizing: 'border-box' }} />
+              </div>
+              <div>
+                <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: '600', color: '#374151', marginBottom: '0.3rem' }}>Date</label>
+                <input type="date" value={advForm.date} onChange={e => setAdvForm((p: any) => ({ ...p, date: e.target.value }))}
+                  style={{ width: '100%', padding: '0.6rem 0.75rem', border: '1px solid #d1d5db', borderRadius: '8px', fontSize: '0.9rem', boxSizing: 'border-box' }} />
+              </div>
+              <div>
+                <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: '600', color: '#374151', marginBottom: '0.3rem' }}>Payment Method</label>
+                <select value={advForm.payment_method} onChange={e => setAdvForm((p: any) => ({ ...p, payment_method: e.target.value }))}
+                  style={{ width: '100%', padding: '0.6rem 0.75rem', border: '1px solid #d1d5db', borderRadius: '8px', fontSize: '0.9rem' }}>
+                  <option value="cash">Cash</option>
+                  <option value="bank_transfer">Bank Transfer</option>
+                  <option value="upi">UPI</option>
+                  <option value="cheque">Cheque</option>
+                </select>
+              </div>
+              <div>
+                <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: '600', color: '#374151', marginBottom: '0.3rem' }}>Reference Number</label>
+                <input type="text" value={advForm.reference_number} onChange={e => setAdvForm((p: any) => ({ ...p, reference_number: e.target.value }))}
+                  style={{ width: '100%', padding: '0.6rem 0.75rem', border: '1px solid #d1d5db', borderRadius: '8px', fontSize: '0.9rem', boxSizing: 'border-box' }} />
+              </div>
+              <div>
+                <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: '600', color: '#374151', marginBottom: '0.3rem' }}>Notes</label>
+                <input type="text" value={advForm.notes} onChange={e => setAdvForm((p: any) => ({ ...p, notes: e.target.value }))}
+                  style={{ width: '100%', padding: '0.6rem 0.75rem', border: '1px solid #d1d5db', borderRadius: '8px', fontSize: '0.9rem', boxSizing: 'border-box' }} />
+              </div>
+            </div>
+            <div style={{ display: 'flex', gap: '0.75rem', marginTop: '1.5rem', justifyContent: 'flex-end' }}>
+              <button onClick={() => setShowAddAdvance(false)} style={{ padding: '0.6rem 1.25rem', background: '#f8f9fa', border: '1px solid #d1d5db', borderRadius: '8px', fontSize: '0.9rem', cursor: 'pointer', fontWeight: '600' }}>Cancel</button>
+              <button onClick={handleAddClientAdvance} disabled={advSaving || !advForm.amount}
+                style={{ padding: '0.6rem 1.5rem', background: advSaving || !advForm.amount ? '#93c5fd' : '#1F7A8C', color: 'white', border: 'none', borderRadius: '8px', fontSize: '0.9rem', cursor: 'pointer', fontWeight: '600' }}>
+                {advSaving ? 'Saving...' : 'Record Advance'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Modals */}
       <Modal
