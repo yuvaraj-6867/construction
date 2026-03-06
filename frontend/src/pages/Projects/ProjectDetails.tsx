@@ -231,7 +231,7 @@ const ProjectDetails: React.FC = () => {
               }}>
                 Project Information
               </h2>
-              <div style={{ display: 'grid', gap: '0.5rem' }}>
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.5rem' }}>
                 {[
                   { label: 'Project', value: project.name || '-' },
                   { label: 'Client', value: project.client_name || '-' },
@@ -241,32 +241,29 @@ const ProjectDetails: React.FC = () => {
                   { label: 'End Date', value: project.end_date || 'Not set' },
                 ].map((row, i) => (
                   <div key={row.label} style={{
-                    display: 'grid',
-                    gridTemplateColumns: '100px 1fr',
-                    padding: '0.45rem 0.6rem',
-                    borderRadius: '6px',
-                    background: i % 2 === 0 ? '#f8f9fa' : 'white',
-                    fontSize: '0.875rem',
-                    alignItems: 'center'
+                    padding: '0.6rem 0.75rem',
+                    borderRadius: '8px',
+                    background: i % 2 === 0 ? '#f8f9fa' : '#f0f9ff',
+                    textAlign: 'center'
                   }}>
-                    <strong style={{ color: '#1F7A8C', fontSize: '0.8rem' }}>{row.label}</strong>
-                    <span style={{ color: '#374151' }}>{row.value}</span>
+                    <div style={{ fontSize: '0.72rem', color: '#6c757d', fontWeight: '600', textTransform: 'uppercase', letterSpacing: '0.03em', marginBottom: '0.2rem' }}>{row.label}</div>
+                    <div style={{ fontSize: '0.875rem', fontWeight: '600', color: '#1F7A8C' }}>{row.value}</div>
                   </div>
                 ))}
-                <div style={{ display: 'grid', gridTemplateColumns: '100px 1fr', padding: '0.45rem 0.6rem', borderRadius: '6px', background: '#f8f9fa', fontSize: '0.875rem', alignItems: 'center' }}>
-                  <strong style={{ color: '#1F7A8C', fontSize: '0.8rem' }}>Status</strong>
+                <div style={{ padding: '0.6rem 0.75rem', borderRadius: '8px', background: '#f8f9fa', textAlign: 'center' }}>
+                  <div style={{ fontSize: '0.72rem', color: '#6c757d', fontWeight: '600', textTransform: 'uppercase', letterSpacing: '0.03em', marginBottom: '0.2rem' }}>Status</div>
                   <span style={{
-                    display: 'inline-block', padding: '0.2rem 0.6rem', borderRadius: '12px',
-                    fontSize: '0.72rem', fontWeight: '600', textTransform: 'uppercase', width: 'fit-content',
+                    display: 'inline-block', padding: '0.2rem 0.7rem', borderRadius: '12px',
+                    fontSize: '0.72rem', fontWeight: '700', textTransform: 'uppercase',
                     background: project.status === 'in-progress' ? '#22c55e' : project.status === 'completed' ? '#3b82f6' : '#f59e0b',
                     color: 'white'
                   }}>
                     {(project.status || 'unknown').replace('-', ' ')}
                   </span>
                 </div>
-                <div style={{ display: 'grid', gridTemplateColumns: '100px 1fr', padding: '0.45rem 0.6rem', borderRadius: '6px', background: 'white', fontSize: '0.875rem', alignItems: 'start' }}>
-                  <strong style={{ color: '#1F7A8C', fontSize: '0.8rem' }}>Description</strong>
-                  <span style={{ color: '#374151' }}>{project.description || 'No description'}</span>
+                <div style={{ padding: '0.6rem 0.75rem', borderRadius: '8px', background: '#f0f9ff', textAlign: 'center', gridColumn: 'span 1' }}>
+                  <div style={{ fontSize: '0.72rem', color: '#6c757d', fontWeight: '600', textTransform: 'uppercase', letterSpacing: '0.03em', marginBottom: '0.2rem' }}>Description</div>
+                  <div style={{ fontSize: '0.85rem', color: '#374151' }}>{project.description || 'No description'}</div>
                 </div>
               </div>
             </div>
@@ -431,6 +428,19 @@ const ProjectDetails: React.FC = () => {
                 </button>
               </div>
             </div>
+
+            {/* Workers Empty State */}
+            {workers.length === 0 && (
+              <div style={{ background: 'white', borderRadius: '12px', padding: '3rem', boxShadow: '0 4px 15px rgba(0,0,0,0.08)', border: '1px solid #e9ecef', textAlign: 'center' }}>
+                <div style={{ fontSize: '3rem', marginBottom: '1rem' }}>👷</div>
+                <h3 style={{ color: '#1F7A8C', marginBottom: '0.5rem' }}>No Workers Added Yet</h3>
+                <p style={{ color: '#6c757d', marginBottom: '1.5rem' }}>Add workers to this project to track attendance and payments</p>
+                <button onClick={() => navigate(`/projects/${id}/workers`)}
+                  style={{ padding: '0.6rem 1.5rem', background: '#1F7A8C', color: 'white', border: 'none', borderRadius: '8px', fontSize: '0.9rem', fontWeight: '600', cursor: 'pointer' }}>
+                  + Add Worker
+                </button>
+              </div>
+            )}
 
             {/* Worker Balance Summary Table */}
             {workers.length > 0 && (
