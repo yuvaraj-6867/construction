@@ -8,10 +8,11 @@ import materialService from '../../services/materialService';
 import expenseService from '../../services/expenseService';
 import invoiceService from '../../services/invoiceService';
 import clientAdvanceService from '../../services/clientAdvanceService';
+import api from '../../services/api';
 import Modal from '../../components/Modal';
 import Loading from '../../components/Loading';
 
-type TabType = 'overview' | 'workers' | 'attendance' | 'payments' | 'materials' | 'expenses' | 'invoices' | 'client-advances';
+type TabType = 'overview' | 'workers' | 'attendance' | 'payments' | 'materials' | 'expenses' | 'invoices' | 'client-advances' | 'equipment' | 'diary' | 'milestones' | 'subcontractors';
 type ModalType = 'workers' | 'attendance' | 'payments' | 'materials' | 'expenses' | 'invoices' | 'client-advances' | null;
 
 const ProjectDetails: React.FC = () => {
@@ -61,6 +62,16 @@ const ProjectDetails: React.FC = () => {
   const [showAddAdvance, setShowAddAdvance] = useState(false);
   const [advForm, setAdvForm] = useState<any>({ amount: '', date: new Date().toISOString().split('T')[0], payment_method: 'cash', reference_number: '', notes: '' });
   const [advSaving, setAdvSaving] = useState(false);
+  // Equipment
+  const [equipment, setEquipment] = useState<any[]>([]);
+  const [showAddEquipment, setShowAddEquipment] = useState(false);
+  const [equForm, setEquForm] = useState<any>({ name: '', equipment_type: '', usage_date: new Date().toISOString().split('T')[0], hours_used: '', daily_rate: '', operator_name: '', notes: '' });
+  const [equSaving, setEquSaving] = useState(false);
+  // Work Diary
+  const [diary, setDiary] = useState<any[]>([]);
+  const [showAddDiary, setShowAddDiary] = useState(false);
+  const [diaryForm, setDiaryForm] = useState<any>({ date: new Date().toISOString().split('T')[0], title: '', description: '', weather: '', workers_present_count: '', work_done: '', issues: '' });
+  const [diarySaving, setDiarySaving] = useState(false);
 
   useEffect(() => {
     loadProject();
@@ -77,6 +88,10 @@ const ProjectDetails: React.FC = () => {
       loadMaterials();
     } else if (activeTab === 'expenses' && id) {
       loadExpenses();
+    } else if (activeTab === 'equipment' && id) {
+      loadEquipment();
+    } else if (activeTab === 'diary' && id) {
+      loadDiary();
     }
   }, [activeTab, id]);
 
@@ -180,7 +195,7 @@ const ProjectDetails: React.FC = () => {
   const handleAddAttendance = async () => {
     setAttSaving(true);
     try {
-      await attendanceService.bulkCreate({ project_id: id, records: [attForm] });
+      await attendanceService.bulkCreate([{ ...attForm, project_id: id }]);
       setShowAddAttendance(false);
       setAttForm({ worker_id: '', date: new Date().toISOString().split('T')[0], status: 'present', notes: '' });
       loadAttendances();
@@ -224,6 +239,40 @@ const ProjectDetails: React.FC = () => {
       setShowAddInvoice(false);
       setInvForm({ invoice_number: '', amount: '', date: new Date().toISOString().split('T')[0], due_date: '', status: 'pending', notes: '' });
     } catch { alert('Failed to add invoice'); } finally { setInvSaving(false); }
+  };
+
+  const loadEquipment = async () => {
+    try {
+      const res = await api.get('/equipments', { params: { project_id: id } });
+      setEquipment(res.data);
+    } catch (error) { console.error('Failed to load equipment:', error); }
+  };
+
+  const loadDiary = async () => {
+    try {
+      const res = await api.get('/work_diaries', { params: { project_id: id } });
+      setDiary(res.data);
+    } catch (error) { console.error('Failed to load diary:', error); }
+  };
+
+  const handleAddEquipment = async () => {
+    setEquSaving(true);
+    try {
+      await api.post('/equipments', { equipment: { ...equForm, project_id: id } });
+      setShowAddEquipment(false);
+      setEquForm({ name: '', equipment_type: '', usage_date: new Date().toISOString().split('T')[0], hours_used: '', daily_rate: '', operator_name: '', notes: '' });
+      loadEquipment();
+    } catch { alert('Failed to add equipment'); } finally { setEquSaving(false); }
+  };
+
+  const handleAddDiary = async () => {
+    setDiarySaving(true);
+    try {
+      await api.post('/work_diaries', { work_diary: { ...diaryForm, project_id: id } });
+      setShowAddDiary(false);
+      setDiaryForm({ date: new Date().toISOString().split('T')[0], title: '', description: '', weather: '', workers_present_count: '', work_done: '', issues: '' });
+      loadDiary();
+    } catch { alert('Failed to add diary entry'); } finally { setDiarySaving(false); }
   };
 
   const handleAddClientAdvance = async () => {
@@ -294,7 +343,7 @@ const ProjectDetails: React.FC = () => {
 
   const stats = project.stats || {};
 
-  const tabs: { id: TabType | string; label: string; icon: string; path?: string }[] = [
+  const tabs: { id: TabType; label: string; icon: string; path?: string }[] = [
     { id: 'overview', label: 'Overview', icon: '📊' },
     { id: 'workers', label: 'Workers', icon: '👷' },
     { id: 'attendance', label: 'Attendance', icon: '✓' },
@@ -303,10 +352,10 @@ const ProjectDetails: React.FC = () => {
     { id: 'expenses', label: 'Expenses', icon: '💸' },
     { id: 'invoices', label: 'Invoices', icon: '📄' },
     { id: 'client-advances', label: 'Client Advances', icon: '💵' },
-    { id: 'equipment', label: 'Equipment', icon: '🔧', path: `/projects/${id}/equipment` },
-    { id: 'diary', label: 'Work Diary', icon: '📓', path: `/projects/${id}/diary` },
-    { id: 'milestones', label: 'Milestones', icon: '🏁', path: `/projects/${id}/milestones` },
-    { id: 'subcontractors', label: 'Subcontractors', icon: '🏗️', path: `/projects/${id}/subcontractors` },
+    { id: 'equipment', label: 'Equipment', icon: '🔧' },
+    { id: 'diary', label: 'Work Diary', icon: '📓' },
+    { id: 'milestones', label: 'Milestones', icon: '🏁' },
+    { id: 'subcontractors', label: 'Subcontractors', icon: '🏗️' },
   ];
 
   const renderTabContent = () => {
@@ -1177,6 +1226,107 @@ const ProjectDetails: React.FC = () => {
             </div>
           </div>
         );
+      case 'equipment':
+        return (
+          <div>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem' }}>
+              <h2 style={{ margin: 0, fontSize: '1.5rem', color: '#1F7A8C', fontWeight: 'bold' }}>Equipment / Machinery ({equipment.length})</h2>
+              <button onClick={() => setShowAddEquipment(true)}
+                style={{ background: 'linear-gradient(135deg, #1F7A8C 0%, #16616F 100%)', border: 'none', color: 'white', padding: '0.75rem 1.5rem', fontSize: '0.95rem', fontWeight: '600', borderRadius: '10px', cursor: 'pointer' }}>
+                + Add Equipment
+              </button>
+            </div>
+            {equipment.length > 0 ? (
+              <div style={{ background: 'white', borderRadius: '12px', boxShadow: '0 4px 15px rgba(0,0,0,0.08)', border: '1px solid #e9ecef', overflowX: 'auto' }}>
+                <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+                  <thead>
+                    <tr style={{ background: '#f8f9fa', borderBottom: '2px solid #e9ecef' }}>
+                      {['Name', 'Type', 'Date', 'Hours', 'Daily Rate', 'Total Cost', 'Operator'].map(h => (
+                        <th key={h} style={{ padding: '1rem', textAlign: 'left', color: '#1F7A8C', fontWeight: '600' }}>{h}</th>
+                      ))}
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {equipment.map((eq: any, i: number) => (
+                      <tr key={i} style={{ borderBottom: '1px solid #e9ecef' }}
+                        onMouseEnter={e => { e.currentTarget.style.background = '#f8f9fa'; }}
+                        onMouseLeave={e => { e.currentTarget.style.background = 'white'; }}>
+                        <td style={{ padding: '0.75rem 1rem', fontWeight: '600', color: '#1F7A8C' }}>{eq.name}</td>
+                        <td style={{ padding: '0.75rem 1rem', color: '#6c757d' }}>{eq.equipment_type || '-'}</td>
+                        <td style={{ padding: '0.75rem 1rem', color: '#6c757d' }}>{eq.usage_date || '-'}</td>
+                        <td style={{ padding: '0.75rem 1rem', color: '#374151' }}>{eq.hours_used || '-'}</td>
+                        <td style={{ padding: '0.75rem 1rem', color: '#374151' }}>₹{parseFloat(eq.daily_rate || 0).toLocaleString('en-IN')}</td>
+                        <td style={{ padding: '0.75rem 1rem', fontWeight: '600', color: '#ef4444' }}>₹{parseFloat(eq.total_cost || 0).toLocaleString('en-IN')}</td>
+                        <td style={{ padding: '0.75rem 1rem', color: '#6c757d' }}>{eq.operator_name || '-'}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            ) : (
+              <div style={{ textAlign: 'center', padding: '4rem 2rem', background: 'white', borderRadius: '12px', boxShadow: '0 4px 15px rgba(0,0,0,0.08)', border: '1px solid #e9ecef' }}>
+                <div style={{ fontSize: '4rem', marginBottom: '1rem' }}>🔧</div>
+                <h3 style={{ color: '#1F7A8C', marginBottom: '0.5rem', fontSize: '1.25rem' }}>No Equipment Yet</h3>
+                <p style={{ color: '#6c757d' }}>Track machinery and equipment usage!</p>
+              </div>
+            )}
+          </div>
+        );
+      case 'diary':
+        return (
+          <div>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem' }}>
+              <h2 style={{ margin: 0, fontSize: '1.5rem', color: '#1F7A8C', fontWeight: 'bold' }}>Work Diary ({diary.length})</h2>
+              <button onClick={() => setShowAddDiary(true)}
+                style={{ background: 'linear-gradient(135deg, #1F7A8C 0%, #16616F 100%)', border: 'none', color: 'white', padding: '0.75rem 1.5rem', fontSize: '0.95rem', fontWeight: '600', borderRadius: '10px', cursor: 'pointer' }}>
+                + Add Entry
+              </button>
+            </div>
+            {diary.length > 0 ? (
+              <div style={{ display: 'grid', gap: '1rem' }}>
+                {diary.map((entry: any, i: number) => (
+                  <div key={i} style={{ background: 'white', borderRadius: '12px', padding: '1.25rem', boxShadow: '0 2px 8px rgba(0,0,0,0.06)', border: '1px solid #e9ecef' }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.75rem' }}>
+                      <div>
+                        <span style={{ fontWeight: '700', color: '#1F7A8C', fontSize: '1rem' }}>{entry.title || '(No title)'}</span>
+                        <span style={{ marginLeft: '0.75rem', color: '#6c757d', fontSize: '0.85rem' }}>{entry.date}</span>
+                      </div>
+                      <div style={{ display: 'flex', gap: '0.5rem' }}>
+                        {entry.weather && <span style={{ background: '#e0f2fe', color: '#0369a1', padding: '0.2rem 0.6rem', borderRadius: '12px', fontSize: '0.75rem', fontWeight: '600' }}>☁️ {entry.weather}</span>}
+                        {entry.workers_present_count && <span style={{ background: '#dcfce7', color: '#16a34a', padding: '0.2rem 0.6rem', borderRadius: '12px', fontSize: '0.75rem', fontWeight: '600' }}>👷 {entry.workers_present_count}</span>}
+                      </div>
+                    </div>
+                    {entry.description && <p style={{ margin: '0 0 0.5rem 0', color: '#374151', fontSize: '0.9rem' }}>{entry.description}</p>}
+                    {entry.work_done && <p style={{ margin: '0 0 0.5rem 0', color: '#374151', fontSize: '0.85rem' }}><strong>Work Done:</strong> {entry.work_done}</p>}
+                    {entry.issues && <p style={{ margin: 0, color: '#ef4444', fontSize: '0.85rem' }}><strong>Issues:</strong> {entry.issues}</p>}
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <div style={{ textAlign: 'center', padding: '4rem 2rem', background: 'white', borderRadius: '12px', boxShadow: '0 4px 15px rgba(0,0,0,0.08)', border: '1px solid #e9ecef' }}>
+                <div style={{ fontSize: '4rem', marginBottom: '1rem' }}>📓</div>
+                <h3 style={{ color: '#1F7A8C', marginBottom: '0.5rem', fontSize: '1.25rem' }}>No Diary Entries Yet</h3>
+                <p style={{ color: '#6c757d' }}>Record daily work progress and issues!</p>
+              </div>
+            )}
+          </div>
+        );
+      case 'milestones':
+        return (
+          <div style={{ textAlign: 'center', padding: '4rem 2rem', background: 'white', borderRadius: '12px', boxShadow: '0 4px 15px rgba(0,0,0,0.08)', border: '1px solid #e9ecef' }}>
+            <div style={{ fontSize: '4rem', marginBottom: '1rem' }}>🏁</div>
+            <h3 style={{ color: '#1F7A8C', marginBottom: '0.5rem', fontSize: '1.25rem' }}>Milestones</h3>
+            <p style={{ color: '#6c757d' }}>Coming soon — track project milestones and deadlines.</p>
+          </div>
+        );
+      case 'subcontractors':
+        return (
+          <div style={{ textAlign: 'center', padding: '4rem 2rem', background: 'white', borderRadius: '12px', boxShadow: '0 4px 15px rgba(0,0,0,0.08)', border: '1px solid #e9ecef' }}>
+            <div style={{ fontSize: '4rem', marginBottom: '1rem' }}>🏗️</div>
+            <h3 style={{ color: '#1F7A8C', marginBottom: '0.5rem', fontSize: '1.25rem' }}>Subcontractors</h3>
+            <p style={{ color: '#6c757d' }}>Coming soon — manage subcontractors and their work.</p>
+          </div>
+        );
       default:
         return null;
     }
@@ -1408,7 +1558,7 @@ const ProjectDetails: React.FC = () => {
         {tabs.map((tab) => (
           <button
             key={tab.id}
-            onClick={() => tab.path ? navigate(tab.path) : setActiveTab(tab.id as TabType)}
+            onClick={() => tab.path ? navigate(tab.path) : setActiveTab(tab.id)}
             style={{
               flex: '1',
               padding: '1rem 1.5rem',
@@ -1762,6 +1912,78 @@ const ProjectDetails: React.FC = () => {
           </div>
         </div>
       )}
+
+      {/* ── Equipment Modal ── */}
+      <Modal isOpen={showAddEquipment} onClose={() => setShowAddEquipment(false)} title="Add Equipment" size="medium">
+        <div style={{ display: 'grid', gap: '1rem' }}>
+          {[
+            { label: 'Equipment Name *', key: 'name', type: 'text' },
+            { label: 'Type (JCB, Crane, etc.)', key: 'equipment_type', type: 'text' },
+            { label: 'Operator Name', key: 'operator_name', type: 'text' },
+            { label: 'Hours Used', key: 'hours_used', type: 'number' },
+            { label: 'Daily Rate (₹)', key: 'daily_rate', type: 'number' },
+            { label: 'Notes', key: 'notes', type: 'text' },
+          ].map(f => (
+            <div key={f.key}>
+              <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: '600', color: '#374151', marginBottom: '0.3rem' }}>{f.label}</label>
+              <input type={f.type} value={equForm[f.key] || ''} onChange={e => setEquForm((p: any) => ({ ...p, [f.key]: e.target.value }))}
+                style={{ width: '100%', padding: '0.6rem 0.75rem', border: '1px solid #d1d5db', borderRadius: '8px', fontSize: '0.9rem', boxSizing: 'border-box' }} />
+            </div>
+          ))}
+          <div>
+            <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: '600', color: '#374151', marginBottom: '0.3rem' }}>Usage Date</label>
+            <input type="date" value={equForm.usage_date} onChange={e => setEquForm((p: any) => ({ ...p, usage_date: e.target.value }))}
+              style={{ width: '100%', padding: '0.6rem 0.75rem', border: '1px solid #d1d5db', borderRadius: '8px', fontSize: '0.9rem', boxSizing: 'border-box' }} />
+          </div>
+        </div>
+        <div style={{ display: 'flex', gap: '0.75rem', marginTop: '1.5rem', justifyContent: 'flex-end' }}>
+          <button onClick={() => setShowAddEquipment(false)} style={{ padding: '0.6rem 1.25rem', background: '#f8f9fa', border: '1px solid #d1d5db', borderRadius: '8px', fontSize: '0.9rem', cursor: 'pointer', fontWeight: '600' }}>Cancel</button>
+          <button onClick={handleAddEquipment} disabled={equSaving || !equForm.name}
+            style={{ padding: '0.6rem 1.5rem', background: equSaving || !equForm.name ? '#93c5fd' : '#1F7A8C', color: 'white', border: 'none', borderRadius: '8px', fontSize: '0.9rem', cursor: 'pointer', fontWeight: '600' }}>
+            {equSaving ? 'Saving...' : 'Add Equipment'}
+          </button>
+        </div>
+      </Modal>
+
+      {/* ── Work Diary Modal ── */}
+      <Modal isOpen={showAddDiary} onClose={() => setShowAddDiary(false)} title="Add Diary Entry" size="medium">
+        <div style={{ display: 'grid', gap: '1rem' }}>
+          <div>
+            <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: '600', color: '#374151', marginBottom: '0.3rem' }}>Date</label>
+            <input type="date" value={diaryForm.date} onChange={e => setDiaryForm((p: any) => ({ ...p, date: e.target.value }))}
+              style={{ width: '100%', padding: '0.6rem 0.75rem', border: '1px solid #d1d5db', borderRadius: '8px', fontSize: '0.9rem', boxSizing: 'border-box' }} />
+          </div>
+          {[
+            { label: 'Title *', key: 'title', type: 'text' },
+            { label: 'Weather', key: 'weather', type: 'text' },
+            { label: 'Workers Present', key: 'workers_present_count', type: 'number' },
+          ].map(f => (
+            <div key={f.key}>
+              <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: '600', color: '#374151', marginBottom: '0.3rem' }}>{f.label}</label>
+              <input type={f.type} value={diaryForm[f.key] || ''} onChange={e => setDiaryForm((p: any) => ({ ...p, [f.key]: e.target.value }))}
+                style={{ width: '100%', padding: '0.6rem 0.75rem', border: '1px solid #d1d5db', borderRadius: '8px', fontSize: '0.9rem', boxSizing: 'border-box' }} />
+            </div>
+          ))}
+          {[
+            { label: 'Description', key: 'description' },
+            { label: 'Work Done', key: 'work_done' },
+            { label: 'Issues / Problems', key: 'issues' },
+          ].map(f => (
+            <div key={f.key}>
+              <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: '600', color: '#374151', marginBottom: '0.3rem' }}>{f.label}</label>
+              <textarea value={diaryForm[f.key] || ''} onChange={e => setDiaryForm((p: any) => ({ ...p, [f.key]: e.target.value }))} rows={2}
+                style={{ width: '100%', padding: '0.6rem 0.75rem', border: '1px solid #d1d5db', borderRadius: '8px', fontSize: '0.9rem', boxSizing: 'border-box', resize: 'vertical' }} />
+            </div>
+          ))}
+        </div>
+        <div style={{ display: 'flex', gap: '0.75rem', marginTop: '1.5rem', justifyContent: 'flex-end' }}>
+          <button onClick={() => setShowAddDiary(false)} style={{ padding: '0.6rem 1.25rem', background: '#f8f9fa', border: '1px solid #d1d5db', borderRadius: '8px', fontSize: '0.9rem', cursor: 'pointer', fontWeight: '600' }}>Cancel</button>
+          <button onClick={handleAddDiary} disabled={diarySaving || !diaryForm.title}
+            style={{ padding: '0.6rem 1.5rem', background: diarySaving || !diaryForm.title ? '#93c5fd' : '#1F7A8C', color: 'white', border: 'none', borderRadius: '8px', fontSize: '0.9rem', cursor: 'pointer', fontWeight: '600' }}>
+            {diarySaving ? 'Saving...' : 'Save Entry'}
+          </button>
+        </div>
+      </Modal>
 
       {/* Modals */}
       <Modal
