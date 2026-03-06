@@ -225,6 +225,15 @@ const Login = () => {
                 );
               })}
             </div>
+            <div style={{ textAlign: 'center', marginTop: '1rem' }}>
+              <button
+                type="button"
+                onClick={() => navigate('/forgot-password')}
+                style={{ background: 'none', border: 'none', color: '#1F7A8C', cursor: 'pointer', fontSize: '0.9rem', fontWeight: '500', textDecoration: 'underline' }}
+              >
+                Forgot Password?
+              </button>
+            </div>
           </div>
         )}
 
@@ -298,16 +307,6 @@ const Login = () => {
             >
               {loading ? 'Logging in...' : 'Login'}
             </button>
-
-            <div style={{ textAlign: 'center', marginTop: '1rem' }}>
-              <button
-                type="button"
-                onClick={() => navigate('/forgot-password')}
-                style={{ background: 'none', border: 'none', color: '#1F7A8C', cursor: 'pointer', fontSize: '0.9rem', fontWeight: '500', textDecoration: 'underline' }}
-              >
-                Forgot Password?
-              </button>
-            </div>
           </form>
         </div>
       </div>
