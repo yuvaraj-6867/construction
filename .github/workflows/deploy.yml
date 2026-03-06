@@ -4,6 +4,16 @@ on:
   push:
     branches:
       - main
+  workflow_dispatch:
+    inputs:
+      reset_db:
+        description: 'Drop & reseed production DB? (yes / no)'
+        required: true
+        default: 'no'
+        type: choice
+        options:
+          - 'no'
+          - 'yes'
 
 jobs:
   deploy:
@@ -32,9 +42,15 @@ jobs:
             echo ">>> Restarting containers..."
             docker-compose -f docker-compose.prod.yml up -d
 
-            echo ">>> Running DB migrations..."
             sleep 5
-            docker-compose -f docker-compose.prod.yml exec -T backend bundle exec rails db:migrate RAILS_ENV=production
+
+            if [ "${{ github.event.inputs.reset_db }}" = "yes" ]; then
+              echo ">>> Dropping and reseeding DB..."
+              docker-compose -f docker-compose.prod.yml exec -T backend bash -c "DISABLE_DATABASE_ENVIRONMENT_CHECK=1 RAILS_ENV=production bundle exec rails db:drop db:create db:migrate db:seed"
+            else
+              echo ">>> Running DB migrations..."
+              docker-compose -f docker-compose.prod.yml exec -T backend bundle exec rails db:migrate RAILS_ENV=production
+            fi
 
             echo ">>> Deploy complete!"
             docker-compose -f docker-compose.prod.yml ps
