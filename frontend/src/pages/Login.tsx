@@ -149,94 +149,6 @@ const Login = () => {
           ← Home
         </button>
 
-        {/* QUICK LOGIN SECTION */}
-        {quickUsers.length > 0 && (
-          <div style={{ width: '100%', maxWidth: '520px' }}>
-            <p style={{ fontSize: '0.8rem', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.08em', color: '#888', marginBottom: '0.75rem', textAlign: 'center' }}>
-              Quick Login — Select Account
-            </p>
-            <div
-              style={{
-                display: 'grid',
-                gridTemplateColumns: 'repeat(auto-fill, minmax(110px, 1fr))',
-                gap: '0.65rem',
-              }}
-            >
-              {quickUsers.map((user) => {
-                const color = roleColors[user.role?.toLowerCase()] || '#1F7A8C';
-                const isSelected = selectedUser === user.id;
-                return (
-                  <button
-                    key={user.id}
-                    type="button"
-                    onClick={() => handleQuickSelect(user)}
-                    style={{
-                      background: isSelected ? color : 'var(--card-bg, #fff)',
-                      border: `2px solid ${isSelected ? color : 'var(--border-color, #e0e0e0)'}`,
-                      borderRadius: '12px',
-                      padding: '0.85rem 0.5rem',
-                      cursor: 'pointer',
-                      textAlign: 'center',
-                      transition: 'all 0.18s',
-                      boxShadow: isSelected ? `0 4px 16px ${color}44` : '0 1px 4px rgba(0,0,0,0.06)',
-                    }}
-                  >
-                    {/* Avatar circle */}
-                    <div
-                      style={{
-                        width: '42px',
-                        height: '42px',
-                        borderRadius: '50%',
-                        background: isSelected ? 'rgba(255,255,255,0.25)' : color,
-                        color: '#fff',
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                        fontWeight: 700,
-                        fontSize: '1rem',
-                        margin: '0 auto 0.5rem',
-                      }}
-                    >
-                      {roleAbbr(user.name)}
-                    </div>
-                    <div
-                      style={{
-                        fontSize: '0.78rem',
-                        fontWeight: 700,
-                        color: isSelected ? '#fff' : 'var(--text-color, #333)',
-                        whiteSpace: 'nowrap',
-                        overflow: 'hidden',
-                        textOverflow: 'ellipsis',
-                      }}
-                    >
-                      {user.name.split(' ')[0]}
-                    </div>
-                    <div
-                      style={{
-                        fontSize: '0.68rem',
-                        color: isSelected ? 'rgba(255,255,255,0.8)' : '#999',
-                        marginTop: '0.15rem',
-                        textTransform: 'capitalize',
-                      }}
-                    >
-                      {user.role || 'user'}
-                    </div>
-                  </button>
-                );
-              })}
-            </div>
-            <div style={{ textAlign: 'center', marginTop: '1rem' }}>
-              <button
-                type="button"
-                onClick={() => navigate('/forgot-password')}
-                style={{ background: 'none', border: 'none', color: '#1F7A8C', cursor: 'pointer', fontSize: '0.9rem', fontWeight: '500', textDecoration: 'underline' }}
-              >
-                Forgot Password?
-              </button>
-            </div>
-          </div>
-        )}
-
         {/* LOGIN FORM CARD */}
         <div className="card" style={{ maxWidth: '450px', width: '100%' }}>
           <h1 style={{ textAlign: 'center', marginBottom: '1.5rem' }}>
@@ -308,7 +220,59 @@ const Login = () => {
               {loading ? 'Logging in...' : 'Login'}
             </button>
           </form>
+
+          <div style={{ textAlign: 'center', marginTop: '1rem' }}>
+            <button
+              type="button"
+              onClick={() => navigate('/forgot-password')}
+              style={{ background: 'none', border: 'none', color: '#1F7A8C', cursor: 'pointer', fontSize: '0.9rem', fontWeight: '500', textDecoration: 'underline' }}
+            >
+              Forgot Password?
+            </button>
+          </div>
         </div>
+
+        {/* QUICK LOGIN SECTION - below form */}
+        {quickUsers.length > 0 && (
+          <div style={{ width: '100%', maxWidth: '450px' }}>
+            <p style={{ fontSize: '0.8rem', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.08em', color: '#888', marginBottom: '0.75rem', textAlign: 'center' }}>
+              Quick Login — Select Account
+            </p>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(110px, 1fr))', gap: '0.65rem' }}>
+              {quickUsers.map((user) => {
+                const color = roleColors[user.role?.toLowerCase()] || '#1F7A8C';
+                const isSelected = selectedUser === user.id;
+                return (
+                  <button
+                    key={user.id}
+                    type="button"
+                    onClick={() => handleQuickSelect(user)}
+                    style={{
+                      background: isSelected ? color : 'var(--card-bg, #fff)',
+                      border: `2px solid ${isSelected ? color : 'var(--border-color, #e0e0e0)'}`,
+                      borderRadius: '12px',
+                      padding: '0.85rem 0.5rem',
+                      cursor: 'pointer',
+                      textAlign: 'center',
+                      transition: 'all 0.18s',
+                      boxShadow: isSelected ? `0 4px 16px ${color}44` : '0 1px 4px rgba(0,0,0,0.06)',
+                    }}
+                  >
+                    <div style={{ width: '42px', height: '42px', borderRadius: '50%', background: isSelected ? 'rgba(255,255,255,0.25)' : color, color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 700, fontSize: '1rem', margin: '0 auto 0.5rem' }}>
+                      {roleAbbr(user.name)}
+                    </div>
+                    <div style={{ fontSize: '0.78rem', fontWeight: 700, color: isSelected ? '#fff' : 'var(--text-color, #333)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                      {user.name.split(' ')[0]}
+                    </div>
+                    <div style={{ fontSize: '0.68rem', color: isSelected ? 'rgba(255,255,255,0.8)' : '#999', marginTop: '0.15rem', textTransform: 'capitalize' }}>
+                      {user.role || 'user'}
+                    </div>
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+        )}
       </div>
     </div>
   );
