@@ -32,6 +32,9 @@ const ProjectDetails: React.FC = () => {
   const [editingWorker, setEditingWorker] = useState<any | null>(null);
   const [editForm, setEditForm] = useState<any>({});
   const [editSaving, setEditSaving] = useState(false);
+  const [showAddWorker, setShowAddWorker] = useState(false);
+  const [addForm, setAddForm] = useState<any>({ name: '', phone: '', role: '', daily_wage: '', payment_type: 'daily', contract_amount: '', status: 'active' });
+  const [addSaving, setAddSaving] = useState(false);
 
   useEffect(() => {
     loadProject();
@@ -131,6 +134,20 @@ const ProjectDetails: React.FC = () => {
       alert('Failed to save worker');
     } finally {
       setEditSaving(false);
+    }
+  };
+
+  const handleAddWorker = async () => {
+    setAddSaving(true);
+    try {
+      await workerService.create({ ...addForm, project_id: id });
+      setShowAddWorker(false);
+      setAddForm({ name: '', phone: '', role: '', daily_wage: '', payment_type: 'daily', contract_amount: '', status: 'active' });
+      loadWorkers();
+    } catch (error) {
+      alert('Failed to add worker');
+    } finally {
+      setAddSaving(false);
     }
   };
 
@@ -402,7 +419,7 @@ const ProjectDetails: React.FC = () => {
                   View All Workers
                 </button>
                 <button
-                  onClick={() => navigate(`/projects/${id}/workers`)}
+                  onClick={() => setShowAddWorker(true)}
                   style={{
                     background: 'linear-gradient(135deg, #1F7A8C 0%, #16616F 100%)',
                     border: 'none',
@@ -435,7 +452,7 @@ const ProjectDetails: React.FC = () => {
                 <div style={{ fontSize: '3rem', marginBottom: '1rem' }}>👷</div>
                 <h3 style={{ color: '#1F7A8C', marginBottom: '0.5rem' }}>No Workers Added Yet</h3>
                 <p style={{ color: '#6c757d', marginBottom: '1.5rem' }}>Add workers to this project to track attendance and payments</p>
-                <button onClick={() => navigate(`/projects/${id}/workers`)}
+                <button onClick={() => setShowAddWorker(true)}
                   style={{ padding: '0.6rem 1.5rem', background: '#1F7A8C', color: 'white', border: 'none', borderRadius: '8px', fontSize: '0.9rem', fontWeight: '600', cursor: 'pointer' }}>
                   + Add Worker
                 </button>
@@ -529,6 +546,56 @@ const ProjectDetails: React.FC = () => {
                     </tr>
                   </tfoot>
                 </table>
+              </div>
+            )}
+
+            {/* Add Worker Modal */}
+            {showAddWorker && (
+              <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.5)', zIndex: 1000, display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+                onClick={(e) => { if (e.target === e.currentTarget) setShowAddWorker(false); }}>
+                <div style={{ background: 'white', borderRadius: '16px', padding: '2rem', width: '480px', maxWidth: '95vw', boxShadow: '0 20px 60px rgba(0,0,0,0.3)' }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem', borderBottom: '2px solid #e9ecef', paddingBottom: '0.75rem' }}>
+                    <h3 style={{ margin: 0, color: '#1F7A8C', fontSize: '1.2rem', fontWeight: '700' }}>Add New Worker</h3>
+                    <button onClick={() => setShowAddWorker(false)} style={{ background: 'none', border: 'none', fontSize: '1.5rem', cursor: 'pointer', color: '#6c757d', lineHeight: 1 }}>&times;</button>
+                  </div>
+                  <div style={{ display: 'grid', gap: '1rem' }}>
+                    {[
+                      { label: 'Name *', key: 'name', type: 'text' },
+                      { label: 'Phone', key: 'phone', type: 'text' },
+                      { label: 'Role', key: 'role', type: 'text' },
+                      { label: 'Daily Wage (₹)', key: 'daily_wage', type: 'number' },
+                      { label: 'Contract Amount (₹)', key: 'contract_amount', type: 'number' },
+                    ].map(f => (
+                      <div key={f.key}>
+                        <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: '600', color: '#374151', marginBottom: '0.3rem' }}>{f.label}</label>
+                        <input
+                          type={f.type}
+                          value={addForm[f.key] || ''}
+                          onChange={e => setAddForm((prev: any) => ({ ...prev, [f.key]: e.target.value }))}
+                          style={{ width: '100%', padding: '0.6rem 0.75rem', border: '1px solid #d1d5db', borderRadius: '8px', fontSize: '0.9rem', boxSizing: 'border-box' }}
+                        />
+                      </div>
+                    ))}
+                    <div>
+                      <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: '600', color: '#374151', marginBottom: '0.3rem' }}>Payment Type</label>
+                      <select value={addForm.payment_type} onChange={e => setAddForm((prev: any) => ({ ...prev, payment_type: e.target.value }))}
+                        style={{ width: '100%', padding: '0.6rem 0.75rem', border: '1px solid #d1d5db', borderRadius: '8px', fontSize: '0.9rem' }}>
+                        <option value="daily">Daily</option>
+                        <option value="contract">Contract</option>
+                      </select>
+                    </div>
+                  </div>
+                  <div style={{ display: 'flex', gap: '0.75rem', marginTop: '1.5rem', justifyContent: 'flex-end' }}>
+                    <button onClick={() => setShowAddWorker(false)}
+                      style={{ padding: '0.6rem 1.25rem', background: '#f8f9fa', border: '1px solid #d1d5db', borderRadius: '8px', fontSize: '0.9rem', cursor: 'pointer', fontWeight: '600' }}>
+                      Cancel
+                    </button>
+                    <button onClick={handleAddWorker} disabled={addSaving || !addForm.name}
+                      style={{ padding: '0.6rem 1.5rem', background: addSaving || !addForm.name ? '#93c5fd' : '#1F7A8C', color: 'white', border: 'none', borderRadius: '8px', fontSize: '0.9rem', cursor: 'pointer', fontWeight: '600' }}>
+                      {addSaving ? 'Adding...' : 'Add Worker'}
+                    </button>
+                  </div>
+                </div>
               </div>
             )}
 
