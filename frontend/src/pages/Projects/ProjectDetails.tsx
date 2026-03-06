@@ -460,23 +460,13 @@ const ProjectDetails: React.FC = () => {
                   <h3 style={{ margin: 0, color: '#1F7A8C', fontWeight: '700', fontSize: '1.1rem' }}>
                     💰 Worker Balance Summary
                   </h3>
-                  <button
-                    onClick={() => navigate(`/projects/${id}/bulk-payment`)}
-                    style={{
-                      background: 'linear-gradient(135deg, #22c55e, #16a34a)',
-                      color: 'white', border: 'none', padding: '0.5rem 1.25rem',
-                      borderRadius: '8px', fontWeight: '600', fontSize: '0.875rem',
-                      cursor: 'pointer'
-                    }}
-                  >
-                    💳 Bulk Payment
-                  </button>
+
                 </div>
                 <table style={{ width: '100%', borderCollapse: 'collapse' }}>
                   <thead>
                     <tr style={{ background: '#f8f9fa' }}>
-                      {['Worker', 'Role', 'Wages Earned', 'Paid', 'Balance Due'].map(h => (
-                        <th key={h} style={{ padding: '0.75rem 1rem', textAlign: h === 'Worker' || h === 'Role' ? 'left' : 'right', color: '#1F7A8C', fontWeight: '600', fontSize: '0.85rem', borderBottom: '2px solid #e9ecef' }}>{h}</th>
+                      {['Worker', 'Phone', 'Role', 'Daily Wage', 'Status', 'Wages Earned', 'Paid', 'Balance Due', 'Action'].map(h => (
+                        <th key={h} style={{ padding: '0.75rem 1rem', textAlign: ['Worker', 'Phone', 'Role', 'Action'].includes(h) ? 'left' : 'right', color: '#1F7A8C', fontWeight: '600', fontSize: '0.85rem', borderBottom: '2px solid #e9ecef' }}>{h}</th>
                       ))}
                     </tr>
                   </thead>
@@ -494,7 +484,17 @@ const ProjectDetails: React.FC = () => {
                             onClick={() => navigate(`/projects/${id}/workers/${w.id}`)}>
                             {w.name}
                           </td>
+                          <td style={{ padding: '0.75rem 1rem', color: '#6c757d', fontSize: '0.875rem' }}>{w.phone || '-'}</td>
                           <td style={{ padding: '0.75rem 1rem', color: '#6c757d', fontSize: '0.875rem' }}>{w.role}</td>
+                          <td style={{ padding: '0.75rem 1rem', textAlign: 'right', color: '#374151', fontSize: '0.875rem' }}>
+                            ₹{parseFloat(w.daily_wage || 0).toLocaleString('en-IN')}
+                          </td>
+                          <td style={{ padding: '0.75rem 1rem' }}>
+                            <span style={{ padding: '0.2rem 0.6rem', borderRadius: '12px', fontSize: '0.75rem', fontWeight: '600',
+                              background: w.is_active ? '#dcfce7' : '#fee2e2', color: w.is_active ? '#16a34a' : '#dc2626' }}>
+                              {w.is_active ? 'Active' : 'Inactive'}
+                            </span>
+                          </td>
                           <td style={{ padding: '0.75rem 1rem', textAlign: 'right', fontWeight: '600', color: '#374151' }}>
                             ₹{wages.toLocaleString('en-IN')}
                           </td>
@@ -505,13 +505,19 @@ const ProjectDetails: React.FC = () => {
                             color: balance > 0 ? '#ef4444' : balance < 0 ? '#22c55e' : '#6c757d' }}>
                             {balance > 0 ? `₹${balance.toLocaleString('en-IN')} owed` : balance < 0 ? `₹${Math.abs(balance).toLocaleString('en-IN')} excess` : '✓ Settled'}
                           </td>
+                          <td style={{ padding: '0.75rem 1rem' }}>
+                            <button onClick={() => navigate(`/workers/${w.id}/edit`)}
+                              style={{ padding: '0.3rem 0.75rem', background: '#f8f9fa', border: '1px solid #1F7A8C', color: '#1F7A8C', borderRadius: '6px', fontSize: '0.8rem', fontWeight: '600', cursor: 'pointer' }}>
+                              Edit
+                            </button>
+                          </td>
                         </tr>
                       );
                     })}
                   </tbody>
                   <tfoot>
                     <tr style={{ background: '#f0f9ff', borderTop: '2px solid #1F7A8C' }}>
-                      <td colSpan={2} style={{ padding: '0.75rem 1rem', fontWeight: '700', color: '#1F7A8C' }}>TOTAL</td>
+                      <td colSpan={5} style={{ padding: '0.75rem 1rem', fontWeight: '700', color: '#1F7A8C' }}>TOTAL</td>
                       <td style={{ padding: '0.75rem 1rem', textAlign: 'right', fontWeight: '700', color: '#374151' }}>
                         ₹{workers.reduce((s, w) => s + parseFloat(w.total_wages_earned || 0), 0).toLocaleString('en-IN')}
                       </td>
@@ -527,174 +533,7 @@ const ProjectDetails: React.FC = () => {
               </div>
             )}
 
-            {workers.length > 0 ? (
-              <div className="grid grid-cols-4" style={{ gap: '1.25rem' }}>
-                {workers.map((worker, index) => (
-                  <div
-                    key={worker.id}
-                    style={{
-                      background: 'white',
-                      borderRadius: '12px',
-                      padding: '1.25rem',
-                      boxShadow: '0 4px 15px rgba(0,0,0,0.08)',
-                      transition: 'all 0.3s',
-                      border: '1px solid #e9ecef',
-                      cursor: 'pointer',
-                      animation: `fadeInUp 0.5s ease-out ${index * 0.1}s both`
-                    }}
-                    onMouseEnter={(e) => {
-                      e.currentTarget.style.transform = 'translateY(-5px)';
-                      e.currentTarget.style.boxShadow = '0 6px 20px rgba(31, 122, 140, 0.15)';
-                    }}
-                    onMouseLeave={(e) => {
-                      e.currentTarget.style.transform = 'translateY(0)';
-                      e.currentTarget.style.boxShadow = '0 4px 15px rgba(0,0,0,0.08)';
-                    }}
-                  >
-                    <div style={{ marginBottom: '0.875rem' }}>
-                      <h3
-                        onClick={() => navigate(`/projects/${id}/workers/${worker.id}`)}
-                        style={{
-                          margin: '0 0 0.5rem 0',
-                          fontSize: '1.15rem',
-                          color: '#1F7A8C',
-                          fontWeight: '700',
-                          cursor: 'pointer',
-                          transition: 'all 0.2s'
-                        }}
-                        onMouseEnter={(e) => {
-                          e.currentTarget.style.color = '#16616F';
-                          e.currentTarget.style.textDecoration = 'underline';
-                        }}
-                        onMouseLeave={(e) => {
-                          e.currentTarget.style.color = '#1F7A8C';
-                          e.currentTarget.style.textDecoration = 'none';
-                        }}
-                      >
-                        {worker.name}
-                      </h3>
 
-                      <div style={{
-                        display: 'flex',
-                        alignItems: 'center',
-                        gap: '0.4rem',
-                        margin: '0.35rem 0',
-                        color: '#6c757d'
-                      }}>
-                        <span style={{ fontSize: '0.95rem' }}>💼</span>
-                        <span style={{ fontSize: '0.85rem' }}>{worker.role}</span>
-                      </div>
-
-                      <div style={{
-                        display: 'flex',
-                        alignItems: 'center',
-                        gap: '0.4rem',
-                        margin: '0.35rem 0',
-                        color: '#6c757d'
-                      }}>
-                        <span style={{ fontSize: '0.95rem' }}>📱</span>
-                        <span style={{ fontSize: '0.85rem' }}>{worker.phone}</span>
-                      </div>
-                    </div>
-
-                    <div style={{ marginBottom: '0.875rem' }}>
-                      <span style={{
-                        display: 'inline-block',
-                        padding: '0.35rem 0.75rem',
-                        borderRadius: '16px',
-                        fontSize: '0.75rem',
-                        fontWeight: '600',
-                        textTransform: 'uppercase',
-                        letterSpacing: '0.5px',
-                        background: worker.is_active
-                          ? 'linear-gradient(135deg, #22c55e 0%, #16a34a 100%)'
-                          : 'linear-gradient(135deg, #ef4444 0%, #dc2626 100%)',
-                        color: 'white',
-                        boxShadow: worker.is_active
-                          ? '0 2px 8px rgba(34, 197, 94, 0.3)'
-                          : '0 2px 8px rgba(239, 68, 68, 0.3)'
-                      }}>
-                        {worker.is_active ? 'Active' : 'Inactive'}
-                      </span>
-                    </div>
-
-                    <div style={{
-                      marginBottom: '1rem',
-                      padding: '0.75rem',
-                      background: 'linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%)',
-                      borderRadius: '8px',
-                      borderLeft: '3px solid #1F7A8C'
-                    }}>
-                      <p style={{
-                        margin: 0,
-                        fontSize: '0.75rem',
-                        color: '#6c757d',
-                        marginBottom: '0.15rem'
-                      }}>
-                        Daily Wage
-                      </p>
-                      <p style={{
-                        margin: 0,
-                        fontSize: '1.15rem',
-                        fontWeight: 'bold',
-                        color: '#1F7A8C'
-                      }}>
-                        ₹{worker.daily_wage}
-                      </p>
-                    </div>
-
-                    <div style={{ display: 'flex', gap: '0.5rem' }}>
-                      <button
-                        style={{
-                          flex: 1,
-                          background: '#f8f9fa',
-                          color: '#1F7A8C',
-                          border: '2px solid #1F7A8C',
-                          padding: '0.6rem',
-                          borderRadius: '6px',
-                          fontWeight: '600',
-                          fontSize: '0.85rem',
-                          transition: 'all 0.2s',
-                          cursor: 'pointer'
-                        }}
-                        onClick={() => navigate(`/workers/${worker.id}/edit`)}
-                        onMouseEnter={(e) => {
-                          e.currentTarget.style.background = '#1F7A8C';
-                          e.currentTarget.style.color = 'white';
-                          e.currentTarget.style.transform = 'scale(1.05)';
-                        }}
-                        onMouseLeave={(e) => {
-                          e.currentTarget.style.background = '#f8f9fa';
-                          e.currentTarget.style.color = '#1F7A8C';
-                          e.currentTarget.style.transform = 'scale(1)';
-                        }}
-                      >
-                        Edit
-                      </button>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            ) : (
-              <div style={{
-                textAlign: 'center',
-                padding: '4rem 2rem',
-                background: '#f8f9fa',
-                borderRadius: '12px'
-              }}>
-                <div style={{ fontSize: '4rem', marginBottom: '1rem' }}>👷</div>
-                <h3 style={{
-                  color: '#1F7A8C',
-                  marginBottom: '0.5rem',
-                  fontSize: '1.5rem'
-                }}>
-                  No Workers Yet
-                </h3>
-                <p style={{ color: '#6c757d', marginBottom: '1.5rem' }}>
-                  Add workers to this project to get started!
-                </p>
-              </div>
-            )}
           </div>
         );
       case 'attendance':
@@ -872,6 +711,20 @@ const ProjectDetails: React.FC = () => {
                   }}
                 >
                   View All Payments
+                </button>
+                <button
+                  onClick={() => navigate(`/projects/${id}/bulk-payment`)}
+                  style={{
+                    background: 'linear-gradient(135deg, #22c55e, #16a34a)',
+                    border: 'none', color: 'white',
+                    padding: '0.75rem 1.5rem', fontSize: '0.95rem', fontWeight: '600',
+                    borderRadius: '10px', boxShadow: '0 4px 15px rgba(34,197,94,0.3)',
+                    cursor: 'pointer', transition: 'all 0.3s'
+                  }}
+                  onMouseEnter={(e) => { e.currentTarget.style.transform = 'translateY(-2px)'; }}
+                  onMouseLeave={(e) => { e.currentTarget.style.transform = 'translateY(0)'; }}
+                >
+                  💳 Bulk Payment
                 </button>
                 <button
                   onClick={() => navigate(`/projects/${id}/payments`)}
