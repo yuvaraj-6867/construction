@@ -163,15 +163,19 @@ const ProjectDetails: React.FC = () => {
 
   const stats = project.stats || {};
 
-  const tabs = [
-    { id: 'overview' as TabType, label: 'Overview', icon: '📊' },
-    { id: 'workers' as TabType, label: 'Workers', icon: '👷' },
-    { id: 'attendance' as TabType, label: 'Attendance', icon: '✓' },
-    { id: 'payments' as TabType, label: 'Payments', icon: '��' },
-    { id: 'materials' as TabType, label: 'Materials', icon: '🧱' },
-    { id: 'expenses' as TabType, label: 'Expenses', icon: '💸' },
-    { id: 'invoices' as TabType, label: 'Invoices', icon: '📄' },
-    { id: 'client-advances' as TabType, label: 'Client Advances', icon: '💵' },
+  const tabs: { id: TabType | string; label: string; icon: string; path?: string }[] = [
+    { id: 'overview', label: 'Overview', icon: '📊' },
+    { id: 'workers', label: 'Workers', icon: '👷' },
+    { id: 'attendance', label: 'Attendance', icon: '✓' },
+    { id: 'payments', label: 'Payments', icon: '💰' },
+    { id: 'materials', label: 'Materials', icon: '🧱' },
+    { id: 'expenses', label: 'Expenses', icon: '💸' },
+    { id: 'invoices', label: 'Invoices', icon: '📄' },
+    { id: 'client-advances', label: 'Client Advances', icon: '💵' },
+    { id: 'equipment', label: 'Equipment', icon: '🔧', path: `/projects/${id}/equipment` },
+    { id: 'diary', label: 'Work Diary', icon: '📓', path: `/projects/${id}/diary` },
+    { id: 'milestones', label: 'Milestones', icon: '🏁', path: `/projects/${id}/milestones` },
+    { id: 'subcontractors', label: 'Subcontractors', icon: '🏗️', path: `/projects/${id}/subcontractors` },
   ];
 
   const renderTabContent = () => {
@@ -370,42 +374,6 @@ const ProjectDetails: React.FC = () => {
               })()}
             </div>
 
-            {/* Quick Actions */}
-            <div style={{
-              background: 'white', borderRadius: '12px', padding: '1.5rem 2rem',
-              boxShadow: '0 4px 15px rgba(0,0,0,0.08)', border: '1px solid #e9ecef'
-            }}>
-              <h3 style={{ margin: '0 0 1rem 0', color: '#1F7A8C', fontSize: '1.1rem' }}>⚡ Quick Actions</h3>
-              <div style={{ display: 'flex', gap: '0.75rem', flexWrap: 'wrap' }}>
-                {[
-                  { label: '📅 Mark Attendance', path: `/projects/${id}/attendance` },
-                  { label: '💰 Add Payment', path: `/projects/${id}/payments` },
-                  { label: '💳 Bulk Payment', path: `/projects/${id}/bulk-payment` },
-                  { label: '🔧 Equipment', path: `/projects/${id}/equipment` },
-                  { label: '📓 Work Diary', path: `/projects/${id}/diary` },
-                  { label: '📸 Photos', path: `/projects/${id}/photos` },
-                  { label: '🏁 Milestones', path: `/projects/${id}/milestones` },
-                  { label: '🏗️ Subcontractors', path: `/projects/${id}/subcontractors` },
-                  { label: '📊 Reports', path: `/reports` },
-                  { label: '📋 Attendance History', path: `/attendance/history?project_id=${id}` },
-                ].map(action => (
-                  <button
-                    key={action.path}
-                    onClick={() => navigate(action.path)}
-                    style={{
-                      padding: '0.65rem 1.25rem', background: '#f8f9fa',
-                      border: '2px solid #1F7A8C', color: '#1F7A8C',
-                      borderRadius: '8px', fontWeight: '600', fontSize: '0.875rem',
-                      cursor: 'pointer', transition: 'all 0.2s'
-                    }}
-                    onMouseEnter={e => { e.currentTarget.style.background = '#1F7A8C'; e.currentTarget.style.color = 'white'; }}
-                    onMouseLeave={e => { e.currentTarget.style.background = '#f8f9fa'; e.currentTarget.style.color = '#1F7A8C'; }}
-                  >
-                    {action.label}
-                  </button>
-                ))}
-              </div>
-            </div>
           </div>
         );
       case 'workers':
@@ -1697,7 +1665,7 @@ const ProjectDetails: React.FC = () => {
         {tabs.map((tab) => (
           <button
             key={tab.id}
-            onClick={() => setActiveTab(tab.id)}
+            onClick={() => tab.path ? navigate(tab.path) : setActiveTab(tab.id as TabType)}
             style={{
               flex: '1',
               padding: '1rem 1.5rem',
