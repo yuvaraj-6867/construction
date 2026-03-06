@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
+import api from '../services/api';
 import '../styles/global.css';
 
 interface QuickUser {
@@ -58,9 +59,8 @@ const Login = () => {
 
   // Fetch users for quick login
   useEffect(() => {
-    fetch('/api/v1/auth/users_list')
-      .then((r) => r.json())
-      .then((data) => setQuickUsers(data.users || []))
+    api.get('/auth/users_list')
+      .then((r) => setQuickUsers(r.data.users || []))
       .catch(() => {});
   }, []);
 
@@ -69,21 +69,12 @@ const Login = () => {
     setError('');
     setLoading(true);
     try {
-      const response = await fetch('/api/v1/auth/quick_login', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ user_id: user.id }),
-      });
-      if (response.ok) {
-        const data = await response.json();
-        localStorage.setItem('authToken', data.token);
-        localStorage.setItem('user', JSON.stringify(data.user));
-        window.location.href = '/dashboard';
-      } else {
-        setError('Quick login failed');
-      }
+      const { data } = await api.post('/auth/quick_login', { user_id: user.id });
+      localStorage.setItem('authToken', data.token);
+      localStorage.setItem('user', JSON.stringify(data.user));
+      window.location.href = '/dashboard';
     } catch {
-      setError('Connection error');
+      setError('Quick login failed');
     } finally {
       setLoading(false);
     }
