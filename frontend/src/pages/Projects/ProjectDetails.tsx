@@ -259,6 +259,7 @@ const ProjectDetails: React.FC = () => {
                     fontWeight: '600',
                     textTransform: 'uppercase',
                     letterSpacing: '0.5px',
+                    width: 'fit-content',
                     background: project.status === 'in-progress'
                       ? 'linear-gradient(135deg, #22c55e 0%, #16a34a 100%)'
                       : project.status === 'completed'
