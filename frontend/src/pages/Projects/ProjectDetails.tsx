@@ -29,6 +29,9 @@ const ProjectDetails: React.FC = () => {
   const [allPayments, setAllPayments] = useState<any[]>([]);
   const [allMaterials, setAllMaterials] = useState<any[]>([]);
   const [allExpenses, setAllExpenses] = useState<any[]>([]);
+  const [editingWorker, setEditingWorker] = useState<any | null>(null);
+  const [editForm, setEditForm] = useState<any>({});
+  const [editSaving, setEditSaving] = useState(false);
 
   useEffect(() => {
     loadProject();
@@ -101,6 +104,33 @@ const ProjectDetails: React.FC = () => {
       setExpenses(data.slice(0, 10));
     } catch (error) {
       console.error('Failed to load expenses:', error);
+    }
+  };
+
+  const handleEditWorker = (worker: any) => {
+    setEditingWorker(worker);
+    setEditForm({
+      name: worker.name || '',
+      phone: worker.phone || '',
+      role: worker.role || '',
+      daily_wage: worker.daily_wage || '',
+      payment_type: worker.payment_type || 'daily',
+      contract_amount: worker.contract_amount || '',
+      status: worker.is_active ? 'active' : 'inactive',
+    });
+  };
+
+  const handleSaveWorker = async () => {
+    if (!editingWorker) return;
+    setEditSaving(true);
+    try {
+      await workerService.update(editingWorker.id, editForm);
+      setEditingWorker(null);
+      loadWorkers();
+    } catch (error) {
+      alert('Failed to save worker');
+    } finally {
+      setEditSaving(false);
     }
   };
 
@@ -182,73 +212,77 @@ const ProjectDetails: React.FC = () => {
     switch (activeTab) {
       case 'overview':
         return (
-          <div>
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1.5rem', alignItems: 'start' }}>
             {/* Project Details Card */}
             <div style={{
               background: 'white',
               borderRadius: '12px',
-              padding: '2rem',
+              padding: '1.25rem',
               boxShadow: '0 4px 15px rgba(0,0,0,0.08)',
-              marginBottom: '2rem',
               border: '1px solid #e9ecef'
             }}>
               <h2 style={{
-                margin: '0 0 1.5rem 0',
-                fontSize: '1.5rem',
+                margin: '0 0 1rem 0',
+                fontSize: '1.1rem',
                 color: '#1F7A8C',
                 fontWeight: 'bold',
                 borderBottom: '2px solid #e9ecef',
-                paddingBottom: '0.75rem'
+                paddingBottom: '0.5rem'
               }}>
                 Project Information
               </h2>
-              <div style={{ display: 'grid', gap: '1rem' }}>
+              <div style={{ display: 'grid', gap: '0.5rem' }}>
                 <div style={{
                   display: 'grid',
-                  gridTemplateColumns: '200px 1fr',
-                  padding: '0.75rem',
-                  borderRadius: '8px',
-                  background: '#f8f9fa'
+                  gridTemplateColumns: '120px 1fr',
+                  padding: '0.5rem 0.6rem',
+                  borderRadius: '6px',
+                  background: '#f8f9fa',
+                  fontSize: '0.875rem'
                 }}>
                   <strong style={{ color: '#1F7A8C' }}>Client</strong>
                   <span>{project.client_name}</span>
                 </div>
                 <div style={{
                   display: 'grid',
-                  gridTemplateColumns: '200px 1fr',
-                  padding: '0.75rem',
-                  borderRadius: '8px',
-                  background: 'white'
+                  gridTemplateColumns: '120px 1fr',
+                  padding: '0.5rem 0.6rem',
+                  borderRadius: '6px',
+                  background: 'white',
+                  fontSize: '0.875rem'
                 }}>
                   <strong style={{ color: '#1F7A8C' }}>Budget</strong>
                   <span>₹{(project.budget / 100000).toFixed(2)}L</span>
                 </div>
                 <div style={{
                   display: 'grid',
-                  gridTemplateColumns: '200px 1fr',
-                  padding: '0.75rem',
-                  borderRadius: '8px',
-                  background: '#f8f9fa'
+                  gridTemplateColumns: '120px 1fr',
+                  padding: '0.5rem 0.6rem',
+                  borderRadius: '6px',
+                  background: '#f8f9fa',
+                  fontSize: '0.875rem'
                 }}>
                   <strong style={{ color: '#1F7A8C' }}>Start Date</strong>
                   <span>{project.start_date}</span>
                 </div>
                 <div style={{
                   display: 'grid',
-                  gridTemplateColumns: '200px 1fr',
-                  padding: '0.75rem',
-                  borderRadius: '8px',
-                  background: 'white'
+                  gridTemplateColumns: '120px 1fr',
+                  padding: '0.5rem 0.6rem',
+                  borderRadius: '6px',
+                  background: 'white',
+                  fontSize: '0.875rem'
                 }}>
                   <strong style={{ color: '#1F7A8C' }}>End Date</strong>
                   <span>{project.end_date || 'Not set'}</span>
                 </div>
                 <div style={{
                   display: 'grid',
-                  gridTemplateColumns: '200px 1fr',
-                  padding: '0.75rem',
-                  borderRadius: '8px',
-                  background: '#f8f9fa'
+                  gridTemplateColumns: '120px 1fr',
+                  padding: '0.5rem 0.6rem',
+                  borderRadius: '6px',
+                  background: '#f8f9fa',
+                  fontSize: '0.875rem'
                 }}>
                   <strong style={{ color: '#1F7A8C' }}>Status</strong>
                   <span style={{
@@ -277,10 +311,11 @@ const ProjectDetails: React.FC = () => {
                 </div>
                 <div style={{
                   display: 'grid',
-                  gridTemplateColumns: '200px 1fr',
-                  padding: '0.75rem',
-                  borderRadius: '8px',
-                  background: 'white'
+                  gridTemplateColumns: '120px 1fr',
+                  padding: '0.5rem 0.6rem',
+                  borderRadius: '6px',
+                  background: 'white',
+                  fontSize: '0.875rem'
                 }}>
                   <strong style={{ color: '#1F7A8C' }}>Description</strong>
                   <span>{project.description || 'No description'}</span>
@@ -290,12 +325,12 @@ const ProjectDetails: React.FC = () => {
 
             {/* Cost Breakdown & Financial Summary */}
             <div style={{
-              background: 'white', borderRadius: '12px', padding: '2rem',
-              boxShadow: '0 4px 15px rgba(0,0,0,0.08)', border: '1px solid #e9ecef', marginBottom: '1.5rem'
+              background: 'white', borderRadius: '12px', padding: '1.25rem',
+              boxShadow: '0 4px 15px rgba(0,0,0,0.08)', border: '1px solid #e9ecef'
             }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '1rem', marginBottom: '1.5rem', borderBottom: '2px solid #e9ecef', paddingBottom: '0.75rem' }}>
-                <h2 style={{ margin: 0, fontSize: '1.5rem', color: '#1F7A8C', fontWeight: 'bold' }}>
-                  📊 Financial Summary
+              <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', marginBottom: '1rem', borderBottom: '2px solid #e9ecef', paddingBottom: '0.5rem' }}>
+                <h2 style={{ margin: 0, fontSize: '1.1rem', color: '#1F7A8C', fontWeight: 'bold' }}>
+                  Financial Summary
                 </h2>
                 {(() => {
                   const budget = parseFloat(project.budget || 0);
@@ -306,21 +341,21 @@ const ProjectDetails: React.FC = () => {
                   return null;
                 })()}
               </div>
-              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '1rem', marginBottom: '1.5rem' }}>
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '0.6rem', marginBottom: '1rem' }}>
                 {[
                   { label: 'Labor Cost', value: stats.total_labor_cost || 0, color: '#3b82f6', icon: '👷' },
                   { label: 'Material Cost', value: stats.total_material_cost || 0, color: '#f59e0b', icon: '🧱' },
                   { label: 'Other Expenses', value: stats.total_expenses || 0, color: '#ef4444', icon: '💸' },
                 ].map(item => (
                   <div key={item.label} style={{
-                    background: '#f8f9fa', borderRadius: '10px', padding: '1.25rem',
+                    background: '#f8f9fa', borderRadius: '8px', padding: '0.75rem',
                     borderLeft: `4px solid ${item.color}`, textAlign: 'center'
                   }}>
-                    <div style={{ fontSize: '1.5rem', marginBottom: '0.4rem' }}>{item.icon}</div>
-                    <div style={{ fontSize: '1.3rem', fontWeight: 'bold', color: item.color }}>
+                    <div style={{ fontSize: '1.1rem', marginBottom: '0.2rem' }}>{item.icon}</div>
+                    <div style={{ fontSize: '1rem', fontWeight: 'bold', color: item.color }}>
                       ₹{parseFloat(item.value || 0).toLocaleString('en-IN')}
                     </div>
-                    <div style={{ fontSize: '0.8rem', color: '#6c757d', marginTop: '0.25rem' }}>{item.label}</div>
+                    <div style={{ fontSize: '0.75rem', color: '#6c757d', marginTop: '0.15rem' }}>{item.label}</div>
                   </div>
                 ))}
               </div>
@@ -350,22 +385,22 @@ const ProjectDetails: React.FC = () => {
                         transition: 'width 0.5s ease'
                       }} />
                     </div>
-                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '1rem' }}>
-                      <div style={{ padding: '0.875rem', background: '#f8f9fa', borderRadius: '8px', textAlign: 'center' }}>
-                        <div style={{ fontSize: '0.8rem', color: '#6c757d' }}>Budget</div>
-                        <div style={{ fontWeight: '700', color: '#1F7A8C', fontSize: '1.1rem' }}>
+                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '0.6rem' }}>
+                      <div style={{ padding: '0.6rem', background: '#f8f9fa', borderRadius: '8px', textAlign: 'center' }}>
+                        <div style={{ fontSize: '0.75rem', color: '#6c757d' }}>Budget</div>
+                        <div style={{ fontWeight: '700', color: '#1F7A8C', fontSize: '0.95rem' }}>
                           ₹{budget.toLocaleString('en-IN')}
                         </div>
                       </div>
-                      <div style={{ padding: '0.875rem', background: '#f8f9fa', borderRadius: '8px', textAlign: 'center' }}>
-                        <div style={{ fontSize: '0.8rem', color: '#6c757d' }}>Total Cost</div>
-                        <div style={{ fontWeight: '700', color: '#ef4444', fontSize: '1.1rem' }}>
+                      <div style={{ padding: '0.6rem', background: '#f8f9fa', borderRadius: '8px', textAlign: 'center' }}>
+                        <div style={{ fontSize: '0.75rem', color: '#6c757d' }}>Total Cost</div>
+                        <div style={{ fontWeight: '700', color: '#ef4444', fontSize: '0.95rem' }}>
                           ₹{totalCost.toLocaleString('en-IN')}
                         </div>
                       </div>
-                      <div style={{ padding: '0.875rem', background: profitLoss >= 0 ? '#dcfce7' : '#fee2e2', borderRadius: '8px', textAlign: 'center' }}>
-                        <div style={{ fontSize: '0.8rem', color: '#6c757d' }}>{profitLoss >= 0 ? 'Surplus' : 'Over Budget'}</div>
-                        <div style={{ fontWeight: '700', color: profitLoss >= 0 ? '#16a34a' : '#dc2626', fontSize: '1.1rem' }}>
+                      <div style={{ padding: '0.6rem', background: profitLoss >= 0 ? '#dcfce7' : '#fee2e2', borderRadius: '8px', textAlign: 'center' }}>
+                        <div style={{ fontSize: '0.75rem', color: '#6c757d' }}>{profitLoss >= 0 ? 'Surplus' : 'Over Budget'}</div>
+                        <div style={{ fontWeight: '700', color: profitLoss >= 0 ? '#16a34a' : '#dc2626', fontSize: '0.95rem' }}>
                           {profitLoss >= 0 ? '+' : '-'}₹{Math.abs(profitLoss).toLocaleString('en-IN')}
                         </div>
                       </div>
@@ -465,8 +500,8 @@ const ProjectDetails: React.FC = () => {
                 <table style={{ width: '100%', borderCollapse: 'collapse' }}>
                   <thead>
                     <tr style={{ background: '#f8f9fa' }}>
-                      {['Worker', 'Phone', 'Role', 'Daily Wage', 'Status', 'Wages Earned', 'Paid', 'Balance Due', 'Action'].map(h => (
-                        <th key={h} style={{ padding: '0.75rem 1rem', textAlign: ['Worker', 'Phone', 'Role', 'Action'].includes(h) ? 'left' : 'right', color: '#1F7A8C', fontWeight: '600', fontSize: '0.85rem', borderBottom: '2px solid #e9ecef' }}>{h}</th>
+                      {['Worker', 'Phone', 'Role', 'Daily Wage', 'Status', 'Wages Earned', 'Advances', 'Paid', 'Balance Due', 'Action'].map(h => (
+                        <th key={h} style={{ padding: '0.75rem 1rem', textAlign: ['Worker', 'Phone', 'Role', 'Status', 'Action'].includes(h) ? 'left' : 'right', color: '#1F7A8C', fontWeight: '600', fontSize: '0.85rem', borderBottom: '2px solid #e9ecef' }}>{h}</th>
                       ))}
                     </tr>
                   </thead>
@@ -498,6 +533,9 @@ const ProjectDetails: React.FC = () => {
                           <td style={{ padding: '0.75rem 1rem', textAlign: 'right', fontWeight: '600', color: '#374151' }}>
                             ₹{wages.toLocaleString('en-IN')}
                           </td>
+                          <td style={{ padding: '0.75rem 1rem', textAlign: 'right', color: '#f59e0b', fontWeight: '600' }}>
+                            ₹{parseFloat(w.total_advances || 0).toLocaleString('en-IN')}
+                          </td>
                           <td style={{ padding: '0.75rem 1rem', textAlign: 'right', color: '#22c55e', fontWeight: '600' }}>
                             ₹{paid.toLocaleString('en-IN')}
                           </td>
@@ -506,7 +544,7 @@ const ProjectDetails: React.FC = () => {
                             {balance > 0 ? `₹${balance.toLocaleString('en-IN')} owed` : balance < 0 ? `₹${Math.abs(balance).toLocaleString('en-IN')} excess` : '✓ Settled'}
                           </td>
                           <td style={{ padding: '0.75rem 1rem' }}>
-                            <button onClick={() => navigate(`/workers/${w.id}/edit`)}
+                            <button onClick={() => handleEditWorker(w)}
                               style={{ padding: '0.3rem 0.75rem', background: '#f8f9fa', border: '1px solid #1F7A8C', color: '#1F7A8C', borderRadius: '6px', fontSize: '0.8rem', fontWeight: '600', cursor: 'pointer' }}>
                               Edit
                             </button>
@@ -521,6 +559,9 @@ const ProjectDetails: React.FC = () => {
                       <td style={{ padding: '0.75rem 1rem', textAlign: 'right', fontWeight: '700', color: '#374151' }}>
                         ₹{workers.reduce((s, w) => s + parseFloat(w.total_wages_earned || 0), 0).toLocaleString('en-IN')}
                       </td>
+                      <td style={{ padding: '0.75rem 1rem', textAlign: 'right', fontWeight: '700', color: '#f59e0b' }}>
+                        ₹{workers.reduce((s, w) => s + parseFloat(w.total_advances || 0), 0).toLocaleString('en-IN')}
+                      </td>
                       <td style={{ padding: '0.75rem 1rem', textAlign: 'right', fontWeight: '700', color: '#22c55e' }}>
                         ₹{workers.reduce((s, w) => s + parseFloat(w.total_payments || 0), 0).toLocaleString('en-IN')}
                       </td>
@@ -533,6 +574,63 @@ const ProjectDetails: React.FC = () => {
               </div>
             )}
 
+            {/* Inline Worker Edit Modal */}
+            {editingWorker && (
+              <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.5)', zIndex: 1000, display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+                onClick={(e) => { if (e.target === e.currentTarget) setEditingWorker(null); }}>
+                <div style={{ background: 'white', borderRadius: '16px', padding: '2rem', width: '480px', maxWidth: '95vw', boxShadow: '0 20px 60px rgba(0,0,0,0.3)' }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem', borderBottom: '2px solid #e9ecef', paddingBottom: '0.75rem' }}>
+                    <h3 style={{ margin: 0, color: '#1F7A8C', fontSize: '1.2rem', fontWeight: '700' }}>Edit Worker</h3>
+                    <button onClick={() => setEditingWorker(null)} style={{ background: 'none', border: 'none', fontSize: '1.5rem', cursor: 'pointer', color: '#6c757d', lineHeight: 1 }}>&times;</button>
+                  </div>
+                  <div style={{ display: 'grid', gap: '1rem' }}>
+                    {[
+                      { label: 'Name', key: 'name', type: 'text' },
+                      { label: 'Phone', key: 'phone', type: 'text' },
+                      { label: 'Role', key: 'role', type: 'text' },
+                      { label: 'Daily Wage (₹)', key: 'daily_wage', type: 'number' },
+                      { label: 'Contract Amount (₹)', key: 'contract_amount', type: 'number' },
+                    ].map(f => (
+                      <div key={f.key}>
+                        <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: '600', color: '#374151', marginBottom: '0.3rem' }}>{f.label}</label>
+                        <input
+                          type={f.type}
+                          value={editForm[f.key] || ''}
+                          onChange={e => setEditForm((prev: any) => ({ ...prev, [f.key]: e.target.value }))}
+                          style={{ width: '100%', padding: '0.6rem 0.75rem', border: '1px solid #d1d5db', borderRadius: '8px', fontSize: '0.9rem', boxSizing: 'border-box' }}
+                        />
+                      </div>
+                    ))}
+                    <div>
+                      <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: '600', color: '#374151', marginBottom: '0.3rem' }}>Payment Type</label>
+                      <select value={editForm.payment_type || 'daily'} onChange={e => setEditForm((prev: any) => ({ ...prev, payment_type: e.target.value }))}
+                        style={{ width: '100%', padding: '0.6rem 0.75rem', border: '1px solid #d1d5db', borderRadius: '8px', fontSize: '0.9rem' }}>
+                        <option value="daily">Daily</option>
+                        <option value="contract">Contract</option>
+                      </select>
+                    </div>
+                    <div>
+                      <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: '600', color: '#374151', marginBottom: '0.3rem' }}>Status</label>
+                      <select value={editForm.status || 'active'} onChange={e => setEditForm((prev: any) => ({ ...prev, status: e.target.value }))}
+                        style={{ width: '100%', padding: '0.6rem 0.75rem', border: '1px solid #d1d5db', borderRadius: '8px', fontSize: '0.9rem' }}>
+                        <option value="active">Active</option>
+                        <option value="inactive">Inactive</option>
+                      </select>
+                    </div>
+                  </div>
+                  <div style={{ display: 'flex', gap: '0.75rem', marginTop: '1.5rem', justifyContent: 'flex-end' }}>
+                    <button onClick={() => setEditingWorker(null)}
+                      style={{ padding: '0.6rem 1.25rem', background: '#f8f9fa', border: '1px solid #d1d5db', borderRadius: '8px', fontSize: '0.9rem', cursor: 'pointer', fontWeight: '600' }}>
+                      Cancel
+                    </button>
+                    <button onClick={handleSaveWorker} disabled={editSaving}
+                      style={{ padding: '0.6rem 1.5rem', background: editSaving ? '#93c5fd' : '#1F7A8C', color: 'white', border: 'none', borderRadius: '8px', fontSize: '0.9rem', cursor: 'pointer', fontWeight: '600' }}>
+                      {editSaving ? 'Saving...' : 'Save Changes'}
+                    </button>
+                  </div>
+                </div>
+              </div>
+            )}
 
           </div>
         );
@@ -1579,7 +1677,7 @@ const ProjectDetails: React.FC = () => {
       >
         {allWorkers.length > 0 ? (
           <div className="grid grid-cols-3" style={{ gap: '1.25rem' }}>
-            {allWorkers.map((worker, index) => (
+            {allWorkers.map((worker) => (
               <div
                 key={worker.id}
                 style={{
