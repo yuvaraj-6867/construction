@@ -1,3 +1,4 @@
+import { formatDate } from '../../utils/formatDate';
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import axios from 'axios';
@@ -49,7 +50,7 @@ const SitePhotoDetails: React.FC = () => {
           </div>
           <div className="info-item">
             <label>Date:</label>
-            <span>{new Date(photo.photo_date).toLocaleDateString()}</span>
+            <span>{formatDate(photo.photo_date)}</span>
           </div>
           <div className="info-item">
             <label>Project:</label>

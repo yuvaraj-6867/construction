@@ -1,3 +1,4 @@
+import { formatDate } from '../../utils/formatDate';
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import axios from 'axios';
@@ -53,7 +54,7 @@ const EquipmentDetails: React.FC = () => {
           </div>
           <div className="info-item">
             <label>Purchase Date:</label>
-            <span>{new Date(equipment.purchase_date).toLocaleDateString()}</span>
+            <span>{formatDate(equipment.purchase_date)}</span>
           </div>
           <div className="info-item">
             <label>Purchase Cost:</label>

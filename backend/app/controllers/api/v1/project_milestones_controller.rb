@@ -14,26 +14,26 @@ module Api
         if milestone.save
           render json: milestone_json(milestone), status: :created
         else
-          render json: { error: milestone.errors.full_messages.join(', ') }, status: :unprocessable_entity
+          render json: { error: milestone.errors.full_messages.join(", ") }, status: :unprocessable_entity
         end
       end
 
       def update
         milestone = ProjectMilestone.find_by(id: params[:id])
-        return render json: { error: 'Not found' }, status: :not_found unless milestone
+        return render json: { error: "Not found" }, status: :not_found unless milestone
 
         if milestone.update(milestone_params)
           render json: milestone_json(milestone)
         else
-          render json: { error: milestone.errors.full_messages.join(', ') }, status: :unprocessable_entity
+          render json: { error: milestone.errors.full_messages.join(", ") }, status: :unprocessable_entity
         end
       end
 
       def destroy
         milestone = ProjectMilestone.find_by(id: params[:id])
-        return render json: { error: 'Not found' }, status: :not_found unless milestone
+        return render json: { error: "Not found" }, status: :not_found unless milestone
         milestone.destroy
-        render json: { message: 'Deleted' }
+        render json: { message: "Deleted" }
       end
 
       private

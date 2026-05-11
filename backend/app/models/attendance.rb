@@ -16,14 +16,11 @@ class Attendance < ApplicationRecord
 
   def calculate_wage
     return unless worker && status
-
+    rate = worker.payment_type == "contract" ? (worker.contract_amount || 0) : (worker.daily_wage || 0)
     case status
-    when 'present'
-      self.wage = worker.daily_wage
-    when 'half-day'
-      self.wage = worker.daily_wage * 0.5
-    when 'absent'
-      self.wage = 0
+    when "present"  then self.wage = rate
+    when "half-day" then self.wage = rate * 0.5
+    when "absent"   then self.wage = 0
     end
   end
 end

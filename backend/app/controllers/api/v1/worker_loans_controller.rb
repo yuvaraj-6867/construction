@@ -19,26 +19,26 @@ module Api
         if loan.save
           render json: loan_json(loan), status: :created
         else
-          render json: { error: loan.errors.full_messages.join(', ') }, status: :unprocessable_entity
+          render json: { error: loan.errors.full_messages.join(", ") }, status: :unprocessable_entity
         end
       end
 
       def update
         loan = WorkerLoan.find_by(id: params[:id])
-        return render json: { error: 'Not found' }, status: :not_found unless loan
+        return render json: { error: "Not found" }, status: :not_found unless loan
 
         if loan.update(loan_params)
           render json: loan_json(loan)
         else
-          render json: { error: loan.errors.full_messages.join(', ') }, status: :unprocessable_entity
+          render json: { error: loan.errors.full_messages.join(", ") }, status: :unprocessable_entity
         end
       end
 
       def destroy
         loan = WorkerLoan.find_by(id: params[:id])
-        return render json: { error: 'Not found' }, status: :not_found unless loan
+        return render json: { error: "Not found" }, status: :not_found unless loan
         loan.destroy
-        render json: { message: 'Deleted' }
+        render json: { message: "Deleted" }
       end
 
       private

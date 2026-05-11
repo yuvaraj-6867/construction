@@ -1,12 +1,13 @@
 class Api::V1::WorkersController < ApplicationController
-  before_action :set_worker, only: [:show, :update, :destroy]
+  before_action :set_worker, only: [ :show, :update, :destroy ]
 
   # GET /api/v1/workers
   def index
     @workers = params[:project_id] ? Worker.where(project_id: params[:project_id]) : Worker.all
-    @workers = @workers.where('LOWER(name) LIKE ?', "%#{params[:search].downcase}%") if params[:search].present?
-    @workers = @workers.where(is_active: params[:status] == 'active') if params[:status].in?(%w[active inactive])
+    @workers = @workers.where("LOWER(name) LIKE ?", "%#{params[:search].downcase}%") if params[:search].present?
+    @workers = @workers.where(is_active: params[:status] == "active") if params[:status].in?(%w[active inactive])
     @workers = @workers.where(payment_type: params[:payment_type]) if params[:payment_type].present?
+    expires_now
     render json: @workers.map { |w| worker_json(w) }
   end
 
@@ -50,7 +51,7 @@ class Api::V1::WorkersController < ApplicationController
   def worker_params
     permitted = params.require(:worker).permit(
       :name, :phone, :role, :daily_wage, :contract_amount, :payment_type,
-      :project_id, :is_active, :joined_date, :status
+      :project_id, :is_active, :joined_date, :status, :advance_given
     )
 
     # Convert empty strings to nil for numeric fields
@@ -58,7 +59,7 @@ class Api::V1::WorkersController < ApplicationController
     permitted[:contract_amount] = nil if permitted[:contract_amount].blank?
 
     if permitted[:status]
-      permitted[:is_active] = permitted[:status] == 'active'
+      permitted[:is_active] = permitted[:status] == "active"
       permitted.delete(:status)
     end
 
@@ -66,22 +67,41 @@ class Api::V1::WorkersController < ApplicationController
   end
 
   def worker_json(worker)
+    if worker.last_settled_date
+      d = worker.last_settled_date
+      period_atts     = worker.attendances.where("date > ?", d)
+      period_wages    = period_atts.sum(:wage).to_f
+      period_days     = period_atts.where(status: [ "present", "half-day" ]).count
+      period_advances = worker.payments.where(payment_type: "advance").where("date > ?", d).sum(:amount).to_f
+      period_payments = worker.payments.where(payment_type: [ "wage", nil ]).where("date > ?", d).sum(:amount).to_f
+      balance         = period_wages - period_advances - period_payments
+    else
+      period_wages    = worker.total_wages_earned.to_f
+      period_days     = worker.attendances.where(status: [ "present", "half-day" ]).count
+      period_advances = worker.total_advances.to_f
+      period_payments = worker.total_payments.to_f
+      balance         = worker.balance_due.to_f
+    end
+
     {
       id: worker.id,
       name: worker.name,
       phone: worker.phone,
       role: worker.role,
-      payment_type: worker.payment_type || 'daily',
+      payment_type: worker.payment_type || "daily",
       daily_wage: worker.daily_wage,
       contract_amount: worker.contract_amount,
       project_id: worker.project_id,
       is_active: worker.is_active,
-      status: worker.is_active ? 'active' : 'inactive',
+      status: worker.is_active ? "active" : "inactive",
       joined_date: worker.joined_date,
-      total_wages_earned: worker.total_wages_earned,
-      total_advances: worker.total_advances,
-      total_payments: worker.total_payments,
-      balance_due: worker.balance_due
+      advance_given: worker.advance_given || 0,
+      total_wages_earned: period_wages,
+      total_advances: period_advances,
+      total_payments: period_payments,
+      balance_due: balance,
+      days_worked: period_days,
+      last_settled_date: worker.last_settled_date
     }
   end
 

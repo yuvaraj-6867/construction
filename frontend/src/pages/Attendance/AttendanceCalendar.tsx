@@ -14,11 +14,14 @@ const statusBg: Record<string, string> = {
   absent: '#FFEBEE',
 };
 
-const AttendanceCalendar: React.FC = () => {
-  const navigate = useNavigate();
-  const { id: workerId } = useParams();
+interface AttendanceCalendarProps { embedded?: boolean; workerIdProp?: string; }
 
+const AttendanceCalendar: React.FC<AttendanceCalendarProps> = ({ embedded = false, workerIdProp }) => {
+  const navigate = useNavigate();
+  const { id: workerIdParam } = useParams();
   const today = new Date();
+  const workerId = workerIdProp || workerIdParam;
+
   const [year, setYear] = useState(today.getFullYear());
   const [month, setMonth] = useState(today.getMonth() + 1);
   const [worker, setWorker] = useState<any>(null);
@@ -79,35 +82,25 @@ const AttendanceCalendar: React.FC = () => {
     { present: 0, half: 0, absent: 0 }
   );
 
-  return (
-    <div className="app">
-      <nav style={{ background: 'linear-gradient(135deg, #1F7A8C 0%, #16616F 100%)', color: 'white', padding: '1rem 1.5rem', display: 'flex', alignItems: 'center', gap: '1rem', position: 'sticky', top: 0, zIndex: 100 }}>
-        <button onClick={() => navigate(-1)} style={{ background: 'rgba(255,255,255,0.15)', border: 'none', color: 'white', padding: '0.4rem 0.8rem', borderRadius: '8px', cursor: 'pointer', fontWeight: 600 }}>
-          ← Back
-        </button>
-        <span style={{ fontWeight: 700, fontSize: '1.1rem' }}>
-          📅 Attendance Calendar {worker ? `— ${worker.name}` : ''}
-        </span>
-      </nav>
-
-      <div style={{ padding: '1.5rem', maxWidth: '600px', margin: '0 auto' }}>
+  const calendarContent = (
+    <div style={{ padding: embedded ? '0' : '1.5rem', maxWidth: embedded ? '100%' : '600px', margin: '0 auto' }}>
         {/* Month navigation */}
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '1.5rem' }}>
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '0.75rem' }}>
           <button onClick={() => changeMonth(-1)} style={{ background: '#f0f0f0', border: 'none', padding: '0.5rem 1rem', borderRadius: '8px', cursor: 'pointer', fontWeight: 700, fontSize: '1.2rem' }}>‹</button>
           <h2 style={{ margin: 0, fontSize: '1.3rem' }}>{monthName} {year}</h2>
           <button onClick={() => changeMonth(1)} style={{ background: '#f0f0f0', border: 'none', padding: '0.5rem 1rem', borderRadius: '8px', cursor: 'pointer', fontWeight: 700, fontSize: '1.2rem' }}>›</button>
         </div>
 
         {/* Summary */}
-        <div style={{ display: 'flex', gap: '1rem', marginBottom: '1.5rem' }}>
+        <div style={{ display: 'flex', gap: '0.5rem', marginBottom: '0.75rem' }}>
           {[
             { label: 'Present', count: summary.present, color: '#2E7D32', bg: '#E8F5E9' },
             { label: 'Half Day', count: summary.half, color: '#F57C00', bg: '#FFF3E0' },
             { label: 'Absent', count: summary.absent, color: '#C62828', bg: '#FFEBEE' },
           ].map(({ label, count, color, bg }) => (
-            <div key={label} style={{ flex: 1, textAlign: 'center', background: bg, borderRadius: '12px', padding: '0.75rem', border: `1px solid ${color}30` }}>
-              <div style={{ fontSize: '1.5rem', fontWeight: 700, color }}>{count}</div>
-              <div style={{ fontSize: '0.75rem', color: '#666' }}>{label}</div>
+            <div key={label} style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.35rem', background: bg, borderRadius: '8px', padding: '0.35rem 0.5rem', border: `1px solid ${color}30` }}>
+              <span style={{ fontSize: '1.1rem', fontWeight: 700, color, lineHeight: 1 }}>{count}</span>
+              <span style={{ fontSize: '0.72rem', color: '#666' }}>{label}</span>
             </div>
           ))}
         </div>
@@ -178,7 +171,21 @@ const AttendanceCalendar: React.FC = () => {
             </div>
           </div>
         )}
-      </div>
+    </div>
+  );
+
+  if (embedded) return <div>{calendarContent}</div>;
+  return (
+    <div className="app">
+      <nav style={{ background: 'linear-gradient(135deg, #1F7A8C 0%, #16616F 100%)', color: 'white', padding: '1rem 1.5rem', display: 'flex', alignItems: 'center', gap: '1rem', position: 'sticky', top: 0, zIndex: 100 }}>
+        <button onClick={() => navigate(-1)} style={{ background: 'rgba(255,255,255,0.15)', border: 'none', color: 'white', padding: '0.4rem 0.8rem', borderRadius: '8px', cursor: 'pointer', fontWeight: 600 }}>
+          ← Back
+        </button>
+        <span style={{ fontWeight: 700, fontSize: '1.1rem' }}>
+          📅 Attendance Calendar {worker ? `— ${worker.name}` : ''}
+        </span>
+      </nav>
+      {calendarContent}
     </div>
   );
 };

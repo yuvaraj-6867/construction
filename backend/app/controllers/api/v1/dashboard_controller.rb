@@ -4,7 +4,7 @@ class Api::V1::DashboardController < ApplicationController
 
     # Project stats
     total_projects = Project.where(user: current_user).count
-    active_projects = Project.where(user: current_user, status: 'in-progress').count
+    active_projects = Project.where(user: current_user, status: "in-progress").count
 
     # Worker stats
     total_workers = Worker.joins(:project).where(projects: { user: current_user }).count
@@ -14,16 +14,16 @@ class Api::V1::DashboardController < ApplicationController
     project_ids = Project.where(user: current_user).pluck(:id)
 
     total_wages_earned = Attendance.where(project_id: project_ids).sum(:wage)
-    total_advances = Payment.where(project_id: project_ids, payment_type: 'advance').sum(:amount)
-    total_wage_payments = Payment.where(project_id: project_ids, payment_type: 'wage').sum(:amount)
+    total_advances = Payment.where(project_id: project_ids, payment_type: "advance").sum(:amount)
+    total_wage_payments = Payment.where(project_id: project_ids, payment_type: "wage").sum(:amount)
     total_paid = total_advances + total_wage_payments
     total_balance = total_wages_earned - total_paid
 
     # Today's attendance
     today_attendances = Attendance.where(project_id: project_ids, date: today)
-    today_present = today_attendances.where(status: 'present').count
-    today_half_day = today_attendances.where(status: 'half-day').count
-    today_absent = today_attendances.where(status: 'absent').count
+    today_present = today_attendances.where(status: "present").count
+    today_half_day = today_attendances.where(status: "half-day").count
+    today_absent = today_attendances.where(status: "absent").count
 
     # Recent payments (last 5)
     recent_payments = Payment.where(project_id: project_ids)

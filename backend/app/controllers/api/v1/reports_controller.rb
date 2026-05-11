@@ -2,10 +2,10 @@ class Api::V1::ReportsController < ApplicationController
   # GET /api/v1/reports/worker_summary?project_id=&start_date=&end_date=
   def worker_summary
     project_ids = if params[:project_id].present?
-                    [params[:project_id]]
-                  else
+                    [ params[:project_id] ]
+    else
                     Project.where(user: current_user).pluck(:id)
-                  end
+    end
 
     workers = Worker.where(project_id: project_ids)
     workers = filter_by_date_range(workers)
@@ -18,18 +18,18 @@ class Api::V1::ReportsController < ApplicationController
         name: w.name,
         role: w.role,
         phone: w.phone,
-        payment_type: w.payment_type || 'daily',
+        payment_type: w.payment_type || "daily",
         daily_wage: w.daily_wage,
         contract_amount: w.contract_amount,
         project_name: w.project.name,
-        total_days_present: attendances.where(status: 'present').count,
-        total_half_days: attendances.where(status: 'half-day').count,
-        total_days_absent: attendances.where(status: 'absent').count,
+        total_days_present: attendances.where(status: "present").count,
+        total_half_days: attendances.where(status: "half-day").count,
+        total_days_absent: attendances.where(status: "absent").count,
         total_wages_earned: w.total_wages_earned,
         total_advances: w.total_advances,
         total_payments: w.total_payments,
         balance_due: w.balance_due,
-        status: w.is_active ? 'Active' : 'Inactive'
+        status: w.is_active ? "Active" : "Inactive"
       }
     end
 
@@ -39,10 +39,10 @@ class Api::V1::ReportsController < ApplicationController
   # GET /api/v1/reports/project_summary?project_id=
   def project_summary
     project_ids = if params[:project_id].present?
-                    [params[:project_id]]
-                  else
+                    [ params[:project_id] ]
+    else
                     Project.where(user: current_user).pluck(:id)
-                  end
+    end
 
     data = Project.where(id: project_ids).map do |proj|
       total_workers = proj.workers.count
@@ -88,15 +88,15 @@ class Api::V1::ReportsController < ApplicationController
       start_date = Date.new(year, month, 1)
       end_date = start_date.end_of_month
 
-      wages = Payment.where(project_id: project_ids, payment_type: 'wage')
+      wages = Payment.where(project_id: project_ids, payment_type: "wage")
                      .where(date: start_date..end_date).sum(:amount)
-      advances = Payment.where(project_id: project_ids, payment_type: 'advance')
+      advances = Payment.where(project_id: project_ids, payment_type: "advance")
                         .where(date: start_date..end_date).sum(:amount)
       workers_paid = Payment.where(project_id: project_ids)
                             .where(date: start_date..end_date).distinct.count(:worker_id)
 
       {
-        month: start_date.strftime('%b'),
+        month: start_date.strftime("%b"),
         month_num: month,
         wages: wages.to_f.round(2),
         advances: advances.to_f.round(2),
@@ -111,17 +111,17 @@ class Api::V1::ReportsController < ApplicationController
   # GET /api/v1/reports/worker_performance?project_id=
   def worker_performance
     project_ids = if params[:project_id].present?
-                    [params[:project_id]]
-                  else
+                    [ params[:project_id] ]
+    else
                     Project.where(user: current_user).pluck(:id)
-                  end
+    end
 
     workers = Worker.where(project_id: project_ids)
 
     data = workers.map do |w|
       total_days = w.attendances.count
-      present_days = w.attendances.where(status: 'present').count
-      half_days = w.attendances.where(status: 'half-day').count
+      present_days = w.attendances.where(status: "present").count
+      half_days = w.attendances.where(status: "half-day").count
       attendance_pct = total_days > 0 ? (((present_days + half_days * 0.5) / total_days) * 100).round(1) : 0
 
       {
@@ -132,7 +132,7 @@ class Api::V1::ReportsController < ApplicationController
         total_days: total_days,
         present_days: present_days,
         half_days: half_days,
-        absent_days: w.attendances.where(status: 'absent').count,
+        absent_days: w.attendances.where(status: "absent").count,
         attendance_pct: attendance_pct,
         wages_earned: w.total_wages_earned.to_f.round(2),
         balance_due: w.balance_due.to_f.round(2),

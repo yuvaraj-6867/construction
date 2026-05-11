@@ -14,26 +14,26 @@ module Api
         if sub.save
           render json: sub_json(sub), status: :created
         else
-          render json: { error: sub.errors.full_messages.join(', ') }, status: :unprocessable_entity
+          render json: { error: sub.errors.full_messages.join(", ") }, status: :unprocessable_entity
         end
       end
 
       def update
         sub = Subcontractor.find_by(id: params[:id])
-        return render json: { error: 'Not found' }, status: :not_found unless sub
+        return render json: { error: "Not found" }, status: :not_found unless sub
 
         if sub.update(sub_params)
           render json: sub_json(sub)
         else
-          render json: { error: sub.errors.full_messages.join(', ') }, status: :unprocessable_entity
+          render json: { error: sub.errors.full_messages.join(", ") }, status: :unprocessable_entity
         end
       end
 
       def destroy
         sub = Subcontractor.find_by(id: params[:id])
-        return render json: { error: 'Not found' }, status: :not_found unless sub
+        return render json: { error: "Not found" }, status: :not_found unless sub
         sub.destroy
-        render json: { message: 'Deleted' }
+        render json: { message: "Deleted" }
       end
 
       private

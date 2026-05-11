@@ -24,7 +24,7 @@ class Api::V1::InvoicesController < ApplicationController
 
   def update
     @invoice = Invoice.find_by(id: params[:id])
-    return render json: { error: 'Not found' }, status: :not_found unless @invoice
+    return render json: { error: "Not found" }, status: :not_found unless @invoice
 
     if @invoice.update(invoice_params)
       render json: @invoice
@@ -35,9 +35,9 @@ class Api::V1::InvoicesController < ApplicationController
 
   def destroy
     @invoice = Invoice.find_by(id: params[:id])
-    return render json: { error: 'Not found' }, status: :not_found unless @invoice
+    return render json: { error: "Not found" }, status: :not_found unless @invoice
     @invoice.destroy
-    render json: { message: 'Deleted' }
+    render json: { message: "Deleted" }
   end
 
   private
@@ -49,7 +49,7 @@ class Api::V1::InvoicesController < ApplicationController
   def check_overdue_invoices(invoices)
     return unless current_user
     today = Date.today
-    overdue = invoices.select { |inv| inv.due_date && inv.due_date < today && inv.status != 'paid' }
+    overdue = invoices.select { |inv| inv.due_date && inv.due_date < today && inv.status != "paid" }
     overdue.each do |inv|
       notif_key = "overdue_invoice_#{inv.id}"
       next if Notification.exists?(user: current_user, data: { key: notif_key }.to_json)
@@ -57,7 +57,7 @@ class Api::V1::InvoicesController < ApplicationController
         user: current_user,
         title: "Invoice Overdue",
         message: "Invoice #{inv.invoice_number} for ₹#{inv.amount} is overdue (due #{inv.due_date.strftime('%d %b %Y')})",
-        notification_type: 'warning',
+        notification_type: "warning",
         data: { key: notif_key }.to_json
       )
     end

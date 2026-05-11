@@ -1,3 +1,4 @@
+import { formatDate } from '../../utils/formatDate';
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import axios from 'axios';
@@ -57,7 +58,7 @@ const WorkerLoanDetails: React.FC = () => {
           </div>
           <div className="info-item">
             <label>Loan Date:</label>
-            <span>{new Date(loan.loan_date).toLocaleDateString()}</span>
+            <span>{formatDate(loan.loan_date)}</span>
           </div>
           <div className="info-item">
             <label>Status:</label>

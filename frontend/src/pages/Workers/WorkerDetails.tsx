@@ -1,3 +1,4 @@
+import { formatDate } from '../../utils/formatDate';
 import React, { useState, useEffect } from 'react';
 import { useNavigate, useParams, useLocation } from 'react-router-dom';
 import { QRCodeSVG, QRCodeCanvas } from 'qrcode.react';
@@ -22,10 +23,11 @@ const WorkerDetails: React.FC = () => {
   const [error, setError] = useState('');
   const [confirmDialog, setConfirmDialog] = useState({ isOpen: false });
   const [advances, setAdvances] = useState<any[]>([]);
+  const [wagePayments, setWagePayments] = useState<any[]>([]);
   const [showQR, setShowQR] = useState(false);
+  const today = new Date();
   const [showSlipModal, setShowSlipModal] = useState(false);
   const [showIDCardModal, setShowIDCardModal] = useState(false);
-  const today = new Date();
   const [slipMonth, setSlipMonth] = useState(today.getMonth() + 1);
   const [slipYear, setSlipYear] = useState(today.getFullYear());
 
@@ -52,6 +54,7 @@ const WorkerDetails: React.FC = () => {
       const res = await api.get('/payments', { params: { worker_id: workerId } });
       const all = Array.isArray(res.data) ? res.data : res.data?.payments || [];
       setAdvances(all.filter((p: any) => p.payment_type === 'advance'));
+      setWagePayments(all.filter((p: any) => p.payment_type !== 'advance'));
     } catch { /* ignore */ }
   };
 
@@ -136,7 +139,7 @@ const WorkerDetails: React.FC = () => {
       doc.setFontSize(9);
       doc.setFont('helvetica', 'italic');
       doc.setTextColor(150, 150, 150);
-      doc.text(`Generated on ${new Date().toLocaleDateString('en-IN')} | Construction Worker Tracker`, 14, y3);
+      doc.text(`Generated on ${formatDate(new Date())} | Construction Worker Tracker`, 14, y3);
 
       doc.save(`salary_slip_${worker.name.replace(/\s+/g, '_')}_${monthName.replace(/\s+/g, '_')}.pdf`);
       setShowSlipModal(false);
@@ -294,7 +297,8 @@ const WorkerDetails: React.FC = () => {
 
   const balanceDue = worker.balance_due || 0;
   const totalWages = worker.total_wages_earned || 0;
-  const totalAdvances = worker.advance_given || 0;
+  const totalAdvances = worker.total_advances || 0;
+  const totalPaid = worker.total_payments || 0;
 
   return (
     <div style={{
@@ -307,87 +311,43 @@ const WorkerDetails: React.FC = () => {
         display: 'flex',
         justifyContent: 'space-between',
         alignItems: 'center',
-        marginBottom: '2rem',
+        marginBottom: '1rem',
         background: 'white',
-        padding: '1.5rem 2rem',
-        borderRadius: '16px',
-        boxShadow: '0 4px 20px rgba(0,0,0,0.08)'
+        padding: '0.75rem 1.25rem',
+        borderRadius: '12px',
+        boxShadow: '0 2px 8px rgba(0,0,0,0.07)'
       }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '1.5rem' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
           <button
             onClick={() => navigate(isProjectRoute ? `/projects/${projectId}/workers` : '/workers')}
             style={{
-              background: '#f8f9fa',
-              color: '#1F7A8C',
-              border: '2px solid #1F7A8C',
-              padding: '0.75rem 1.5rem',
-              fontSize: '0.95rem',
-              fontWeight: '600',
-              borderRadius: '10px',
-              cursor: 'pointer',
-              transition: 'all 0.3s',
-              display: 'flex',
-              alignItems: 'center',
-              gap: '0.5rem'
-            }}
-            onMouseEnter={(e) => {
-              e.currentTarget.style.background = '#1F7A8C';
-              e.currentTarget.style.color = 'white';
-              e.currentTarget.style.transform = 'translateX(-3px)';
-            }}
-            onMouseLeave={(e) => {
-              e.currentTarget.style.background = '#f8f9fa';
-              e.currentTarget.style.color = '#1F7A8C';
-              e.currentTarget.style.transform = 'translateX(0)';
+              background: '#f8f9fa', color: '#1F7A8C', border: '1.5px solid #1F7A8C',
+              padding: '0.35rem 0.9rem', fontSize: '0.82rem', fontWeight: '600',
+              borderRadius: '8px', cursor: 'pointer'
             }}
           >
             ← Back to Workers
           </button>
           <div>
             <h1 style={{
-              margin: 0,
-              fontSize: '2.5rem',
+              margin: 0, fontSize: '1.4rem',
               background: 'linear-gradient(135deg, #1F7A8C 0%, #16616F 100%)',
-              WebkitBackgroundClip: 'text',
-              WebkitTextFillColor: 'transparent',
-              fontWeight: 'bold'
+              WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent', fontWeight: 'bold'
             }}>
               {worker.name}
             </h1>
-            <p style={{
-              margin: '0.5rem 0 0 0',
-              color: '#6c757d',
-              fontSize: '1rem',
-              display: 'flex',
-              alignItems: 'center',
-              gap: '0.5rem'
-            }}>
+            <p style={{ margin: '0.1rem 0 0 0', color: '#6c757d', fontSize: '0.8rem', display: 'flex', alignItems: 'center', gap: '0.3rem' }}>
               <span>💼</span> {worker.role}
             </p>
           </div>
         </div>
-        <div style={{ display: 'flex', gap: '0.75rem' }}>
+        <div style={{ display: 'flex', gap: '0.5rem' }}>
           <button
             onClick={() => navigate(isProjectRoute ? `/projects/${projectId}/workers/${workerId}/edit` : `/workers/${workerId}/edit`)}
             style={{
-              background: 'linear-gradient(135deg, #1F7A8C 0%, #16616F 100%)',
-              border: 'none',
-              color: 'white',
-              padding: '0.875rem 1.5rem',
-              fontSize: '1rem',
-              fontWeight: '600',
-              borderRadius: '10px',
-              boxShadow: '0 4px 15px rgba(31, 122, 140, 0.3)',
-              transition: 'all 0.3s',
-              cursor: 'pointer'
-            }}
-            onMouseEnter={(e) => {
-              e.currentTarget.style.transform = 'translateY(-2px)';
-              e.currentTarget.style.boxShadow = '0 6px 20px rgba(31, 122, 140, 0.4)';
-            }}
-            onMouseLeave={(e) => {
-              e.currentTarget.style.transform = 'translateY(0)';
-              e.currentTarget.style.boxShadow = '0 4px 15px rgba(31, 122, 140, 0.3)';
+              background: 'linear-gradient(135deg, #1F7A8C 0%, #16616F 100%)', border: 'none',
+              color: 'white', padding: '0.4rem 1rem', fontSize: '0.85rem', fontWeight: '600',
+              borderRadius: '8px', cursor: 'pointer'
             }}
           >
             Edit Worker
@@ -395,24 +355,9 @@ const WorkerDetails: React.FC = () => {
           <button
             onClick={handleDeleteClick}
             style={{
-              background: 'linear-gradient(135deg, #ef4444 0%, #dc2626 100%)',
-              border: 'none',
-              color: 'white',
-              padding: '0.875rem 1.5rem',
-              fontSize: '1rem',
-              fontWeight: '600',
-              borderRadius: '10px',
-              boxShadow: '0 4px 15px rgba(239, 68, 68, 0.3)',
-              transition: 'all 0.3s',
-              cursor: 'pointer'
-            }}
-            onMouseEnter={(e) => {
-              e.currentTarget.style.transform = 'translateY(-2px)';
-              e.currentTarget.style.boxShadow = '0 6px 20px rgba(239, 68, 68, 0.4)';
-            }}
-            onMouseLeave={(e) => {
-              e.currentTarget.style.transform = 'translateY(0)';
-              e.currentTarget.style.boxShadow = '0 4px 15px rgba(239, 68, 68, 0.3)';
+              background: 'linear-gradient(135deg, #ef4444 0%, #dc2626 100%)', border: 'none',
+              color: 'white', padding: '0.4rem 1rem', fontSize: '0.85rem', fontWeight: '600',
+              borderRadius: '8px', cursor: 'pointer'
             }}
           >
             Delete
@@ -421,379 +366,144 @@ const WorkerDetails: React.FC = () => {
       </div>
 
       {/* Financial Stats Cards */}
-      <div className="grid grid-cols-4" style={{ gap: '1.25rem', marginBottom: '2rem' }}>
+      <div className="grid grid-cols-4" style={{ gap: '0.5rem', marginBottom: '1rem' }}>
+        {[
+          { label: 'Wages Earned', value: `₹${totalWages.toLocaleString('en-IN')}`, color: '#1F7A8C' },
+          { label: 'Advances', value: `₹${totalAdvances.toLocaleString('en-IN')}`, color: '#f59e0b' },
+          { label: 'Paid', value: `₹${totalPaid.toLocaleString('en-IN')}`, color: '#22c55e' },
+          { label: balanceDue >= 0 ? 'Net Pay (Due)' : 'Overpaid', value: `₹${Math.abs(balanceDue).toLocaleString('en-IN')}`, color: balanceDue >= 0 ? '#8b5cf6' : '#ef4444' },
+        ].map(({ label, value, color }) => (
+          <div key={label} style={{
+            background: 'white', borderRadius: '8px', padding: '0.6rem',
+            boxShadow: '0 2px 8px rgba(0,0,0,0.06)', textAlign: 'center', border: '1px solid #e9ecef'
+          }}>
+            <div style={{ color, fontSize: '1.2rem', fontWeight: 'bold', marginBottom: '0.15rem' }}>{value}</div>
+            <div style={{ color: '#6c757d', fontSize: '0.7rem' }}>{label}</div>
+          </div>
+        ))}
+      </div>
+
+      {/* Two-column layout: Quick Actions (left) + Worker Information (right) */}
+      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem', marginBottom: '2rem' }}>
+
+        {/* Quick Actions - Left */}
         <div style={{
           background: 'white',
           borderRadius: '12px',
-          padding: '1.5rem',
+          padding: '1.25rem',
           boxShadow: '0 4px 15px rgba(0,0,0,0.08)',
-          textAlign: 'center',
-          transition: 'all 0.3s',
           border: '1px solid #e9ecef'
-        }}
-        onMouseEnter={(e) => {
-          e.currentTarget.style.transform = 'translateY(-5px)';
-          e.currentTarget.style.boxShadow = '0 6px 20px rgba(31, 122, 140, 0.15)';
-        }}
-        onMouseLeave={(e) => {
-          e.currentTarget.style.transform = 'translateY(0)';
-          e.currentTarget.style.boxShadow = '0 4px 15px rgba(0,0,0,0.08)';
-        }}
-        >
-          <h3 style={{
+        }}>
+          <h2 style={{
+            margin: '0 0 1rem 0',
+            fontSize: '1.1rem',
             color: '#1F7A8C',
-            margin: '0 0 0.5rem 0',
-            fontSize: '2rem',
-            fontWeight: 'bold'
+            fontWeight: 'bold',
+            borderBottom: '2px solid #e9ecef',
+            paddingBottom: '0.5rem'
           }}>
-            ₹{totalWages.toLocaleString()}
-          </h3>
-          <p style={{ color: '#6c757d', margin: 0, fontSize: '0.9rem' }}>Total Wages Earned</p>
-        </div>
-
-        <div style={{
-          background: 'white',
-          borderRadius: '12px',
-          padding: '1.5rem',
-          boxShadow: '0 4px 15px rgba(0,0,0,0.08)',
-          textAlign: 'center',
-          transition: 'all 0.3s',
-          border: '1px solid #e9ecef'
-        }}
-        onMouseEnter={(e) => {
-          e.currentTarget.style.transform = 'translateY(-5px)';
-          e.currentTarget.style.boxShadow = '0 6px 20px rgba(31, 122, 140, 0.15)';
-        }}
-        onMouseLeave={(e) => {
-          e.currentTarget.style.transform = 'translateY(0)';
-          e.currentTarget.style.boxShadow = '0 4px 15px rgba(0,0,0,0.08)';
-        }}
-        >
-          <h3 style={{
-            color: '#f59e0b',
-            margin: '0 0 0.5rem 0',
-            fontSize: '2rem',
-            fontWeight: 'bold'
-          }}>
-            ₹{totalAdvances.toLocaleString()}
-          </h3>
-          <p style={{ color: '#6c757d', margin: 0, fontSize: '0.9rem' }}>Advances Given</p>
-        </div>
-
-        <div style={{
-          background: 'white',
-          borderRadius: '12px',
-          padding: '1.5rem',
-          boxShadow: '0 4px 15px rgba(0,0,0,0.08)',
-          textAlign: 'center',
-          transition: 'all 0.3s',
-          border: '1px solid #e9ecef'
-        }}
-        onMouseEnter={(e) => {
-          e.currentTarget.style.transform = 'translateY(-5px)';
-          e.currentTarget.style.boxShadow = '0 6px 20px rgba(31, 122, 140, 0.15)';
-        }}
-        onMouseLeave={(e) => {
-          e.currentTarget.style.transform = 'translateY(0)';
-          e.currentTarget.style.boxShadow = '0 4px 15px rgba(0,0,0,0.08)';
-        }}
-        >
-          <h3 style={{
-            color: balanceDue >= 0 ? '#22c55e' : '#ef4444',
-            margin: '0 0 0.5rem 0',
-            fontSize: '2rem',
-            fontWeight: 'bold'
-          }}>
-            ₹{Math.abs(balanceDue).toLocaleString()}
-          </h3>
-          <p style={{ color: '#6c757d', margin: 0, fontSize: '0.9rem' }}>
-            {balanceDue >= 0 ? 'Balance Due (Owe to Worker)' : 'Advance Outstanding'}
-          </p>
-        </div>
-
-        <div style={{
-          background: 'white',
-          borderRadius: '12px',
-          padding: '1.5rem',
-          boxShadow: '0 4px 15px rgba(0,0,0,0.08)',
-          textAlign: 'center',
-          transition: 'all 0.3s',
-          border: '1px solid #e9ecef'
-        }}
-        onMouseEnter={(e) => {
-          e.currentTarget.style.transform = 'translateY(-5px)';
-          e.currentTarget.style.boxShadow = '0 6px 20px rgba(31, 122, 140, 0.15)';
-        }}
-        onMouseLeave={(e) => {
-          e.currentTarget.style.transform = 'translateY(0)';
-          e.currentTarget.style.boxShadow = '0 4px 15px rgba(0,0,0,0.08)';
-        }}
-        >
-          <h3 style={{
-            color: '#3b82f6',
-            margin: '0 0 0.5rem 0',
-            fontSize: '2rem',
-            fontWeight: 'bold'
-          }}>
-            ₹{worker.daily_wage.toLocaleString()}
-          </h3>
-          <p style={{ color: '#6c757d', margin: 0, fontSize: '0.9rem' }}>Daily Wage</p>
-        </div>
-      </div>
-
-      {/* Worker Information Card */}
-      <div style={{
-        background: 'white',
-        borderRadius: '12px',
-        padding: '2rem',
-        boxShadow: '0 4px 15px rgba(0,0,0,0.08)',
-        marginBottom: '2rem',
-        border: '1px solid #e9ecef'
-      }}>
-        <h2 style={{
-          margin: '0 0 1.5rem 0',
-          fontSize: '1.5rem',
-          color: '#1F7A8C',
-          fontWeight: 'bold',
-          borderBottom: '2px solid #e9ecef',
-          paddingBottom: '0.75rem'
-        }}>
-          Worker Information
-        </h2>
-        <div style={{ display: 'grid', gap: '1rem' }}>
-          <div style={{
-            display: 'grid',
-            gridTemplateColumns: '200px 1fr',
-            padding: '0.75rem',
-            borderRadius: '8px',
-            background: '#f8f9fa'
-          }}>
-            <strong style={{ color: '#1F7A8C' }}>Name</strong>
-            <span>{worker.name}</span>
-          </div>
-          <div style={{
-            display: 'grid',
-            gridTemplateColumns: '200px 1fr',
-            padding: '0.75rem',
-            borderRadius: '8px',
-            background: 'white'
-          }}>
-            <strong style={{ color: '#1F7A8C' }}>Role</strong>
-            <span>{worker.role}</span>
-          </div>
-          <div style={{
-            display: 'grid',
-            gridTemplateColumns: '200px 1fr',
-            padding: '0.75rem',
-            borderRadius: '8px',
-            background: '#f8f9fa'
-          }}>
-            <strong style={{ color: '#1F7A8C' }}>Phone</strong>
-            <span>{worker.phone}</span>
-          </div>
-          <div style={{
-            display: 'grid',
-            gridTemplateColumns: '200px 1fr',
-            padding: '0.75rem',
-            borderRadius: '8px',
-            background: 'white'
-          }}>
-            <strong style={{ color: '#1F7A8C' }}>Address</strong>
-            <span>{worker.address || 'N/A'}</span>
-          </div>
-          <div style={{
-            display: 'grid',
-            gridTemplateColumns: '200px 1fr',
-            padding: '0.75rem',
-            borderRadius: '8px',
-            background: '#f8f9fa'
-          }}>
-            <strong style={{ color: '#1F7A8C' }}>Status</strong>
-            <span style={{
-              display: 'inline-block',
-              padding: '0.35rem 0.75rem',
-              borderRadius: '16px',
-              fontSize: '0.75rem',
-              fontWeight: '600',
-              textTransform: 'uppercase',
-              letterSpacing: '0.5px',
-              background: worker.status === 'active'
-                ? 'linear-gradient(135deg, #22c55e 0%, #16a34a 100%)'
-                : 'linear-gradient(135deg, #ef4444 0%, #dc2626 100%)',
-              color: 'white',
-              boxShadow: worker.status === 'active'
-                ? '0 2px 8px rgba(34, 197, 94, 0.3)'
-                : '0 2px 8px rgba(239, 68, 68, 0.3)'
-            }}>
-              {worker.status}
-            </span>
-          </div>
-          <div style={{
-            display: 'grid',
-            gridTemplateColumns: '200px 1fr',
-            padding: '0.75rem',
-            borderRadius: '8px',
-            background: 'white'
-          }}>
-            <strong style={{ color: '#1F7A8C' }}>Project</strong>
-            <span
-              onClick={() => navigate(`/projects/${worker.project_id}`)}
-              style={{
-                color: '#1F7A8C',
-                cursor: 'pointer',
-                fontWeight: '600',
-                transition: 'all 0.2s'
-              }}
-              onMouseEnter={(e) => {
-                e.currentTarget.style.textDecoration = 'underline';
-                e.currentTarget.style.color = '#16616F';
-              }}
-              onMouseLeave={(e) => {
-                e.currentTarget.style.textDecoration = 'none';
-                e.currentTarget.style.color = '#1F7A8C';
-              }}
+            Quick Actions
+          </h2>
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.6rem' }}>
+            <button
+              onClick={() => navigate(`/attendance?project_id=${worker.project_id}`)}
+              style={{ background: 'linear-gradient(135deg, #1F7A8C 0%, #16616F 100%)', border: 'none', color: 'white', padding: '0.6rem 0.75rem', fontSize: '0.8rem', fontWeight: '600', borderRadius: '8px', cursor: 'pointer', transition: 'all 0.3s' }}
             >
-              {worker.project?.name || 'N/A'}
-            </span>
-          </div>
-          <div style={{
-            display: 'grid',
-            gridTemplateColumns: '200px 1fr',
-            padding: '0.75rem',
-            borderRadius: '8px',
-            background: '#f8f9fa'
-          }}>
-            <strong style={{ color: '#1F7A8C' }}>Joined Date</strong>
-            <span>{new Date(worker.created_at).toLocaleDateString()}</span>
+              Mark Attendance
+            </button>
+            <button
+              onClick={() => navigate(`/payments?worker_id=${worker.id}`)}
+              style={{ background: 'linear-gradient(135deg, #3b82f6 0%, #2563eb 100%)', border: 'none', color: 'white', padding: '0.6rem 0.75rem', fontSize: '0.8rem', fontWeight: '600', borderRadius: '8px', cursor: 'pointer', transition: 'all 0.3s' }}
+            >
+              Make Payment
+            </button>
+            <button
+              onClick={() => navigate(`/attendance/history?worker_id=${worker.id}`)}
+              style={{ background: 'linear-gradient(135deg, #22c55e 0%, #16a34a 100%)', border: 'none', color: 'white', padding: '0.6rem 0.75rem', fontSize: '0.8rem', fontWeight: '600', borderRadius: '8px', cursor: 'pointer', transition: 'all 0.3s' }}
+            >
+              Attendance History
+            </button>
+            <button
+              onClick={() => navigate(`/workers/${workerId}/attendance-calendar`)}
+              style={{ background: 'linear-gradient(135deg, #8b5cf6 0%, #7c3aed 100%)', border: 'none', color: 'white', padding: '0.6rem 0.75rem', fontSize: '0.8rem', fontWeight: '600', borderRadius: '8px', cursor: 'pointer', transition: 'all 0.3s' }}
+            >
+              📅 Calendar View
+            </button>
+            <button
+              onClick={() => setShowQR(!showQR)}
+              style={{ background: 'linear-gradient(135deg, #f59e0b 0%, #d97706 100%)', border: 'none', color: 'white', padding: '0.6rem 0.75rem', fontSize: '0.8rem', fontWeight: '600', borderRadius: '8px', cursor: 'pointer', transition: 'all 0.3s' }}
+            >
+              QR Code
+            </button>
+            <button
+              onClick={() => setShowSlipModal(true)}
+              style={{ background: 'linear-gradient(135deg, #C62828 0%, #8E0000 100%)', border: 'none', color: 'white', padding: '0.6rem 0.75rem', fontSize: '0.8rem', fontWeight: '600', borderRadius: '8px', cursor: 'pointer', transition: 'all 0.3s' }}
+            >
+              📄 Salary Slip
+            </button>
+            <button
+              onClick={downloadIDCard}
+              style={{ background: 'linear-gradient(135deg, #0891b2 0%, #0e7490 100%)', border: 'none', color: 'white', padding: '0.6rem 0.75rem', fontSize: '0.8rem', fontWeight: '600', borderRadius: '8px', cursor: 'pointer', transition: 'all 0.3s' }}
+            >
+              🪪 ID Card PDF
+            </button>
+            <button
+              onClick={() => navigate(`/workers/${workerId}/loans`)}
+              style={{ background: 'linear-gradient(135deg, #d97706 0%, #b45309 100%)', border: 'none', color: 'white', padding: '0.6rem 0.75rem', fontSize: '0.8rem', fontWeight: '600', borderRadius: '8px', cursor: 'pointer', transition: 'all 0.3s' }}
+            >
+              💰 Loans
+            </button>
           </div>
         </div>
-      </div>
 
-      {/* Quick Actions */}
-      <div style={{
-        background: 'white',
-        borderRadius: '12px',
-        padding: '2rem',
-        boxShadow: '0 4px 15px rgba(0,0,0,0.08)',
-        border: '1px solid #e9ecef'
-      }}>
-        <h2 style={{
-          margin: '0 0 1.5rem 0',
-          fontSize: '1.5rem',
-          color: '#1F7A8C',
-          fontWeight: 'bold',
-          borderBottom: '2px solid #e9ecef',
-          paddingBottom: '0.75rem'
+        {/* Worker Information - Right */}
+        <div style={{
+          background: 'white',
+          borderRadius: '12px',
+          padding: '1.25rem',
+          boxShadow: '0 4px 15px rgba(0,0,0,0.08)',
+          border: '1px solid #e9ecef'
         }}>
-          Quick Actions
-        </h2>
-        <div className="grid grid-cols-3" style={{ gap: '1.25rem' }}>
-          <button
-            onClick={() => navigate(`/attendance?project_id=${worker.project_id}`)}
-            style={{
-              background: 'linear-gradient(135deg, #1F7A8C 0%, #16616F 100%)',
-              border: 'none',
-              color: 'white',
-              padding: '1rem 1.5rem',
-              fontSize: '1rem',
-              fontWeight: '600',
-              borderRadius: '10px',
-              boxShadow: '0 4px 15px rgba(31, 122, 140, 0.3)',
-              transition: 'all 0.3s',
-              cursor: 'pointer'
-            }}
-            onMouseEnter={(e) => {
-              e.currentTarget.style.transform = 'translateY(-2px)';
-              e.currentTarget.style.boxShadow = '0 6px 20px rgba(31, 122, 140, 0.4)';
-            }}
-            onMouseLeave={(e) => {
-              e.currentTarget.style.transform = 'translateY(0)';
-              e.currentTarget.style.boxShadow = '0 4px 15px rgba(31, 122, 140, 0.3)';
-            }}
-          >
-            Mark Attendance
-          </button>
-          <button
-            onClick={() => navigate(`/payments?worker_id=${worker.id}`)}
-            style={{
-              background: 'linear-gradient(135deg, #3b82f6 0%, #2563eb 100%)',
-              border: 'none',
-              color: 'white',
-              padding: '1rem 1.5rem',
-              fontSize: '1rem',
-              fontWeight: '600',
-              borderRadius: '10px',
-              boxShadow: '0 4px 15px rgba(59, 130, 246, 0.3)',
-              transition: 'all 0.3s',
-              cursor: 'pointer'
-            }}
-            onMouseEnter={(e) => {
-              e.currentTarget.style.transform = 'translateY(-2px)';
-              e.currentTarget.style.boxShadow = '0 6px 20px rgba(59, 130, 246, 0.4)';
-            }}
-            onMouseLeave={(e) => {
-              e.currentTarget.style.transform = 'translateY(0)';
-              e.currentTarget.style.boxShadow = '0 4px 15px rgba(59, 130, 246, 0.3)';
-            }}
-          >
-            Make Payment
-          </button>
-          <button
-            onClick={() => navigate(`/attendance/history?worker_id=${worker.id}`)}
-            style={{
-              background: 'linear-gradient(135deg, #22c55e 0%, #16a34a 100%)',
-              border: 'none',
-              color: 'white',
-              padding: '1rem 1.5rem',
-              fontSize: '1rem',
-              fontWeight: '600',
-              borderRadius: '10px',
-              boxShadow: '0 4px 15px rgba(34, 197, 94, 0.3)',
-              transition: 'all 0.3s',
-              cursor: 'pointer'
-            }}
-            onMouseEnter={(e) => {
-              e.currentTarget.style.transform = 'translateY(-2px)';
-              e.currentTarget.style.boxShadow = '0 6px 20px rgba(34, 197, 94, 0.4)';
-            }}
-            onMouseLeave={(e) => {
-              e.currentTarget.style.transform = 'translateY(0)';
-              e.currentTarget.style.boxShadow = '0 4px 15px rgba(34, 197, 94, 0.3)';
-            }}
-          >
-            View Attendance History
-          </button>
-          <button
-            onClick={() => navigate(`/workers/${workerId}/attendance-calendar`)}
-            style={{ background: 'linear-gradient(135deg, #8b5cf6 0%, #7c3aed 100%)', border: 'none', color: 'white', padding: '1rem 1.5rem', fontSize: '1rem', fontWeight: '600', borderRadius: '10px', cursor: 'pointer', transition: 'all 0.3s' }}
-          >
-            📅 Calendar View
-          </button>
-          <button
-            onClick={() => setShowQR(!showQR)}
-            style={{ background: 'linear-gradient(135deg, #f59e0b 0%, #d97706 100%)', border: 'none', color: 'white', padding: '1rem 1.5rem', fontSize: '1rem', fontWeight: '600', borderRadius: '10px', cursor: 'pointer', transition: 'all 0.3s' }}
-          >
-            QR Code
-          </button>
-          <button
-            onClick={() => setShowSlipModal(true)}
-            style={{ background: 'linear-gradient(135deg, #C62828 0%, #8E0000 100%)', border: 'none', color: 'white', padding: '1rem 1.5rem', fontSize: '1rem', fontWeight: '600', borderRadius: '10px', cursor: 'pointer', transition: 'all 0.3s' }}
-          >
-            📄 Salary Slip
-          </button>
-          <button
-            onClick={downloadIDCard}
-            style={{ background: 'linear-gradient(135deg, #0891b2 0%, #0e7490 100%)', border: 'none', color: 'white', padding: '1rem 1.5rem', fontSize: '1rem', fontWeight: '600', borderRadius: '10px', cursor: 'pointer', transition: 'all 0.3s' }}
-          >
-            🪪 ID Card PDF
-          </button>
-          <button
-            onClick={() => navigate(`/workers/${workerId}/loans`)}
-            style={{ background: 'linear-gradient(135deg, #d97706 0%, #b45309 100%)', border: 'none', color: 'white', padding: '1rem 1.5rem', fontSize: '1rem', fontWeight: '600', borderRadius: '10px', cursor: 'pointer', transition: 'all 0.3s' }}
-          >
-            💰 Loans
-          </button>
+          <h2 style={{
+            margin: '0 0 1rem 0',
+            fontSize: '1.1rem',
+            color: '#1F7A8C',
+            fontWeight: 'bold',
+            borderBottom: '2px solid #e9ecef',
+            paddingBottom: '0.5rem'
+          }}>
+            Worker Information
+          </h2>
+          <div style={{ display: 'grid', gap: '0.4rem' }}>
+            {[
+              { label: 'Name', value: worker.name, bg: '#f8f9fa' },
+              { label: 'Role', value: worker.role, bg: 'white' },
+              { label: 'Phone', value: worker.phone, bg: '#f8f9fa' },
+              { label: 'Address', value: worker.address || 'N/A', bg: 'white' },
+            ].map(({ label, value, bg }) => (
+              <div key={label} style={{ display: 'grid', gridTemplateColumns: '100px 1fr', padding: '0.45rem 0.6rem', borderRadius: '6px', background: bg, fontSize: '0.85rem' }}>
+                <strong style={{ color: '#1F7A8C' }}>{label}</strong>
+                <span>{value}</span>
+              </div>
+            ))}
+            <div style={{ display: 'grid', gridTemplateColumns: '100px 1fr', padding: '0.45rem 0.6rem', borderRadius: '6px', background: '#f8f9fa', fontSize: '0.85rem' }}>
+              <strong style={{ color: '#1F7A8C' }}>Status</strong>
+              <span style={{
+                display: 'inline-block', padding: '0.2rem 0.5rem', borderRadius: '12px',
+                fontSize: '0.7rem', fontWeight: '600', textTransform: 'uppercase',
+                background: worker.status === 'active' ? 'linear-gradient(135deg, #22c55e 0%, #16a34a 100%)' : 'linear-gradient(135deg, #ef4444 0%, #dc2626 100%)',
+                color: 'white', alignSelf: 'center', width: 'fit-content'
+              }}>
+                {worker.status}
+              </span>
+            </div>
+            <div style={{ display: 'grid', gridTemplateColumns: '100px 1fr', padding: '0.45rem 0.6rem', borderRadius: '6px', background: 'white', fontSize: '0.85rem' }}>
+              <strong style={{ color: '#1F7A8C' }}>Joined Date</strong>
+              <span>{formatDate(worker.created_at)}</span>
+            </div>
+          </div>
         </div>
+
       </div>
 
       {/* QR Code Section */}
@@ -810,6 +520,92 @@ const WorkerDetails: React.FC = () => {
             />
           </div>
           <p style={{ color: '#999', fontSize: '0.8rem', marginTop: '1rem' }}>Worker ID: #{workerId}</p>
+        </div>
+      )}
+
+      {/* Attendance Records Section */}
+      {worker.recent_attendances && worker.recent_attendances.length > 0 && (
+        <div style={{ background: 'white', borderRadius: '12px', padding: '1.5rem', boxShadow: '0 4px 15px rgba(0,0,0,0.08)', border: '1px solid #e9ecef', marginBottom: '1.5rem' }}>
+          <h2 style={{ margin: '0 0 1rem 0', fontSize: '1.1rem', color: '#1F7A8C', fontWeight: 'bold', borderBottom: '2px solid #e9ecef', paddingBottom: '0.5rem' }}>
+            Attendance Records ({worker.days_worked} days worked)
+          </h2>
+          <div style={{ overflowX: 'auto' }}>
+            <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.88rem' }}>
+              <thead>
+                <tr style={{ background: 'linear-gradient(135deg, #1F7A8C, #16616F)', color: 'white' }}>
+                  <th style={{ padding: '0.6rem 1rem', textAlign: 'left' }}>Date</th>
+                  <th style={{ padding: '0.6rem 1rem', textAlign: 'center' }}>Status</th>
+                  <th style={{ padding: '0.6rem 1rem', textAlign: 'right' }}>Wage (₹)</th>
+                  <th style={{ padding: '0.6rem 1rem', textAlign: 'left' }}>Notes</th>
+                </tr>
+              </thead>
+              <tbody>
+                {worker.recent_attendances.map((a: any, i: number) => (
+                  <tr key={a.id} style={{ background: i % 2 === 0 ? 'white' : '#f8f9fa', borderBottom: '1px solid #f0f0f0' }}>
+                    <td style={{ padding: '0.6rem 1rem' }}>{formatDate(a.date + 'T00:00:00')}</td>
+                    <td style={{ padding: '0.6rem 1rem', textAlign: 'center' }}>
+                      <span style={{
+                        padding: '0.2rem 0.6rem', borderRadius: '12px', fontSize: '0.75rem', fontWeight: '600',
+                        background: a.status === 'present' ? '#dcfce7' : a.status === 'half-day' ? '#fef9c3' : '#fee2e2',
+                        color: a.status === 'present' ? '#166534' : a.status === 'half-day' ? '#854d0e' : '#991b1b'
+                      }}>
+                        {a.status === 'half-day' ? 'Half Day' : a.status.charAt(0).toUpperCase() + a.status.slice(1)}
+                      </span>
+                    </td>
+                    <td style={{ padding: '0.6rem 1rem', textAlign: 'right', fontWeight: '600', color: '#1F7A8C' }}>
+                      {Number(a.wage) > 0 ? `₹${Number(a.wage).toLocaleString('en-IN')}` : '—'}
+                    </td>
+                    <td style={{ padding: '0.6rem 1rem', color: '#666' }}>{a.notes || '—'}</td>
+                  </tr>
+                ))}
+              </tbody>
+              <tfoot>
+                <tr style={{ background: '#e8f5e9', fontWeight: '700' }}>
+                  <td style={{ padding: '0.6rem 1rem' }} colSpan={2}>Total Wages Earned</td>
+                  <td style={{ padding: '0.6rem 1rem', textAlign: 'right', color: '#1F7A8C' }}>₹{totalWages.toLocaleString('en-IN')}</td>
+                  <td />
+                </tr>
+              </tfoot>
+            </table>
+          </div>
+        </div>
+      )}
+
+      {/* Wage Payments Section */}
+      {wagePayments.length > 0 && (
+        <div style={{ background: 'white', borderRadius: '12px', padding: '1.5rem', boxShadow: '0 4px 15px rgba(0,0,0,0.08)', border: '1px solid #e9ecef', marginBottom: '1.5rem' }}>
+          <h2 style={{ margin: '0 0 1rem 0', fontSize: '1.1rem', color: '#2E7D32', fontWeight: 'bold', borderBottom: '2px solid #e9ecef', paddingBottom: '0.5rem' }}>
+            Wage Payments ({wagePayments.length})
+          </h2>
+          <div style={{ overflowX: 'auto' }}>
+            <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.88rem' }}>
+              <thead>
+                <tr style={{ background: 'linear-gradient(135deg, #2E7D32, #1B5E20)', color: 'white' }}>
+                  <th style={{ padding: '0.6rem 1rem', textAlign: 'left' }}>Date</th>
+                  <th style={{ padding: '0.6rem 1rem', textAlign: 'right' }}>Amount (₹)</th>
+                  <th style={{ padding: '0.6rem 1rem', textAlign: 'left' }}>Method</th>
+                  <th style={{ padding: '0.6rem 1rem', textAlign: 'left' }}>Notes</th>
+                </tr>
+              </thead>
+              <tbody>
+                {wagePayments.map((p: any, i: number) => (
+                  <tr key={p.id} style={{ background: i % 2 === 0 ? 'white' : '#f8f9fa', borderBottom: '1px solid #f0f0f0' }}>
+                    <td style={{ padding: '0.6rem 1rem' }}>{new Date((p.payment_date || p.date) + 'T00:00:00').toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' })}</td>
+                    <td style={{ padding: '0.6rem 1rem', textAlign: 'right', fontWeight: '700', color: '#2E7D32' }}>₹{Number(p.amount).toLocaleString('en-IN')}</td>
+                    <td style={{ padding: '0.6rem 1rem', color: '#666' }}>{p.payment_method || 'cash'}</td>
+                    <td style={{ padding: '0.6rem 1rem', color: '#666' }}>{p.notes || '—'}</td>
+                  </tr>
+                ))}
+              </tbody>
+              <tfoot>
+                <tr style={{ background: '#e8f5e9', fontWeight: '700' }}>
+                  <td style={{ padding: '0.6rem 1rem' }}>Total Paid</td>
+                  <td style={{ padding: '0.6rem 1rem', textAlign: 'right', color: '#2E7D32' }}>₹{totalPaid.toLocaleString('en-IN')}</td>
+                  <td colSpan={2} />
+                </tr>
+              </tfoot>
+            </table>
+          </div>
         </div>
       )}
 
@@ -831,7 +627,7 @@ const WorkerDetails: React.FC = () => {
               <tbody>
                 {advances.map((a: any) => (
                   <tr key={a.id} style={{ borderBottom: '1px solid #f0f0f0' }}>
-                    <td style={{ padding: '0.75rem' }}>{new Date(a.payment_date || a.date).toLocaleDateString('en-IN')}</td>
+                    <td style={{ padding: '0.75rem' }}>{formatDate(a.payment_date || a.date)}</td>
                     <td style={{ padding: '0.75rem', textAlign: 'right', fontWeight: 700, color: '#E36414' }}>₹{parseFloat(a.amount).toLocaleString()}</td>
                     <td style={{ padding: '0.75rem', color: '#666' }}>{a.notes || '—'}</td>
                   </tr>

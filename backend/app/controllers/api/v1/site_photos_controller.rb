@@ -19,16 +19,16 @@ module Api
         if photo.save
           render json: photo_json(photo), status: :created
         else
-          render json: { error: photo.errors.full_messages.join(', ') }, status: :unprocessable_entity
+          render json: { error: photo.errors.full_messages.join(", ") }, status: :unprocessable_entity
         end
       end
 
       def destroy
         photo = SitePhoto.find_by(id: params[:id])
-        return render json: { error: 'Not found' }, status: :not_found unless photo
+        return render json: { error: "Not found" }, status: :not_found unless photo
 
         photo.destroy
-        render json: { message: 'Deleted' }
+        render json: { message: "Deleted" }
       end
 
       private

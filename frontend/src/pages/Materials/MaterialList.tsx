@@ -1,3 +1,4 @@
+import { formatDate } from '../../utils/formatDate';
 import React, { useState, useEffect } from 'react';
 import { useNavigate, useSearchParams, useParams, useLocation } from 'react-router-dom';
 import jsPDF from 'jspdf';
@@ -7,7 +8,7 @@ import projectService from '../../services/projectService';
 import ConfirmDialog from '../../components/ConfirmDialog';
 import Loading from '../../components/Loading';
 
-const MaterialList: React.FC = () => {
+const MaterialList: React.FC<{ embedded?: boolean }> = ({ embedded = false }) => {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const params = useParams();
@@ -137,8 +138,8 @@ const MaterialList: React.FC = () => {
       name: material.name,
       quantity: material.quantity,
       unit: material.unit,
-      unit_price: material.unit_price,
-      total_cost: material.total_cost,
+      unit_price: material.unit_price || '',
+      total_cost: material.total_cost || '',
       supplier_name: material.supplier_name || '',
       purchase_date: material.purchase_date.split('T')[0],
       notes: material.notes || ''
@@ -192,7 +193,7 @@ const MaterialList: React.FC = () => {
     doc.setFontSize(20); doc.setFont('helvetica', 'bold');
     doc.text('PURCHASE ORDER', 14, 18);
     doc.setFontSize(10); doc.setFont('helvetica', 'normal');
-    doc.text(`PO#: ${poNumber}  |  Date: ${new Date().toLocaleDateString('en-IN')}`, 14, 30);
+    doc.text(`PO#: ${poNumber}  |  Date: ${formatDate(new Date())}`, 14, 30);
     doc.setTextColor(50, 50, 50);
 
     if (project) {
@@ -200,7 +201,7 @@ const MaterialList: React.FC = () => {
         startY: 46,
         body: [
           ['Project', project.name, 'Client', project.client_name || 'N/A'],
-          ['Location', project.location || 'N/A', 'Date', new Date().toLocaleDateString('en-IN')],
+          ['Location', project.location || 'N/A', 'Date', formatDate(new Date())],
         ],
         styles: { fontSize: 9 },
         columnStyles: { 0: { fontStyle: 'bold', fillColor: [240, 249, 255] }, 2: { fontStyle: 'bold', fillColor: [240, 249, 255] } },
@@ -211,26 +212,41 @@ const MaterialList: React.FC = () => {
     const startY = project ? (doc as any).lastAutoTable.finalY + 8 : 46;
     autoTable(doc, {
       startY,
-      head: [['#', 'Material', 'Qty', 'Unit', 'Unit Price', 'Total Cost', 'Supplier']],
-      body: materials.map((m, i) => [
+      head: [['#', 'Date', 'Material', 'Qty', 'Unit', 'Unit Price', 'Total Cost', 'Supplier']],
+      body: [...materials].sort((a, b) => new Date(a.purchase_date).getTime() - new Date(b.purchase_date).getTime()).map((m, i) => [
         i + 1,
+        m.purchase_date ? formatDate(m.purchase_date + 'T00:00:00') : '—',
         m.name,
-        m.quantity,
+        m.quantity || '—',
         m.unit,
-        `\u20B9${parseFloat(m.unit_price || 0).toLocaleString('en-IN')}`,
-        `\u20B9${parseFloat(m.total_cost).toLocaleString('en-IN')}`,
+        `Rs.${parseFloat(m.unit_price || 0).toLocaleString('en-IN')}`,
+        `Rs.${parseFloat(m.total_cost).toLocaleString('en-IN')}`,
         m.supplier_name || '—'
       ]),
-      foot: [['', '', '', '', '', `\u20B9${totalCost.toLocaleString('en-IN')}`, '']],
+      foot: [['', '', '', '', '', 'TOTAL', `Rs.${totalCost.toLocaleString('en-IN')}`, '']],
       headStyles: { fillColor: [31, 122, 140] },
       footStyles: { fillColor: [220, 252, 231], textColor: [22, 101, 52], fontStyle: 'bold' },
       styles: { fontSize: 8 },
-      columnStyles: { 5: { halign: 'right' }, 4: { halign: 'right' } },
+      columnStyles: {
+        0: { cellWidth: 8 },
+        1: { cellWidth: 22 },
+        2: { cellWidth: 38 },
+        3: { cellWidth: 15 },
+        4: { cellWidth: 14 },
+        5: { cellWidth: 28 },
+        6: { cellWidth: 28 },
+        7: { cellWidth: 29 }
+      },
+      didParseCell: (data: any) => {
+        if (data.column.index >= 3) {
+          data.cell.styles.halign = 'right';
+        }
+      },
     });
 
     const yf = (doc as any).lastAutoTable.finalY + 20;
     doc.setFontSize(9); doc.setTextColor(150, 150, 150);
-    doc.text(`Generated on ${new Date().toLocaleDateString('en-IN')} | Construction Worker Tracker`, 14, yf);
+    doc.text(`Generated on ${formatDate(new Date())} | Construction Worker Tracker`, 14, yf);
 
     doc.save(`purchase_order_${poNumber}.pdf`);
   };
@@ -242,12 +258,7 @@ const MaterialList: React.FC = () => {
     return <Loading message="Loading materials..." />;
   }
 
-  return (
-    <div style={{
-      minHeight: '100vh',
-      background: 'linear-gradient(to bottom, #f8f9fa 0%, #e9ecef 100%)',
-      padding: '2rem 3rem 3rem 3rem'
-    }}>
+  const inner = (<div>
       {/* Header */}
       <div style={{
         display: 'flex',
@@ -431,7 +442,6 @@ const MaterialList: React.FC = () => {
                   <th style={{ padding: '1rem', textAlign: 'right', fontWeight: '600', fontSize: '0.95rem' }}>UNIT PRICE</th>
                   <th style={{ padding: '1rem', textAlign: 'right', fontWeight: '600', fontSize: '0.95rem' }}>TOTAL COST</th>
                   <th style={{ padding: '1rem', textAlign: 'left', fontWeight: '600', fontSize: '0.95rem' }}>SUPPLIER</th>
-                  <th style={{ padding: '1rem', textAlign: 'left', fontWeight: '600', fontSize: '0.95rem' }}>PROJECT</th>
                   <th style={{ padding: '1rem', textAlign: 'center', fontWeight: '600', fontSize: '0.95rem' }}>ACTIONS</th>
                 </tr>
               </thead>
@@ -450,10 +460,10 @@ const MaterialList: React.FC = () => {
                       e.currentTarget.style.background = 'white';
                     }}
                   >
-                    <td style={{ padding: '1rem' }}>
-                      {material.purchase_date === 'Invalid Date' || !material.purchase_date
-                        ? 'Invalid Date'
-                        : new Date(material.purchase_date).toLocaleDateString('en-IN')}
+                    <td style={{ padding: '1rem', color: '#333', fontWeight: '500' }}>
+                      {material.purchase_date
+                        ? formatDate(material.purchase_date + 'T00:00:00')
+                        : '—'}
                     </td>
                     <td style={{
                       padding: '1rem',
@@ -465,16 +475,17 @@ const MaterialList: React.FC = () => {
                     <td style={{
                       padding: '1rem',
                       textAlign: 'right',
-                      fontWeight: '500'
+                      fontWeight: '600',
+                      color: '#333'
                     }}>
-                      {material.quantity} <span style={{ color: '#6c757d', fontSize: '0.9rem' }}>{material.unit}</span>
+                      {material.quantity || '—'} <span style={{ color: '#6c757d', fontSize: '0.9rem' }}>{material.quantity ? material.unit : ''}</span>
                     </td>
                     <td style={{
                       padding: '1rem',
                       textAlign: 'right',
                       color: '#6c757d'
                     }}>
-                      ₹{parseFloat(material.unit_price).toLocaleString('en-IN')}
+                      ₹{parseFloat(material.unit_price || 0).toLocaleString('en-IN')}
                     </td>
                     <td style={{
                       padding: '1rem',
@@ -495,27 +506,6 @@ const MaterialList: React.FC = () => {
                         fontWeight: '500'
                       }}>
                         {material.supplier_name || '-'}
-                      </span>
-                    </td>
-                    <td style={{ padding: '1rem' }}>
-                      <span
-                        onClick={() => navigate(`/projects/${material.project_id}`)}
-                        style={{
-                          color: '#1F7A8C',
-                          fontWeight: '500',
-                          cursor: 'pointer',
-                          transition: 'all 0.2s'
-                        }}
-                        onMouseEnter={(e) => {
-                          e.currentTarget.style.textDecoration = 'underline';
-                          e.currentTarget.style.color = '#16616F';
-                        }}
-                        onMouseLeave={(e) => {
-                          e.currentTarget.style.textDecoration = 'none';
-                          e.currentTarget.style.color = '#1F7A8C';
-                        }}
-                      >
-                        {material.project?.name || 'N/A'}
                       </span>
                     </td>
                     <td style={{ padding: '1rem' }}>
@@ -1078,6 +1068,8 @@ const MaterialList: React.FC = () => {
       />
     </div>
   );
+  if (embedded) return inner;
+  return <div style={{ minHeight: '100vh', background: 'linear-gradient(to bottom, #f8f9fa 0%, #e9ecef 100%)', padding: '2rem 3rem 3rem 3rem' }}>{inner}</div>;
 };
 
 export default MaterialList;

@@ -1,10 +1,13 @@
+import { formatDate } from '../../utils/formatDate';
 import React, { useState, useEffect } from 'react';
 import { useNavigate, useParams, useSearchParams } from 'react-router-dom';
 import attendanceService from '../../services/attendanceService';
 import workerService from '../../services/workerService';
 import projectService from '../../services/projectService';
 
-const AttendanceHistory: React.FC = () => {
+interface AttendanceHistoryProps { embedded?: boolean; }
+
+const AttendanceHistory: React.FC<AttendanceHistoryProps> = ({ embedded = false }) => {
   const navigate = useNavigate();
   const params = useParams();
   const [searchParams] = useSearchParams();
@@ -90,10 +93,10 @@ const AttendanceHistory: React.FC = () => {
     ? (projectId ? `/projects/${projectId}/workers/${workerId}` : `/workers/${workerId}`)
     : (projectId ? `/projects/${projectId}` : '/dashboard');
 
-  return (
-    <div style={{ minHeight: '100vh', background: '#f8f9fa', padding: '2rem 3rem' }}>
+  const inner = (
+    <>
       {/* Header */}
-      <div style={{
+      {!embedded && <div style={{
         display: 'flex', alignItems: 'center', gap: '1.5rem',
         background: 'white', padding: '1.5rem 2rem', borderRadius: '16px',
         boxShadow: '0 4px 20px rgba(0,0,0,0.08)', marginBottom: '2rem'
@@ -124,42 +127,41 @@ const AttendanceHistory: React.FC = () => {
             {project ? `Project: ${project.name}` : ''}
           </p>
         </div>
-      </div>
+      </div>}
 
       {/* Filters */}
       <div style={{
-        background: 'white', borderRadius: '16px', padding: '1.5rem 2rem',
-        boxShadow: '0 4px 16px rgba(0,0,0,0.06)', marginBottom: '2rem'
+        background: 'white', borderRadius: '10px', padding: '0.65rem 1rem',
+        boxShadow: '0 2px 8px rgba(0,0,0,0.05)', marginBottom: '0.75rem'
       }}>
-        <h3 style={{ margin: '0 0 1rem 0', color: '#1F7A8C' }}>🔍 Filter by Date Range</h3>
-        <div style={{ display: 'flex', gap: '1.5rem', flexWrap: 'wrap', alignItems: 'flex-end' }}>
+        <div style={{ display: 'flex', gap: '1rem', flexWrap: 'wrap', alignItems: 'flex-end' }}>
           <div>
-            <label style={{ display: 'block', fontSize: '0.875rem', fontWeight: '600', color: '#374151', marginBottom: '0.4rem' }}>
-              From Date
+            <label style={{ display: 'block', fontSize: '0.78rem', fontWeight: '600', color: '#374151', marginBottom: '0.25rem' }}>
+              From
             </label>
             <input
               type="date"
               value={startDate}
               onChange={e => setStartDate(e.target.value)}
               style={{
-                padding: '0.65rem 1rem', border: '2px solid #e9ecef', borderRadius: '8px',
-                fontSize: '1rem', outline: 'none'
+                padding: '0.35rem 0.6rem', border: '1px solid #e9ecef', borderRadius: '6px',
+                fontSize: '0.85rem', outline: 'none'
               }}
               onFocus={e => { e.currentTarget.style.borderColor = '#1F7A8C'; }}
               onBlur={e => { e.currentTarget.style.borderColor = '#e9ecef'; }}
             />
           </div>
           <div>
-            <label style={{ display: 'block', fontSize: '0.875rem', fontWeight: '600', color: '#374151', marginBottom: '0.4rem' }}>
-              To Date
+            <label style={{ display: 'block', fontSize: '0.78rem', fontWeight: '600', color: '#374151', marginBottom: '0.25rem' }}>
+              To
             </label>
             <input
               type="date"
               value={endDate}
               onChange={e => setEndDate(e.target.value)}
               style={{
-                padding: '0.65rem 1rem', border: '2px solid #e9ecef', borderRadius: '8px',
-                fontSize: '1rem', outline: 'none'
+                padding: '0.35rem 0.6rem', border: '1px solid #e9ecef', borderRadius: '6px',
+                fontSize: '0.85rem', outline: 'none'
               }}
               onFocus={e => { e.currentTarget.style.borderColor = '#1F7A8C'; }}
               onBlur={e => { e.currentTarget.style.borderColor = '#e9ecef'; }}
@@ -171,8 +173,8 @@ const AttendanceHistory: React.FC = () => {
               setEndDate(new Date().toISOString().split('T')[0]);
             }}
             style={{
-              padding: '0.65rem 1.25rem', background: '#f8f9fa', border: '2px solid #e9ecef',
-              borderRadius: '8px', cursor: 'pointer', color: '#6c757d', fontWeight: '600'
+              padding: '0.35rem 0.75rem', background: '#f8f9fa', border: '1px solid #e9ecef',
+              borderRadius: '6px', cursor: 'pointer', color: '#6c757d', fontWeight: '600', fontSize: '0.82rem'
             }}
           >
             Reset
@@ -181,7 +183,7 @@ const AttendanceHistory: React.FC = () => {
       </div>
 
       {/* Summary Stats */}
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '1rem', marginBottom: '2rem' }}>
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '0.5rem', marginBottom: '0.75rem' }}>
         {[
           { label: 'Total Days', value: attendances.length, color: '#1F7A8C' },
           { label: 'Present', value: presentCount, color: '#22c55e' },
@@ -189,12 +191,12 @@ const AttendanceHistory: React.FC = () => {
           { label: 'Absent', value: absentCount, color: '#ef4444' },
         ].map(stat => (
           <div key={stat.label} style={{
-            background: 'white', borderRadius: '12px', padding: '1.25rem',
-            boxShadow: '0 4px 15px rgba(0,0,0,0.07)', textAlign: 'center',
-            border: '1px solid #e9ecef'
+            background: 'white', borderRadius: '8px', padding: '0.4rem 0.6rem',
+            boxShadow: '0 2px 6px rgba(0,0,0,0.05)', border: '1px solid #e9ecef',
+            display: 'flex', alignItems: 'center', gap: '0.4rem', justifyContent: 'center'
           }}>
-            <div style={{ fontSize: '2rem', fontWeight: 'bold', color: stat.color }}>{stat.value}</div>
-            <div style={{ color: '#6c757d', fontSize: '0.875rem', marginTop: '0.25rem' }}>{stat.label}</div>
+            <span style={{ fontSize: '1.1rem', fontWeight: 'bold', color: stat.color, lineHeight: 1 }}>{stat.value}</span>
+            <span style={{ color: '#6c757d', fontSize: '0.75rem' }}>{stat.label}</span>
           </div>
         ))}
       </div>
@@ -202,21 +204,21 @@ const AttendanceHistory: React.FC = () => {
       {/* Effective days info */}
       {worker && (
         <div style={{
-          background: 'white', borderRadius: '12px', padding: '1rem 1.5rem',
-          boxShadow: '0 4px 15px rgba(0,0,0,0.07)', marginBottom: '2rem',
-          display: 'flex', gap: '2rem', flexWrap: 'wrap'
+          background: 'white', borderRadius: '8px', padding: '0.5rem 1rem',
+          boxShadow: '0 2px 6px rgba(0,0,0,0.05)', marginBottom: '0.75rem',
+          display: 'flex', gap: '1.5rem', flexWrap: 'wrap', fontSize: '0.85rem'
         }}>
           <span style={{ color: '#374151' }}>
             <strong style={{ color: '#1F7A8C' }}>Effective Days:</strong> {effectiveDays}
           </span>
           {worker.daily_wage && (
             <span style={{ color: '#374151' }}>
-              <strong style={{ color: '#1F7A8C' }}>Estimated Wages:</strong>{' '}
+              <strong style={{ color: '#1F7A8C' }}>Est. Wages:</strong>{' '}
               ₹{(effectiveDays * parseFloat(worker.daily_wage)).toLocaleString('en-IN')}
             </span>
           )}
           <span style={{ color: '#374151' }}>
-            <strong style={{ color: '#1F7A8C' }}>Attendance Rate:</strong>{' '}
+            <strong style={{ color: '#1F7A8C' }}>Attendance:</strong>{' '}
             {attendances.length > 0
               ? `${Math.round((effectiveDays / attendances.length) * 100)}%`
               : 'N/A'}
@@ -226,8 +228,8 @@ const AttendanceHistory: React.FC = () => {
 
       {/* Attendance Table */}
       <div style={{
-        background: 'white', borderRadius: '16px',
-        boxShadow: '0 4px 20px rgba(0,0,0,0.08)', overflow: 'hidden'
+        background: 'white', borderRadius: '10px',
+        boxShadow: '0 2px 8px rgba(0,0,0,0.06)', overflow: 'hidden'
       }}>
         {loading ? (
           <div style={{ padding: '4rem', textAlign: 'center', color: '#6c757d', fontSize: '1.1rem' }}>
@@ -244,12 +246,12 @@ const AttendanceHistory: React.FC = () => {
             <table style={{ width: '100%', borderCollapse: 'collapse' }}>
               <thead>
                 <tr style={{ background: 'linear-gradient(135deg, #1F7A8C 0%, #16616F 100%)', color: 'white' }}>
-                  <th style={{ padding: '1rem', textAlign: 'left', fontWeight: '600', fontSize: '0.9rem' }}>DATE</th>
-                  {!workerId && <th style={{ padding: '1rem', textAlign: 'left', fontWeight: '600', fontSize: '0.9rem' }}>WORKER</th>}
-                  <th style={{ padding: '1rem', textAlign: 'left', fontWeight: '600', fontSize: '0.9rem' }}>DAY</th>
+                  <th style={{ padding: '0.5rem 0.75rem', textAlign: 'left', fontWeight: '600', fontSize: '0.82rem' }}>DATE</th>
+                  {!workerId && <th style={{ padding: '0.5rem 0.75rem', textAlign: 'left', fontWeight: '600', fontSize: '0.82rem' }}>WORKER</th>}
+                  <th style={{ padding: '0.5rem 0.75rem', textAlign: 'left', fontWeight: '600', fontSize: '0.82rem' }}>DAY</th>
                   <th style={{ padding: '1rem', textAlign: 'center', fontWeight: '600', fontSize: '0.9rem' }}>STATUS</th>
                   <th style={{ padding: '1rem', textAlign: 'right', fontWeight: '600', fontSize: '0.9rem' }}>WAGE EARNED</th>
-                  <th style={{ padding: '1rem', textAlign: 'left', fontWeight: '600', fontSize: '0.9rem' }}>NOTES</th>
+                  <th style={{ padding: '0.5rem 0.75rem', textAlign: 'left', fontWeight: '600', fontSize: '0.82rem' }}>NOTES</th>
                 </tr>
               </thead>
               <tbody>
@@ -265,11 +267,11 @@ const AttendanceHistory: React.FC = () => {
                       onMouseEnter={e => { e.currentTarget.style.background = '#f0f9ff'; }}
                       onMouseLeave={e => { e.currentTarget.style.background = idx % 2 === 0 ? 'white' : '#fafafa'; }}
                     >
-                      <td style={{ padding: '0.875rem 1rem', fontWeight: '600', color: '#374151' }}>
-                        {record.date ? new Date(record.date + 'T00:00:00').toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' }) : 'N/A'}
+                      <td style={{ padding: '0.45rem 0.75rem', fontWeight: '600', color: '#374151' }}>
+                        {record.date ? formatDate(record.date + 'T00:00:00') : 'N/A'}
                       </td>
                       {!workerId && (
-                        <td style={{ padding: '0.875rem 1rem' }}>
+                        <td style={{ padding: '0.45rem 0.75rem' }}>
                           <span
                             onClick={() => record.worker_id && navigate(`/workers/${record.worker_id}`)}
                             style={{ color: '#1F7A8C', fontWeight: '500', cursor: record.worker_id ? 'pointer' : 'default' }}
@@ -278,8 +280,8 @@ const AttendanceHistory: React.FC = () => {
                           </span>
                         </td>
                       )}
-                      <td style={{ padding: '0.875rem 1rem', color: '#6c757d', fontSize: '0.9rem' }}>{dayName}</td>
-                      <td style={{ padding: '0.875rem 1rem', textAlign: 'center' }}>
+                      <td style={{ padding: '0.45rem 0.75rem', color: '#6c757d', fontSize: '0.9rem' }}>{dayName}</td>
+                      <td style={{ padding: '0.45rem 0.75rem', textAlign: 'center' }}>
                         <span style={{
                           padding: '0.3rem 0.85rem', borderRadius: '20px',
                           background: st.bg, color: st.color,
@@ -288,10 +290,10 @@ const AttendanceHistory: React.FC = () => {
                           {st.label}
                         </span>
                       </td>
-                      <td style={{ padding: '0.875rem 1rem', textAlign: 'right', fontWeight: '600', color: '#16a34a' }}>
+                      <td style={{ padding: '0.45rem 0.75rem', textAlign: 'right', fontWeight: '600', color: '#16a34a' }}>
                         ₹{parseFloat(wage).toLocaleString('en-IN')}
                       </td>
-                      <td style={{ padding: '0.875rem 1rem', color: '#6c757d', fontSize: '0.875rem' }}>
+                      <td style={{ padding: '0.45rem 0.75rem', color: '#6c757d', fontSize: '0.875rem' }}>
                         {record.notes || '—'}
                       </td>
                     </tr>
@@ -302,8 +304,11 @@ const AttendanceHistory: React.FC = () => {
           </div>
         )}
       </div>
-    </div>
+    </>
   );
+
+  if (embedded) return <div>{inner}</div>;
+  return <div style={{ minHeight: '100vh', background: '#f8f9fa', padding: '2rem 3rem' }}>{inner}</div>;
 };
 
 export default AttendanceHistory;

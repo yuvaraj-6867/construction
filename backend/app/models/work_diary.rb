@@ -4,5 +4,5 @@ class WorkDiary < ApplicationRecord
 
   validates :project_id, presence: true
   validates :date, presence: true
-  validates :date, uniqueness: { scope: :project_id, message: 'already has a diary entry for this date' }
+  validates :date, uniqueness: { scope: :project_id, message: "already has a diary entry for this date" }
 end

@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[7.2].define(version: 2026_03_05_000006) do
+ActiveRecord::Schema[7.2].define(version: 2026_03_09_000001) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "plpgsql"
 
@@ -71,6 +71,7 @@ ActiveRecord::Schema[7.2].define(version: 2026_03_05_000006) do
     t.bigint "user_id", null: false
     t.datetime "created_at", null: false
     t.datetime "updated_at", null: false
+    t.string "payment_method"
     t.index ["project_id"], name: "index_expenses_on_project_id"
     t.index ["user_id"], name: "index_expenses_on_user_id"
   end
@@ -132,6 +133,8 @@ ActiveRecord::Schema[7.2].define(version: 2026_03_05_000006) do
     t.bigint "user_id", null: false
     t.datetime "created_at", null: false
     t.datetime "updated_at", null: false
+    t.string "payment_method", default: "cash"
+    t.date "payment_date"
     t.index ["project_id"], name: "index_payments_on_project_id"
     t.index ["user_id"], name: "index_payments_on_user_id"
     t.index ["worker_id"], name: "index_payments_on_worker_id"
@@ -252,6 +255,8 @@ ActiveRecord::Schema[7.2].define(version: 2026_03_05_000006) do
     t.string "payment_type", default: "daily"
     t.decimal "contract_amount", precision: 10, scale: 2
     t.string "address"
+    t.decimal "advance_given", precision: 10, scale: 2, default: "0.0"
+    t.date "last_settled_date"
     t.index ["project_id"], name: "index_workers_on_project_id"
   end
 

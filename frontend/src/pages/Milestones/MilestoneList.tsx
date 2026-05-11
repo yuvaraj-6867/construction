@@ -1,8 +1,9 @@
+import { formatDate } from '../../utils/formatDate';
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import api from '../../services/api';
 
-const MilestoneList: React.FC = () => {
+const MilestoneList: React.FC<{ embedded?: boolean }> = ({ embedded = false }) => {
   const { id: projectId } = useParams();
   const navigate = useNavigate();
   const [milestones, setMilestones] = useState<any[]>([]);
@@ -67,8 +68,7 @@ const MilestoneList: React.FC = () => {
 
   const statusColor = (pct: number) => pct === 100 ? '#22c55e' : pct >= 50 ? '#f59e0b' : '#ef4444';
 
-  return (
-    <div style={{ minHeight: '100vh', background: '#f8f9fa', padding: '2rem 3rem' }}>
+  const inner = (<div>
       {/* Header */}
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: 'white', padding: '1.5rem 2rem', borderRadius: '16px', boxShadow: '0 4px 20px rgba(0,0,0,0.08)', marginBottom: '2rem' }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: '1.5rem' }}>
@@ -172,7 +172,7 @@ const MilestoneList: React.FC = () => {
                       {pct === 100 && <span style={{ background: '#dcfce7', color: '#16a34a', padding: '0.2rem 0.6rem', borderRadius: '12px', fontSize: '0.75rem', fontWeight: '600' }}>✓ Completed</span>}
                       {isOverdue && <span style={{ background: '#fee2e2', color: '#dc2626', padding: '0.2rem 0.6rem', borderRadius: '12px', fontSize: '0.75rem', fontWeight: '600' }}>⚠ Overdue</span>}
                     </div>
-                    {m.target_date && <p style={{ margin: '0.25rem 0 0', color: '#666', fontSize: '0.85rem' }}>Target: {new Date(m.target_date).toLocaleDateString('en-IN')}</p>}
+                    {m.target_date && <p style={{ margin: '0.25rem 0 0', color: '#666', fontSize: '0.85rem' }}>Target: {formatDate(m.target_date)}</p>}
                     {m.notes && <p style={{ margin: '0.25rem 0 0', color: '#888', fontSize: '0.85rem' }}>{m.notes}</p>}
                   </div>
                   <div style={{ display: 'flex', gap: '0.5rem' }}>
@@ -193,6 +193,8 @@ const MilestoneList: React.FC = () => {
       )}
     </div>
   );
+  if (embedded) return inner;
+  return <div style={{ minHeight: '100vh', background: '#f8f9fa', padding: '2rem 3rem' }}>{inner}</div>;
 };
 
 export default MilestoneList;

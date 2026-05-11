@@ -12,6 +12,6 @@ class CreateWorkDiaries < ActiveRecord::Migration[7.2]
       t.references :user, null: false, foreign_key: true
       t.timestamps
     end
-    add_index :work_diaries, [:project_id, :date], unique: true
+    add_index :work_diaries, [ :project_id, :date ], unique: true
   end
 end

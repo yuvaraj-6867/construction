@@ -1,3 +1,4 @@
+import { formatDate } from '../../utils/formatDate';
 import React, { useState, useEffect } from 'react';
 import { useNavigate, useSearchParams, useParams, useLocation } from 'react-router-dom';
 import { PieChart, Pie, Cell, Tooltip, Legend, ResponsiveContainer } from 'recharts';
@@ -8,7 +9,7 @@ import Loading from '../../components/Loading';
 
 const PIE_COLORS = ['#1F7A8C','#ef4444','#f59e0b','#22c55e','#8b5cf6','#ec4899','#0891b2','#16a34a','#d97706','#7c3aed'];
 
-const ExpenseList: React.FC = () => {
+const ExpenseList: React.FC<{ embedded?: boolean }> = ({ embedded = false }) => {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const params = useParams();
@@ -179,12 +180,7 @@ const ExpenseList: React.FC = () => {
     return <Loading message="Loading expenses..." />;
   }
 
-  return (
-    <div style={{
-      minHeight: '100vh',
-      background: 'linear-gradient(to bottom, #f8f9fa 0%, #e9ecef 100%)',
-      padding: '2rem 3rem 3rem 3rem'
-    }}>
+  const inner = (<div>
       {/* Header */}
       <div style={{
         display: 'flex',
@@ -425,7 +421,6 @@ const ExpenseList: React.FC = () => {
                   <th style={{ padding: '1rem', textAlign: 'left', fontWeight: '600', fontSize: '0.95rem' }}>DESCRIPTION</th>
                   <th style={{ padding: '1rem', textAlign: 'right', fontWeight: '600', fontSize: '0.95rem' }}>AMOUNT</th>
                   <th style={{ padding: '1rem', textAlign: 'left', fontWeight: '600', fontSize: '0.95rem' }}>PAYMENT METHOD</th>
-                  <th style={{ padding: '1rem', textAlign: 'left', fontWeight: '600', fontSize: '0.95rem' }}>PROJECT</th>
                   <th style={{ padding: '1rem', textAlign: 'center', fontWeight: '600', fontSize: '0.95rem' }}>ACTIONS</th>
                 </tr>
               </thead>
@@ -444,10 +439,10 @@ const ExpenseList: React.FC = () => {
                       e.currentTarget.style.background = 'white';
                     }}
                   >
-                    <td style={{ padding: '1rem' }}>
-                      {expense.expense_date === 'Invalid Date' || !expense.expense_date
-                        ? 'Invalid Date'
-                        : new Date(expense.expense_date).toLocaleDateString('en-IN')}
+                    <td style={{ padding: '1rem', color: '#333', fontWeight: '500' }}>
+                      {expense.expense_date
+                        ? formatDate(expense.expense_date + 'T00:00:00')
+                        : '—'}
                     </td>
                     <td style={{ padding: '1rem' }}>
                       <span style={{
@@ -487,27 +482,6 @@ const ExpenseList: React.FC = () => {
                         fontWeight: '500'
                       }}>
                         {expense.payment_method?.replace('_', ' ') || '-'}
-                      </span>
-                    </td>
-                    <td style={{ padding: '1rem' }}>
-                      <span
-                        onClick={() => navigate(`/projects/${expense.project_id}`)}
-                        style={{
-                          color: '#1F7A8C',
-                          fontWeight: '500',
-                          cursor: 'pointer',
-                          transition: 'all 0.2s'
-                        }}
-                        onMouseEnter={(e) => {
-                          e.currentTarget.style.textDecoration = 'underline';
-                          e.currentTarget.style.color = '#16616F';
-                        }}
-                        onMouseLeave={(e) => {
-                          e.currentTarget.style.textDecoration = 'none';
-                          e.currentTarget.style.color = '#1F7A8C';
-                        }}
-                      >
-                        {expense.project?.name || 'N/A'}
                       </span>
                     </td>
                     <td style={{ padding: '1rem' }}>
@@ -1072,6 +1046,8 @@ const ExpenseList: React.FC = () => {
       />
     </div>
   );
+  if (embedded) return inner;
+  return <div style={{ minHeight: '100vh', background: 'linear-gradient(to bottom, #f8f9fa 0%, #e9ecef 100%)', padding: '2rem 3rem 3rem 3rem' }}>{inner}</div>;
 };
 
 export default ExpenseList;

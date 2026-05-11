@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import api from '../../services/api';
 
-const SubcontractorList: React.FC = () => {
+const SubcontractorList: React.FC<{ embedded?: boolean }> = ({ embedded = false }) => {
   const { id: projectId } = useParams();
   const navigate = useNavigate();
   const [subs, setSubs] = useState<any[]>([]);
@@ -66,8 +66,7 @@ const SubcontractorList: React.FC = () => {
   const totalPaid = subs.reduce((s, c) => s + Number(c.paid_amount || 0), 0);
   const totalBalance = totalContract - totalPaid;
 
-  return (
-    <div style={{ minHeight: '100vh', background: '#f8f9fa', padding: '2rem 3rem' }}>
+  const inner = (<div>
       {/* Header */}
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: 'white', padding: '1.5rem 2rem', borderRadius: '16px', boxShadow: '0 4px 20px rgba(0,0,0,0.08)', marginBottom: '2rem' }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: '1.5rem' }}>
@@ -211,6 +210,8 @@ const SubcontractorList: React.FC = () => {
       )}
     </div>
   );
+  if (embedded) return inner;
+  return <div style={{ minHeight: '100vh', background: '#f8f9fa', padding: '2rem 3rem' }}>{inner}</div>;
 };
 
 export default SubcontractorList;

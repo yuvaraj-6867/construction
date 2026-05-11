@@ -21,7 +21,7 @@ class Api::V1::NotificationsController < ApplicationController
   # PATCH /api/v1/notifications/mark_all_read
   def mark_all_read
     current_user.notifications.unread.update_all(read: true)
-    render json: { message: 'All notifications marked as read' }
+    render json: { message: "All notifications marked as read" }
   end
 
   private

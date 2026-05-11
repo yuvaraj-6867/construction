@@ -1,3 +1,4 @@
+import { formatDate } from '../../utils/formatDate';
 import React, { useState, useEffect } from 'react';
 import { useNavigate, useSearchParams, useParams, useLocation } from 'react-router-dom';
 import paymentService from '../../services/paymentService';
@@ -6,7 +7,7 @@ import projectService from '../../services/projectService';
 import ConfirmDialog from '../../components/ConfirmDialog';
 import Loading from '../../components/Loading';
 
-const PaymentList: React.FC = () => {
+const PaymentList: React.FC<{ embedded?: boolean }> = ({ embedded = false }) => {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const params = useParams();
@@ -32,6 +33,7 @@ const PaymentList: React.FC = () => {
     amount: '',
     payment_date: new Date().toISOString().split('T')[0],
     payment_method: 'cash',
+    payment_type: 'wage',
     notes: ''
   });
   const [formError, setFormError] = useState('');
@@ -132,14 +134,28 @@ const PaymentList: React.FC = () => {
   };
 
   // Drawer handlers
+  const getWorkerNetPay = (wId: string) => {
+    const w = workers.find((w: any) => String(w.id) === String(wId));
+    if (!w) return '';
+    const net = Number(w.balance_due ?? 0);
+    return net > 0 ? String(net) : '';
+  };
+
+  const getWorkerBalance = (wId: string) => {
+    const w = workers.find((w: any) => String(w.id) === String(wId));
+    if (!w) return null;
+    return Number(w.balance_due ?? 0);
+  };
+
   const openAddDrawer = () => {
     setEditingPayment(null);
     setFormData({
       worker_id: workerId || '',
       project_id: projectId || '',
-      amount: '',
+      amount: workerId ? getWorkerNetPay(workerId) : '',
       payment_date: new Date().toISOString().split('T')[0],
       payment_method: 'cash',
+      payment_type: 'wage',
       notes: ''
     });
     setFormError('');
@@ -152,8 +168,9 @@ const PaymentList: React.FC = () => {
       worker_id: payment.worker_id,
       project_id: payment.project_id,
       amount: payment.amount,
-      payment_date: payment.payment_date.split('T')[0],
+      payment_date: payment.payment_date ? payment.payment_date.split('T')[0] : new Date().toISOString().split('T')[0],
       payment_method: payment.payment_method,
+      payment_type: payment.payment_type || 'wage',
       notes: payment.notes || ''
     });
     setFormError('');
@@ -167,10 +184,12 @@ const PaymentList: React.FC = () => {
   };
 
   const handleFormChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) => {
-    setFormData({
-      ...formData,
-      [e.target.name]: e.target.value
-    });
+    const { name, value } = e.target;
+    if (name === 'worker_id' && !editingPayment) {
+      setFormData({ ...formData, worker_id: value, amount: getWorkerNetPay(value) });
+    } else {
+      setFormData({ ...formData, [name]: value });
+    }
   };
 
   const handleFormSubmit = async (e: React.FormEvent) => {
@@ -200,14 +219,10 @@ const PaymentList: React.FC = () => {
     return <Loading message="Loading payments..." />;
   }
 
-  return (
-    <div style={{
-      minHeight: '100vh',
-      background: 'linear-gradient(to bottom, #f8f9fa 0%, #e9ecef 100%)',
-      padding: '2rem 3rem 3rem 3rem'
-    }}>
+  const content = (
+    <div>
       {/* Header */}
-      <div style={{
+      {!embedded && <div style={{
         display: 'flex',
         justifyContent: 'space-between',
         alignItems: 'center',
@@ -300,7 +315,7 @@ const PaymentList: React.FC = () => {
         >
           + Add Payment
         </button>
-      </div>
+      </div>}
 
       {error && (
         <div style={{
@@ -402,9 +417,9 @@ const PaymentList: React.FC = () => {
                     }}
                   >
                     <td style={{ padding: '1rem' }}>
-                      {payment.payment_date === 'Invalid Date' || !payment.payment_date
-                        ? 'Invalid Date'
-                        : new Date(payment.payment_date).toLocaleDateString('en-IN')}
+                      {payment.payment_date
+                        ? formatDate(payment.payment_date + 'T00:00:00')
+                        : '-'}
                     </td>
                     <td style={{ padding: '1rem' }}>
                       <span
@@ -757,6 +772,15 @@ const PaymentList: React.FC = () => {
                       fontSize: '0.95rem'
                     }}>
                       Amount (₹) *
+                      {formData.worker_id && !editingPayment && (() => {
+                        const bal = getWorkerBalance(formData.worker_id);
+                        if (bal === null) return null;
+                        return (
+                          <span style={{ marginLeft: '0.5rem', fontSize: '0.78rem', fontWeight: '500', color: bal > 0 ? '#16a34a' : bal < 0 ? '#ef4444' : '#6c757d' }}>
+                            (Balance due: ₹{bal.toLocaleString('en-IN')})
+                          </span>
+                        );
+                      })()}
                     </label>
                     <input
                       type="number"
@@ -1003,7 +1027,7 @@ const PaymentList: React.FC = () => {
               <div style={{ marginBottom: '1.5rem' }}>
                 {[
                   { label: 'Receipt No.', value: `#PAY-${receiptPayment.id}` },
-                  { label: 'Date', value: new Date(receiptPayment.payment_date).toLocaleDateString('en-IN', { day: '2-digit', month: 'long', year: 'numeric' }) },
+                  { label: 'Date', value: receiptPayment.payment_date ? formatDate(receiptPayment.payment_date + 'T00:00:00') : '-' },
                   { label: 'Worker', value: receiptPayment.worker?.name || 'N/A' },
                   { label: 'Project', value: receiptPayment.project?.name || 'N/A' },
                   { label: 'Payment Method', value: (receiptPayment.payment_method || 'cash').replace('_', ' ').toUpperCase() },
@@ -1042,7 +1066,7 @@ const PaymentList: React.FC = () => {
               </button>
               <button
                 onClick={() => {
-                  const text = `Payment Receipt\nWorker: ${receiptPayment.worker?.name || 'N/A'}\nProject: ${receiptPayment.project?.name || 'N/A'}\nAmount: ₹${parseFloat(receiptPayment.amount).toLocaleString('en-IN')}\nDate: ${new Date(receiptPayment.payment_date).toLocaleDateString('en-IN')}\nReceipt No: #PAY-${receiptPayment.id}`;
+                  const text = `Payment Receipt\nWorker: ${receiptPayment.worker?.name || 'N/A'}\nProject: ${receiptPayment.project?.name || 'N/A'}\nAmount: ₹${parseFloat(receiptPayment.amount).toLocaleString('en-IN')}\nDate: ${receiptPayment.payment_date ? formatDate(receiptPayment.payment_date + 'T00:00:00') : '-'}\nReceipt No: #PAY-${receiptPayment.id}`;
                   window.open(`https://wa.me/?text=${encodeURIComponent(text)}`, '_blank');
                 }}
                 style={{
@@ -1101,6 +1125,13 @@ const PaymentList: React.FC = () => {
         onConfirm={handleDeleteConfirm}
         onCancel={handleDeleteCancel}
       />
+    </div>
+  );
+
+  if (embedded) return content;
+  return (
+    <div style={{ minHeight: '100vh', background: 'linear-gradient(to bottom, #f8f9fa 0%, #e9ecef 100%)', padding: '2rem 3rem 3rem 3rem' }}>
+      {content}
     </div>
   );
 };

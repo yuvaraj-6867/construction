@@ -7,6 +7,7 @@ export interface Payment {
   amount: number | string;
   payment_date: string;
   payment_method: string;
+  payment_type?: string;
   notes?: string;
 }
 

@@ -1,9 +1,9 @@
 class Api::V1::ProjectsController < ApplicationController
-  before_action :set_project, only: [:show, :update, :destroy]
+  before_action :set_project, only: [ :show, :update, :destroy ]
 
   # GET /api/v1/projects
   def index
-    @projects = current_user.role == 'admin' ? Project.all : current_user.projects
+    @projects = current_user.role == "admin" ? Project.all : current_user.projects
     render json: @projects.map { |p| project_json(p) }
   end
 

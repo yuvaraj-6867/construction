@@ -32,7 +32,7 @@ self.addEventListener('fetch', (event) => {
 
   // Skip non-GET and cross-origin requests
   if (event.request.method !== 'GET') return;
-  if (url.origin !== self.location.origin && !url.pathname.startsWith('/api/')) return;
+  if (url.origin !== self.location.origin) return;
 
   // API calls: network-first, fall back to cache
   if (url.pathname.startsWith('/api/')) {

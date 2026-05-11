@@ -40,7 +40,7 @@ class Api::V1::AttendancesController < ApplicationController
 
     if errors.empty?
       Notification.create_for_attendance(current_user, attendances.count, date) rescue nil
-      render json: { message: 'Attendance marked successfully', count: attendances.count }, status: :created
+      render json: { message: "Attendance marked successfully", count: attendances.count }, status: :created
     else
       render json: { created: attendances.count, errors: errors }, status: :partial_content
     end

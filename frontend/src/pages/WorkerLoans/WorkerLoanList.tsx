@@ -1,3 +1,4 @@
+import { formatDate } from '../../utils/formatDate';
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import api from '../../services/api';
@@ -183,7 +184,7 @@ const WorkerLoanList: React.FC = () => {
             <tbody>
               {loans.map(loan => (
                 <tr key={loan.id} style={{ borderBottom: '1px solid #f0f0f0' }}>
-                  <td style={{ padding: '1rem' }}>{new Date(loan.loan_date).toLocaleDateString('en-IN')}</td>
+                  <td style={{ padding: '1rem' }}>{formatDate(loan.loan_date)}</td>
                   <td style={{ padding: '1rem', color: '#1F7A8C', fontWeight: '500' }}>{loan.project_name}</td>
                   <td style={{ padding: '1rem', textAlign: 'right', fontWeight: '700', color: '#ef4444' }}>₹{Number(loan.loan_amount).toLocaleString('en-IN')}</td>
                   <td style={{ padding: '1rem', textAlign: 'right', fontWeight: '700', color: '#22c55e' }}>₹{Number(loan.repaid_amount).toLocaleString('en-IN')}</td>

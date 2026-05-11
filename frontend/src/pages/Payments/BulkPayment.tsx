@@ -5,11 +5,11 @@ import api from '../../services/api';
 import { useToast } from '../../components/Toast';
 import Loading from '../../components/Loading';
 
-const BulkPayment: React.FC = () => {
+const BulkPayment: React.FC<{ embedded?: boolean }> = ({ embedded = false }) => {
   const navigate = useNavigate();
   const { id: projectId } = useParams();
   const { showToast } = useToast();
-  const [workers, setWorkers] = useState<any[]>([]);
+  const [allWorkers, setAllWorkers] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
   const [date, setDate] = useState(new Date().toISOString().split('T')[0]);
@@ -18,15 +18,19 @@ const BulkPayment: React.FC = () => {
   const [notes, setNotes] = useState<Record<string, string>>({});
   const [selected, setSelected] = useState<Record<string, boolean>>({});
 
+  const workers = paymentType === 'advance'
+    ? allWorkers
+    : allWorkers.filter(w => Number(w.balance_due) > 0);
+
   useEffect(() => {
     workerService.getAll(projectId).then(data => {
       const active = data.filter((w: any) => w.is_active);
-      setWorkers(active);
+      setAllWorkers(active);
       const sel: Record<string, boolean> = {};
       const amt: Record<string, string> = {};
-      active.forEach((w: any) => {
-        sel[w.id] = false;
-        amt[w.id] = '';
+      active.filter((w: any) => Number(w.balance_due) > 0).forEach((w: any) => {
+        sel[w.id] = true;
+        amt[w.id] = String(Math.max(0, Number(w.balance_due) || 0));
       });
       setSelected(sel);
       setAmounts(amt);
@@ -85,33 +89,34 @@ const BulkPayment: React.FC = () => {
 
   if (loading) return <Loading message="Loading workers..." />;
 
-  return (
-    <div style={{ minHeight: '100vh', background: '#f8f9fa', padding: '2rem 3rem' }}>
-      {/* Header */}
-      <div style={{
-        display: 'flex', justifyContent: 'space-between', alignItems: 'center',
-        background: 'white', padding: '1.5rem 2rem', borderRadius: '16px',
-        boxShadow: '0 4px 20px rgba(0,0,0,0.08)', marginBottom: '2rem'
-      }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '1.5rem' }}>
-          <button onClick={() => navigate(`/projects/${projectId}`)}
-            style={{ background: '#f8f9fa', color: '#1F7A8C', border: '2px solid #1F7A8C', padding: '0.65rem 1.25rem', borderRadius: '10px', cursor: 'pointer', fontWeight: '600' }}>
-            ← Back
-          </button>
-          <div>
-            <h1 style={{ margin: 0, fontSize: '2rem', background: 'linear-gradient(135deg, #1F7A8C, #16616F)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent', fontWeight: 'bold' }}>
-              💳 Bulk Payment
-            </h1>
-            <p style={{ margin: 0, color: '#6c757d' }}>Pay multiple workers at once</p>
+  const inner = (
+    <div>
+      {!embedded && (
+        <div style={{
+          display: 'flex', justifyContent: 'space-between', alignItems: 'center',
+          background: 'white', padding: '1.5rem 2rem', borderRadius: '16px',
+          boxShadow: '0 4px 20px rgba(0,0,0,0.08)', marginBottom: '2rem'
+        }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '1.5rem' }}>
+            <button onClick={() => navigate(`/projects/${projectId}`)}
+              style={{ background: '#f8f9fa', color: '#1F7A8C', border: '2px solid #1F7A8C', padding: '0.65rem 1.25rem', borderRadius: '10px', cursor: 'pointer', fontWeight: '600' }}>
+              ← Back
+            </button>
+            <div>
+              <h1 style={{ margin: 0, fontSize: '2rem', background: 'linear-gradient(135deg, #1F7A8C, #16616F)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent', fontWeight: 'bold' }}>
+                💳 Bulk Payment
+              </h1>
+              <p style={{ margin: 0, color: '#6c757d' }}>Pay multiple workers at once</p>
+            </div>
           </div>
+          {selectedCount > 0 && (
+            <div style={{ textAlign: 'right' }}>
+              <div style={{ fontSize: '1.5rem', fontWeight: '700', color: '#2E7D32' }}>₹{totalAmount.toLocaleString('en-IN')}</div>
+              <div style={{ fontSize: '0.85rem', color: '#666' }}>{selectedCount} workers selected</div>
+            </div>
+          )}
         </div>
-        {selectedCount > 0 && (
-          <div style={{ textAlign: 'right' }}>
-            <div style={{ fontSize: '1.5rem', fontWeight: '700', color: '#2E7D32' }}>₹{totalAmount.toLocaleString('en-IN')}</div>
-            <div style={{ fontSize: '0.85rem', color: '#666' }}>{selectedCount} workers selected</div>
-          </div>
-        )}
-      </div>
+      )}
 
       <form onSubmit={handleSubmit}>
         {/* Options */}
@@ -146,61 +151,74 @@ const BulkPayment: React.FC = () => {
         </div>
 
         {/* Worker list */}
-        <div style={{ background: 'white', borderRadius: '16px', boxShadow: '0 4px 20px rgba(0,0,0,0.06)', overflow: 'hidden', marginBottom: '2rem' }}>
-          <table style={{ width: '100%', borderCollapse: 'collapse' }}>
-            <thead style={{ background: 'linear-gradient(135deg, #1F7A8C, #16616F)', color: 'white' }}>
-              <tr>
-                <th style={{ padding: '1rem', width: '48px' }}><input type="checkbox" onChange={e => selectAll(e.target.checked)} /></th>
-                <th style={{ padding: '1rem', textAlign: 'left' }}>Worker</th>
-                <th style={{ padding: '1rem', textAlign: 'left' }}>Role</th>
-                <th style={{ padding: '1rem', textAlign: 'right' }}>Balance Due</th>
-                <th style={{ padding: '1rem', textAlign: 'left' }}>Amount (₹)</th>
-                <th style={{ padding: '1rem', textAlign: 'left' }}>Notes</th>
-              </tr>
-            </thead>
-            <tbody>
-              {workers.map((w, i) => (
-                <tr key={w.id} style={{ background: selected[w.id] ? '#f0f9ff' : (i % 2 === 0 ? 'white' : '#f8f9fa'), transition: 'background 0.2s' }}>
-                  <td style={{ padding: '0.875rem 1rem', textAlign: 'center' }}>
-                    <input type="checkbox" checked={!!selected[w.id]} onChange={e => setSelected(p => ({ ...p, [w.id]: e.target.checked }))} style={{ width: '18px', height: '18px', cursor: 'pointer' }} />
-                  </td>
-                  <td style={{ padding: '0.875rem 1rem' }}>
-                    <div style={{ fontWeight: '600', color: '#333' }}>{w.name}</div>
-                    <div style={{ fontSize: '0.8rem', color: '#999' }}>{w.phone}</div>
-                  </td>
-                  <td style={{ padding: '0.875rem 1rem', color: '#666', fontSize: '0.9rem' }}>{w.role}</td>
-                  <td style={{ padding: '0.875rem 1rem', textAlign: 'right', fontWeight: '700', color: '#C62828' }}>
-                    ₹{Number(w.balance_due || 0).toLocaleString('en-IN')}
-                  </td>
-                  <td style={{ padding: '0.875rem 1rem' }}>
-                    <input
-                      type="number"
-                      min="0"
-                      step="1"
-                      value={amounts[w.id] || ''}
-                      onChange={e => setAmounts(p => ({ ...p, [w.id]: e.target.value }))}
-                      disabled={!selected[w.id]}
-                      placeholder="0"
-                      style={{ width: '120px', padding: '0.5rem 0.75rem', border: '2px solid #e9ecef', borderRadius: '8px', fontSize: '0.95rem', fontWeight: '600', outline: 'none', opacity: selected[w.id] ? 1 : 0.4 }}
-                      onFocus={e => e.currentTarget.style.borderColor = '#1F7A8C'}
-                      onBlur={e => e.currentTarget.style.borderColor = '#e9ecef'}
-                    />
-                  </td>
-                  <td style={{ padding: '0.875rem 1rem' }}>
-                    <input
-                      type="text"
-                      value={notes[w.id] || ''}
-                      onChange={e => setNotes(p => ({ ...p, [w.id]: e.target.value }))}
-                      disabled={!selected[w.id]}
-                      placeholder="Optional note"
-                      style={{ width: '150px', padding: '0.5rem 0.75rem', border: '2px solid #e9ecef', borderRadius: '8px', fontSize: '0.9rem', outline: 'none', opacity: selected[w.id] ? 1 : 0.4 }}
-                    />
-                  </td>
+        {workers.length === 0 ? (
+          <div style={{ background: 'white', borderRadius: '16px', boxShadow: '0 4px 20px rgba(0,0,0,0.06)', padding: '4rem 2rem', textAlign: 'center', marginBottom: '2rem' }}>
+            <div style={{ fontSize: '3rem', marginBottom: '1rem' }}>✅</div>
+            <div style={{ fontSize: '1.2rem', fontWeight: '700', color: '#2E7D32', marginBottom: '0.5rem' }}>All workers are paid!</div>
+            <div style={{ color: '#666', fontSize: '0.95rem' }}>No workers with pending balance due.</div>
+          </div>
+        ) : (
+          <div style={{ background: 'white', borderRadius: '16px', boxShadow: '0 4px 20px rgba(0,0,0,0.06)', overflow: 'hidden', marginBottom: '2rem' }}>
+            <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+              <thead style={{ background: 'linear-gradient(135deg, #1F7A8C, #16616F)', color: 'white' }}>
+                <tr>
+                  <th style={{ padding: '1rem', width: '48px' }}><input type="checkbox" onChange={e => selectAll(e.target.checked)} /></th>
+                  <th style={{ padding: '1rem', textAlign: 'left' }}>Worker</th>
+                  <th style={{ padding: '1rem', textAlign: 'left' }}>Role</th>
+                  <th style={{ padding: '1rem', textAlign: 'right' }}>Balance Due</th>
+                  <th style={{ padding: '1rem', textAlign: 'left' }}>Amount (₹)</th>
+                  <th style={{ padding: '1rem', textAlign: 'left' }}>Notes</th>
                 </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
+              </thead>
+              <tbody>
+                {workers.map((w, i) => (
+                  <tr key={w.id} style={{ background: selected[w.id] ? '#f0f9ff' : (i % 2 === 0 ? 'white' : '#f8f9fa'), transition: 'background 0.2s' }}>
+                    <td style={{ padding: '0.875rem 1rem', textAlign: 'center' }}>
+                      <input type="checkbox" checked={!!selected[w.id]} onChange={e => {
+                        setSelected(p => ({ ...p, [w.id]: e.target.checked }));
+                        if (e.target.checked && !amounts[w.id]) {
+                          setAmounts(p => ({ ...p, [w.id]: String(Math.max(0, Number(w.balance_due) || 0)) }));
+                        }
+                      }} style={{ width: '18px', height: '18px', cursor: 'pointer' }} />
+                    </td>
+                    <td style={{ padding: '0.875rem 1rem' }}>
+                      <div style={{ fontWeight: '600', color: '#333' }}>{w.name}</div>
+                      <div style={{ fontSize: '0.8rem', color: '#999' }}>{w.phone}</div>
+                    </td>
+                    <td style={{ padding: '0.875rem 1rem', color: '#666', fontSize: '0.9rem' }}>{w.role}</td>
+                    <td style={{ padding: '0.875rem 1rem', textAlign: 'right', fontWeight: '700', color: '#C62828' }}>
+                      ₹{Number(w.balance_due || 0).toLocaleString('en-IN')}
+                    </td>
+                    <td style={{ padding: '0.875rem 1rem' }}>
+                      <input
+                        type="number"
+                        min="0"
+                        step="1"
+                        value={amounts[w.id] || ''}
+                        onChange={e => setAmounts(p => ({ ...p, [w.id]: e.target.value }))}
+                        disabled={!selected[w.id]}
+                        placeholder="0"
+                        style={{ width: '120px', padding: '0.5rem 0.75rem', border: '2px solid #e9ecef', borderRadius: '8px', fontSize: '0.95rem', fontWeight: '600', outline: 'none', opacity: selected[w.id] ? 1 : 0.4 }}
+                        onFocus={e => e.currentTarget.style.borderColor = '#1F7A8C'}
+                        onBlur={e => e.currentTarget.style.borderColor = '#e9ecef'}
+                      />
+                    </td>
+                    <td style={{ padding: '0.875rem 1rem' }}>
+                      <input
+                        type="text"
+                        value={notes[w.id] || ''}
+                        onChange={e => setNotes(p => ({ ...p, [w.id]: e.target.value }))}
+                        disabled={!selected[w.id]}
+                        placeholder="Optional note"
+                        style={{ width: '150px', padding: '0.5rem 0.75rem', border: '2px solid #e9ecef', borderRadius: '8px', fontSize: '0.9rem', outline: 'none', opacity: selected[w.id] ? 1 : 0.4 }}
+                      />
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
 
         {/* Submit */}
         <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '1rem' }}>
@@ -223,6 +241,9 @@ const BulkPayment: React.FC = () => {
       </form>
     </div>
   );
+
+  if (embedded) return inner;
+  return <div style={{ minHeight: '100vh', background: '#f8f9fa', padding: '2rem 3rem' }}>{inner}</div>;
 };
 
 export default BulkPayment;

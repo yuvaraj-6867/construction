@@ -1,3 +1,4 @@
+import { formatDate } from '../../utils/formatDate';
 import React, { useState, useEffect } from 'react';
 import { useNavigate, useSearchParams, useParams, useLocation } from 'react-router-dom';
 import jsPDF from 'jspdf';
@@ -7,7 +8,7 @@ import projectService from '../../services/projectService';
 import ConfirmDialog from '../../components/ConfirmDialog';
 import Loading from '../../components/Loading';
 
-const InvoiceList: React.FC = () => {
+const InvoiceList: React.FC<{ embedded?: boolean }> = ({ embedded = false }) => {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const params = useParams();
@@ -190,9 +191,9 @@ const InvoiceList: React.FC = () => {
     autoTable(doc, {
       startY: 46,
       body: [
-        ['Project', inv.project?.name || 'N/A', 'Issue Date', inv.issue_date ? new Date(inv.issue_date).toLocaleDateString('en-IN') : 'N/A'],
-        ['Client', inv.project?.client_name || 'N/A', 'Due Date', inv.due_date ? new Date(inv.due_date).toLocaleDateString('en-IN') : 'N/A'],
-        ['Status', inv.status?.toUpperCase() || 'N/A', 'Payment Date', inv.payment_date ? new Date(inv.payment_date).toLocaleDateString('en-IN') : 'N/A'],
+        ['Project', inv.project?.name || 'N/A', 'Issue Date', inv.issue_date ? formatDate(inv.issue_date) : 'N/A'],
+        ['Client', inv.project?.client_name || 'N/A', 'Due Date', inv.due_date ? formatDate(inv.due_date) : 'N/A'],
+        ['Status', inv.status?.toUpperCase() || 'N/A', 'Payment Date', inv.payment_date ? formatDate(inv.payment_date) : 'N/A'],
       ],
       styles: { fontSize: 10 },
       columnStyles: { 0: { fontStyle: 'bold', fillColor: [240, 249, 255] }, 2: { fontStyle: 'bold', fillColor: [240, 249, 255] } },
@@ -222,7 +223,7 @@ const InvoiceList: React.FC = () => {
     const yf = (doc as any).lastAutoTable.finalY + 20;
     doc.setFontSize(9);
     doc.setTextColor(150, 150, 150);
-    doc.text(`Generated on ${new Date().toLocaleDateString('en-IN')} | Construction Worker Tracker`, 14, yf);
+    doc.text(`Generated on ${formatDate(new Date())} | Construction Worker Tracker`, 14, yf);
     doc.save(`invoice_${inv.invoice_number}.pdf`);
   };
 
@@ -238,15 +239,15 @@ const InvoiceList: React.FC = () => {
     doc.text(`Project: ${project.name || 'All Projects'} | Client: ${project.client_name || 'N/A'}`, 14, 30);
     doc.setTextColor(50, 50, 50);
     doc.setFontSize(9);
-    doc.text(`Generated: ${new Date().toLocaleDateString('en-IN')}`, 150, 30);
+    doc.text(`Generated: ${formatDate(new Date())}`, 150, 30);
 
     autoTable(doc, {
       startY: 50,
       head: [['Invoice #', 'Issue Date', 'Due Date', 'Status', 'Amount']],
       body: invoices.map(inv => [
         inv.invoice_number,
-        inv.issue_date ? new Date(inv.issue_date).toLocaleDateString('en-IN') : 'N/A',
-        inv.due_date ? new Date(inv.due_date).toLocaleDateString('en-IN') : 'N/A',
+        inv.issue_date ? formatDate(inv.issue_date) : 'N/A',
+        inv.due_date ? formatDate(inv.due_date) : 'N/A',
         (inv.status || '').toUpperCase(),
         `\u20B9${parseFloat(inv.amount).toLocaleString('en-IN')}`
       ]),
@@ -281,12 +282,7 @@ const InvoiceList: React.FC = () => {
     return <Loading message="Loading invoices..." />;
   }
 
-  return (
-    <div style={{
-      minHeight: '100vh',
-      background: 'linear-gradient(to bottom, #f8f9fa 0%, #e9ecef 100%)',
-      padding: '2rem 3rem 3rem 3rem'
-    }}>
+  const inner = (<div>
       {/* Header */}
       <div style={{
         display: 'flex',
@@ -614,10 +610,10 @@ const InvoiceList: React.FC = () => {
                     <td style={{ padding: '1rem' }}>
                       {inv.issue_date === 'Invalid Date' || !inv.issue_date
                         ? 'Invalid Date'
-                        : new Date(inv.issue_date).toLocaleDateString('en-IN')}
+                        : formatDate(inv.issue_date)}
                     </td>
                     <td style={{ padding: '1rem' }}>
-                      {inv.due_date ? new Date(inv.due_date).toLocaleDateString('en-IN') : '-'}
+                      {inv.due_date ? formatDate(inv.due_date) : '-'}
                     </td>
                     <td style={{
                       padding: '1rem',
@@ -642,7 +638,7 @@ const InvoiceList: React.FC = () => {
                       </span>
                     </td>
                     <td style={{ padding: '1rem', color: '#6c757d' }}>
-                      {inv.payment_date ? new Date(inv.payment_date).toLocaleDateString('en-IN') : '-'}
+                      {inv.payment_date ? formatDate(inv.payment_date) : '-'}
                     </td>
                     <td style={{ padding: '1rem' }}>
                       <div style={{ display: 'flex', gap: '0.5rem', justifyContent: 'center' }}>
@@ -1235,6 +1231,8 @@ const InvoiceList: React.FC = () => {
       />
     </div>
   );
+  if (embedded) return inner;
+  return <div style={{ minHeight: '100vh', background: 'linear-gradient(to bottom, #f8f9fa 0%, #e9ecef 100%)', padding: '2rem 3rem 3rem 3rem' }}>{inner}</div>;
 };
 
 export default InvoiceList;

@@ -15,15 +15,15 @@ class User < ApplicationRecord
     return if password.blank?
 
     unless password.match?(/[A-Z]/)
-      errors.add :password, 'must include at least one uppercase letter'
+      errors.add :password, "must include at least one uppercase letter"
     end
 
     unless password.match?(/[0-9]/)
-      errors.add :password, 'must include at least one number'
+      errors.add :password, "must include at least one number"
     end
 
     unless password.match?(/[@$!%*?&#]/)
-      errors.add :password, 'must include at least one special character (@$!%*?&#)'
+      errors.add :password, "must include at least one special character (@$!%*?&#)"
     end
   end
 

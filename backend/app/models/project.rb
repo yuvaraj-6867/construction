@@ -62,7 +62,7 @@ class Project < ApplicationRecord
     threshold = utilization >= 100 ? 100 : 80
     existing = Notification.where(
       user: user,
-      notification_type: 'warning',
+      notification_type: "warning",
       title: "Budget Alert: #{name}"
     ).where("created_at > ?", 24.hours.ago).exists?
     return if existing
@@ -77,7 +77,7 @@ class Project < ApplicationRecord
       user: user,
       title: "Budget Alert: #{name}",
       message: message,
-      notification_type: 'warning',
+      notification_type: "warning",
       data: { project_id: id, utilization: utilization, threshold: threshold }
     )
   rescue StandardError

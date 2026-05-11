@@ -1,3 +1,4 @@
+import { formatDate } from '../../utils/formatDate';
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import api from '../../services/api';
@@ -149,7 +150,7 @@ const SitePhotoList: React.FC = () => {
                 {photo.caption && <p style={{ margin: '0 0 0.5rem', fontWeight: '600', color: '#333', fontSize: '0.95rem' }}>{photo.caption}</p>}
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                   <span style={{ fontSize: '0.78rem', color: '#999' }}>
-                    {photo.uploaded_by} · {new Date(photo.created_at).toLocaleDateString('en-IN')}
+                    {photo.uploaded_by} · {formatDate(photo.created_at)}
                   </span>
                   <button onClick={() => handleDelete(photo.id)}
                     style={{ background: '#fee2e2', color: '#C62828', border: 'none', padding: '0.3rem 0.75rem', borderRadius: '6px', cursor: 'pointer', fontWeight: '600', fontSize: '0.8rem' }}>

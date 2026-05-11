@@ -4,7 +4,7 @@ class AuthMailer < ApplicationMailer
     @token = token
     @reset_url = "http://localhost:3000/reset-password?token=#{token}"
 
-    mail(to: user.email, subject: 'Password Reset - Construction App') do |format|
+    mail(to: user.email, subject: "Password Reset - Construction App") do |format|
       format.text do
         render plain: <<~TEXT
           Hi #{user.name},

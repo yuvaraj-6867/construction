@@ -4,8 +4,11 @@ import workerService from '../../services/workerService';
 import projectService from '../../services/projectService';
 import ConfirmDialog from '../../components/ConfirmDialog';
 import Loading from '../../components/Loading';
+import Pagination from '../../components/Pagination';
 
-const WorkerList: React.FC = () => {
+interface WorkerListProps { embedded?: boolean; }
+
+const WorkerList: React.FC<WorkerListProps> = ({ embedded = false }) => {
   const [workers, setWorkers] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [isDrawerOpen, setIsDrawerOpen] = useState(false);
@@ -171,6 +174,9 @@ const WorkerList: React.FC = () => {
     }
   };
 
+  const [currentPage, setCurrentPage] = useState(1);
+  const [pageSize, setPageSize] = useState(6);
+
   const filteredWorkers = workers.filter(w => {
     const matchSearch = !search || w.name.toLowerCase().includes(search.toLowerCase()) || w.role.toLowerCase().includes(search.toLowerCase());
     const matchStatus = !statusFilter || w.status === statusFilter;
@@ -178,155 +184,213 @@ const WorkerList: React.FC = () => {
     return matchSearch && matchStatus && matchType;
   });
 
+  const totalPages = Math.max(1, Math.ceil(filteredWorkers.length / pageSize));
+  const pagedWorkers = filteredWorkers.slice((currentPage - 1) * pageSize, currentPage * pageSize);
+  const rangeStart = filteredWorkers.length === 0 ? 0 : (currentPage - 1) * pageSize + 1;
+  const rangeEnd = Math.min(currentPage * pageSize, filteredWorkers.length);
+
+  // Reset to page 1 when filters change
+  const handleSearchChange = (val: string) => { setSearch(val); setCurrentPage(1); };
+  const handleStatusChange = (val: string) => { setStatusFilter(val); setCurrentPage(1); };
+  const handlePaymentTypeChange = (val: string) => { setPaymentTypeFilter(val); setCurrentPage(1); };
+  const handlePageSizeChange = (val: number) => { setPageSize(val); setCurrentPage(1); };
+
   if (loading) {
     return <Loading message="Loading workers..." />;
   }
 
-  return (
-    <div style={{
-      minHeight: '100vh',
-      background: 'linear-gradient(to bottom, #f8f9fa 0%, #e9ecef 100%)',
-      padding: '2rem 3rem 3rem 3rem'
-    }}>
-      {/* Header Section */}
-      <div style={{
-        display: 'flex',
-        justifyContent: 'space-between',
-        alignItems: 'center',
-        marginBottom: '2.5rem',
-        background: 'white',
-        padding: '1.5rem 2rem',
-        borderRadius: '16px',
-        boxShadow: '0 4px 20px rgba(0,0,0,0.08)'
-      }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '1.5rem' }}>
-          <button
-            onClick={() => navigate(projectId ? `/projects/${projectId}` : '/dashboard')}
-            style={{
-              background: '#f8f9fa',
-              color: '#1F7A8C',
-              border: '2px solid #1F7A8C',
-              padding: '0.75rem 1.5rem',
-              fontSize: '0.95rem',
-              fontWeight: '600',
-              borderRadius: '10px',
-              cursor: 'pointer',
-              transition: 'all 0.3s',
-              display: 'flex',
-              alignItems: 'center',
-              gap: '0.5rem'
-            }}
-            onMouseEnter={(e) => {
-              e.currentTarget.style.background = '#1F7A8C';
-              e.currentTarget.style.color = 'white';
-              e.currentTarget.style.transform = 'translateX(-3px)';
-            }}
-            onMouseLeave={(e) => {
-              e.currentTarget.style.background = '#f8f9fa';
-              e.currentTarget.style.color = '#1F7A8C';
-              e.currentTarget.style.transform = 'translateX(0)';
-            }}
-          >
-            ← Back
-          </button>
-          <div>
-            <h1 style={{
-              margin: 0,
-              fontSize: '2.5rem',
-              background: 'linear-gradient(135deg, #1F7A8C 0%, #16616F 100%)',
-              WebkitBackgroundClip: 'text',
-              WebkitTextFillColor: 'transparent',
-              fontWeight: 'bold'
-            }}>
-              Workers
-            </h1>
-            <p style={{
-              margin: '0.5rem 0 0 0',
-              color: '#6c757d',
-              fontSize: '1rem'
-            }}>
-              Manage your workforce
-            </p>
+  const content = (
+    <>
+      {/* Header — hidden when embedded */}
+      {!embedded && (
+        <div style={{
+          display: 'flex', justifyContent: 'space-between', alignItems: 'center',
+          marginBottom: '2.5rem', background: 'white', padding: '1.5rem 2rem',
+          borderRadius: '16px', boxShadow: '0 4px 20px rgba(0,0,0,0.08)'
+        }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '1.5rem' }}>
+            <button
+              onClick={() => navigate(projectId ? `/projects/${projectId}` : '/dashboard')}
+              style={{
+                background: '#f8f9fa', color: '#1F7A8C', border: '2px solid #1F7A8C',
+                padding: '0.75rem 1.5rem', fontSize: '0.95rem', fontWeight: '600',
+                borderRadius: '10px', cursor: 'pointer', transition: 'all 0.3s',
+                display: 'flex', alignItems: 'center', gap: '0.5rem'
+              }}
+              onMouseEnter={(e) => { e.currentTarget.style.background = '#1F7A8C'; e.currentTarget.style.color = 'white'; e.currentTarget.style.transform = 'translateX(-3px)'; }}
+              onMouseLeave={(e) => { e.currentTarget.style.background = '#f8f9fa'; e.currentTarget.style.color = '#1F7A8C'; e.currentTarget.style.transform = 'translateX(0)'; }}
+            >
+              ← Back
+            </button>
+            <div>
+              <h1 style={{
+                margin: 0, fontSize: '2.5rem', fontWeight: 'bold',
+                background: 'linear-gradient(135deg, #1F7A8C 0%, #16616F 100%)',
+                WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent'
+              }}>Workers</h1>
+              <p style={{ margin: '0.5rem 0 0 0', color: '#6c757d', fontSize: '1rem' }}>Manage your workforce</p>
+            </div>
           </div>
+          <button onClick={openAddDrawer}
+            style={{
+              background: 'linear-gradient(135deg, #1F7A8C 0%, #16616F 100%)', border: 'none',
+              padding: '0.875rem 2rem', fontSize: '1rem', fontWeight: '600', borderRadius: '10px',
+              boxShadow: '0 4px 15px rgba(31,122,140,0.3)', cursor: 'pointer', color: 'white', transition: 'all 0.3s'
+            }}
+            onMouseEnter={(e) => { e.currentTarget.style.transform = 'translateY(-2px)'; e.currentTarget.style.boxShadow = '0 6px 20px rgba(31,122,140,0.4)'; }}
+            onMouseLeave={(e) => { e.currentTarget.style.transform = 'translateY(0)'; e.currentTarget.style.boxShadow = '0 4px 15px rgba(31,122,140,0.3)'; }}
+          >
+            + Add Worker
+          </button>
         </div>
-        <button
-          onClick={openAddDrawer}
-          style={{
-            background: 'linear-gradient(135deg, #1F7A8C 0%, #16616F 100%)',
-            border: 'none',
-            padding: '0.875rem 2rem',
-            fontSize: '1rem',
-            fontWeight: '600',
-            borderRadius: '10px',
-            boxShadow: '0 4px 15px rgba(31, 122, 140, 0.3)',
-            transition: 'all 0.3s',
-            cursor: 'pointer',
-            color: 'white'
-          }}
-          onMouseEnter={(e) => {
-            e.currentTarget.style.transform = 'translateY(-2px)';
-            e.currentTarget.style.boxShadow = '0 6px 20px rgba(31, 122, 140, 0.4)';
-          }}
-          onMouseLeave={(e) => {
-            e.currentTarget.style.transform = 'translateY(0)';
-            e.currentTarget.style.boxShadow = '0 4px 15px rgba(31, 122, 140, 0.3)';
-          }}
-        >
-          + Add Worker
-        </button>
-      </div>
+      )}
 
       {/* Search & Filter Bar */}
       <div style={{
-        display: 'flex', gap: '1rem', marginBottom: '1.5rem', flexWrap: 'wrap',
-        background: 'white', padding: '1rem 1.5rem', borderRadius: '12px',
-        boxShadow: '0 2px 12px rgba(0,0,0,0.06)'
+        display: 'flex', gap: '0.75rem', marginBottom: '1.5rem', flexWrap: 'wrap',
+        background: embedded ? 'transparent' : 'white',
+        padding: embedded ? '0' : '1rem 1.5rem',
+        borderRadius: '12px',
+        boxShadow: embedded ? 'none' : '0 2px 12px rgba(0,0,0,0.06)',
+        alignItems: 'center'
       }}>
         <input
           type="text"
           placeholder="🔍 Search by name or role..."
           value={search}
-          onChange={e => setSearch(e.target.value)}
+          onChange={e => handleSearchChange(e.target.value)}
           style={{
-            flex: 1, minWidth: '200px', padding: '0.65rem 1rem', fontSize: '0.95rem',
+            flex: 1, minWidth: '160px',
+            padding: embedded ? '0.5rem 0.75rem' : '0.65rem 1rem',
+            fontSize: embedded ? '0.875rem' : '0.95rem',
             border: '2px solid #e9ecef', borderRadius: '8px', outline: 'none'
           }}
           onFocus={e => e.currentTarget.style.borderColor = '#1F7A8C'}
           onBlur={e => e.currentTarget.style.borderColor = '#e9ecef'}
         />
-        <select
-          value={statusFilter}
-          onChange={e => setStatusFilter(e.target.value)}
+        <select value={statusFilter} onChange={e => handleStatusChange(e.target.value)}
           style={{
-            padding: '0.65rem 1rem', fontSize: '0.95rem', border: '2px solid #e9ecef',
-            borderRadius: '8px', outline: 'none', cursor: 'pointer', minWidth: '140px'
-          }}
-        >
+            padding: embedded ? '0.5rem 0.75rem' : '0.65rem 1rem',
+            fontSize: embedded ? '0.875rem' : '0.95rem',
+            border: '2px solid #e9ecef', borderRadius: '8px', outline: 'none', cursor: 'pointer',
+            minWidth: '120px'
+          }}>
           <option value="">All Status</option>
           <option value="active">Active</option>
           <option value="inactive">Inactive</option>
         </select>
-        <select
-          value={paymentTypeFilter}
-          onChange={e => setPaymentTypeFilter(e.target.value)}
+        <select value={paymentTypeFilter} onChange={e => handlePaymentTypeChange(e.target.value)}
           style={{
-            padding: '0.65rem 1rem', fontSize: '0.95rem', border: '2px solid #e9ecef',
-            borderRadius: '8px', outline: 'none', cursor: 'pointer', minWidth: '160px'
-          }}
-        >
+            padding: embedded ? '0.5rem 0.75rem' : '0.65rem 1rem',
+            fontSize: embedded ? '0.875rem' : '0.95rem',
+            border: '2px solid #e9ecef', borderRadius: '8px', outline: 'none', cursor: 'pointer',
+            minWidth: '140px'
+          }}>
           <option value="">All Payment Types</option>
           <option value="daily">Daily Wage</option>
           <option value="contract">Contract</option>
         </select>
-        <span style={{ alignSelf: 'center', color: '#666', fontSize: '0.9rem', whiteSpace: 'nowrap' }}>
-          {filteredWorkers.length} of {workers.length} workers
-        </span>
+        {embedded && (
+          <button onClick={openAddDrawer}
+            style={{
+              background: 'linear-gradient(135deg, #1F7A8C 0%, #16616F 100%)', border: 'none',
+              padding: '0.5rem 1.25rem', fontSize: '0.875rem', fontWeight: '600',
+              borderRadius: '8px', cursor: 'pointer', color: 'white', whiteSpace: 'nowrap'
+            }}>
+            + Add Worker
+          </button>
+        )}
+        {!embedded && (
+          <span style={{ alignSelf: 'center', color: '#666', fontSize: '0.9rem', whiteSpace: 'nowrap' }}>
+            {filteredWorkers.length} of {workers.length} workers
+          </span>
+        )}
       </div>
 
-      {/* Workers Grid */}
+      {/* Workers — Table (embedded) or Grid (standalone) */}
       {filteredWorkers.length > 0 ? (
+        embedded ? (
+          <div style={{ background: 'white', borderRadius: '12px', overflow: 'hidden', border: '1px solid #e9ecef' }}>
+            <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+              <thead>
+                <tr style={{ background: '#f8f9fa', borderBottom: '2px solid #e9ecef' }}>
+                  {['Worker', 'Phone', 'Role', 'Daily Wage', 'Status', 'Days Worked', 'Wages Earned', 'Advances', 'Net Pay', 'Paid'].map(h => (
+                    <th key={h} style={{ padding: '0.75rem 1rem', textAlign: h === 'Wages Earned' || h === 'Advances' || h === 'Paid' || h === 'Daily Wage' || h === 'Days Worked' || h === 'Net Pay' ? 'right' : 'left', color: '#1F7A8C', fontWeight: '600', fontSize: '0.85rem', whiteSpace: 'nowrap' }}>{h}</th>
+                  ))}
+                </tr>
+              </thead>
+              <tbody>
+                {pagedWorkers.map((worker) => (
+                  <tr key={worker.id} style={{ borderBottom: '1px solid #e9ecef' }}
+                    onMouseEnter={e => (e.currentTarget.style.background = '#f8f9fa')}
+                    onMouseLeave={e => (e.currentTarget.style.background = 'white')}>
+                    <td style={{ padding: '0.75rem 1rem' }}>
+                      <span onClick={() => navigate(`/projects/${projectId}/workers/${worker.id}`)}
+                        style={{ color: '#1F7A8C', fontWeight: '600', cursor: 'pointer', fontSize: '0.9rem' }}
+                        onMouseEnter={e => (e.currentTarget.style.textDecoration = 'underline')}
+                        onMouseLeave={e => (e.currentTarget.style.textDecoration = 'none')}>
+                        {worker.name}
+                      </span>
+                    </td>
+                    <td style={{ padding: '0.75rem 1rem', color: '#6c757d', fontSize: '0.875rem' }}>{worker.phone}</td>
+                    <td style={{ padding: '0.75rem 1rem', color: '#495057', fontSize: '0.875rem' }}>{worker.role}</td>
+                    <td style={{ padding: '0.75rem 1rem', textAlign: 'right', fontSize: '0.875rem', color: '#1F7A8C', fontWeight: '600' }}>
+                      ₹{worker.payment_type === 'contract' ? worker.contract_amount : worker.daily_wage}
+                    </td>
+                    <td style={{ padding: '0.75rem 1rem' }}>
+                      <span style={{ padding: '0.2rem 0.6rem', borderRadius: '12px', fontSize: '0.75rem', fontWeight: '600', background: worker.is_active ? '#dcfce7' : '#fee2e2', color: worker.is_active ? '#16a34a' : '#dc2626' }}>
+                        {worker.is_active ? 'Active' : 'Inactive'}
+                      </span>
+                    </td>
+                    <td style={{ padding: '0.75rem 1rem', textAlign: 'right', fontWeight: '600', fontSize: '0.875rem', color: '#6366f1' }}>
+                      {worker.days_worked || 0}
+                    </td>
+                    <td style={{ padding: '0.75rem 1rem', textAlign: 'right', fontWeight: '600', fontSize: '0.875rem', color: '#1F7A8C' }}>
+                      ₹{parseFloat(worker.total_wages_earned || 0).toLocaleString('en-IN')}
+                    </td>
+                    <td style={{ padding: '0.75rem 1rem', textAlign: 'right', fontWeight: '600', fontSize: '0.875rem', color: '#f59e0b' }}>
+                      ₹{parseFloat(worker.total_advances || 0).toLocaleString('en-IN')}
+                    </td>
+                    <td style={{ padding: '0.75rem 1rem', textAlign: 'right', fontWeight: '700', fontSize: '0.875rem', color: '#7c3aed' }}>
+                      ₹{parseFloat(worker.balance_due || 0).toLocaleString('en-IN')}
+                    </td>
+                    <td style={{ padding: '0.75rem 1rem', textAlign: 'right', fontWeight: '600', fontSize: '0.875rem', color: '#22c55e' }}>
+                      ₹{parseFloat(worker.total_payments || 0).toLocaleString('en-IN')}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+              <tfoot>
+                <tr style={{ background: '#f0f9ff', borderTop: '2px solid #1F7A8C' }}>
+                  <td colSpan={5} style={{ padding: '0.75rem 1rem', fontWeight: '700', color: '#1F7A8C' }}>TOTAL</td>
+                  <td style={{ padding: '0.75rem 1rem', textAlign: 'right', fontWeight: '700', color: '#6366f1' }}>
+                    {filteredWorkers.reduce((s, w) => s + (w.days_worked || 0), 0)}
+                  </td>
+                  <td style={{ padding: '0.75rem 1rem', textAlign: 'right', fontWeight: '700', color: '#1F7A8C' }}>
+                    ₹{filteredWorkers.reduce((s, w) => s + parseFloat(w.total_wages_earned || 0), 0).toLocaleString('en-IN')}
+                  </td>
+                  <td style={{ padding: '0.75rem 1rem', textAlign: 'right', fontWeight: '700', color: '#f59e0b' }}>
+                    ₹{filteredWorkers.reduce((s, w) => s + parseFloat(w.total_advances || 0), 0).toLocaleString('en-IN')}
+                  </td>
+                  <td style={{ padding: '0.75rem 1rem', textAlign: 'right', fontWeight: '700', color: '#7c3aed' }}>
+                    ₹{filteredWorkers.reduce((s, w) => s + parseFloat(w.balance_due || 0), 0).toLocaleString('en-IN')}
+                  </td>
+                  <td style={{ padding: '0.75rem 1rem', textAlign: 'right', fontWeight: '700', color: '#22c55e' }}>
+                    ₹{filteredWorkers.reduce((s, w) => s + parseFloat(w.total_payments || 0), 0).toLocaleString('en-IN')}
+                  </td>
+                </tr>
+              </tfoot>
+            </table>
+            <Pagination
+              currentPage={currentPage} totalPages={totalPages} pageSize={pageSize}
+              totalItems={filteredWorkers.length} rangeStart={rangeStart} rangeEnd={rangeEnd}
+              onPageChange={setCurrentPage} onPageSizeChange={handlePageSizeChange}
+              label="workers"
+            />
+          </div>
+        ) : (
         <div className="grid grid-cols-4" style={{ gap: '1.25rem' }}>
-          {filteredWorkers.map((worker, index) => (
+          {pagedWorkers.map((worker, index) => (
             <div
               key={worker.id}
               style={{
@@ -348,161 +412,39 @@ const WorkerList: React.FC = () => {
                 e.currentTarget.style.boxShadow = '0 4px 15px rgba(0,0,0,0.08)';
               }}
             >
-              {/* Worker Header */}
               <div style={{ marginBottom: '0.875rem' }}>
                 <h3
                   onClick={() => navigate(isProjectRoute ? `/projects/${projectId}/workers/${worker.id}` : `/workers/${worker.id}`)}
-                  style={{
-                    margin: '0 0 0.5rem 0',
-                    fontSize: '1.15rem',
-                    color: '#1F7A8C',
-                    fontWeight: '700',
-                    cursor: 'pointer',
-                    transition: 'all 0.2s'
-                  }}
-                  onMouseEnter={(e) => {
-                    e.currentTarget.style.color = '#16616F';
-                    e.currentTarget.style.textDecoration = 'underline';
-                  }}
-                  onMouseLeave={(e) => {
-                    e.currentTarget.style.color = '#1F7A8C';
-                    e.currentTarget.style.textDecoration = 'none';
-                  }}
+                  style={{ margin: '0 0 0.5rem 0', fontSize: '1.15rem', color: '#1F7A8C', fontWeight: '700', cursor: 'pointer' }}
+                  onMouseEnter={(e) => { e.currentTarget.style.textDecoration = 'underline'; }}
+                  onMouseLeave={(e) => { e.currentTarget.style.textDecoration = 'none'; }}
                 >
                   {worker.name}
                 </h3>
-
-                <div style={{
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: '0.4rem',
-                  margin: '0.35rem 0',
-                  color: '#6c757d'
-                }}>
-                  <span style={{ fontSize: '0.95rem' }}>💼</span>
-                  <span style={{ fontSize: '0.85rem' }}>{worker.role}</span>
-                </div>
-
-                <div style={{
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: '0.4rem',
-                  margin: '0.35rem 0',
-                  color: '#6c757d'
-                }}>
-                  <span style={{ fontSize: '0.95rem' }}>📱</span>
-                  <span style={{ fontSize: '0.85rem' }}>{worker.phone}</span>
-                </div>
+                <div style={{ color: '#6c757d', fontSize: '0.85rem', margin: '0.25rem 0' }}>💼 {worker.role}</div>
+                <div style={{ color: '#6c757d', fontSize: '0.85rem', margin: '0.25rem 0' }}>📱 {worker.phone}</div>
               </div>
-
-              {/* Status Badge */}
               <div style={{ marginBottom: '0.875rem' }}>
-                <span style={{
-                  display: 'inline-block',
-                  padding: '0.35rem 0.75rem',
-                  borderRadius: '16px',
-                  fontSize: '0.75rem',
-                  fontWeight: '600',
-                  textTransform: 'uppercase',
-                  letterSpacing: '0.5px',
-                  background: worker.is_active
-                    ? 'linear-gradient(135deg, #22c55e 0%, #16a34a 100%)'
-                    : 'linear-gradient(135deg, #ef4444 0%, #dc2626 100%)',
-                  color: 'white',
-                  boxShadow: worker.is_active
-                    ? '0 2px 8px rgba(34, 197, 94, 0.3)'
-                    : '0 2px 8px rgba(239, 68, 68, 0.3)'
-                }}>
+                <span style={{ display: 'inline-block', padding: '0.35rem 0.75rem', borderRadius: '16px', fontSize: '0.75rem', fontWeight: '600', background: worker.is_active ? '#dcfce7' : '#fee2e2', color: worker.is_active ? '#16a34a' : '#dc2626' }}>
                   {worker.is_active ? 'Active' : 'Inactive'}
                 </span>
               </div>
-
-              {/* Daily Wage */}
-              <div style={{
-                marginBottom: '1rem',
-                padding: '0.75rem',
-                background: 'linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%)',
-                borderRadius: '8px',
-                borderLeft: '3px solid #1F7A8C'
-              }}>
-                <p style={{
-                  margin: 0,
-                  fontSize: '0.75rem',
-                  color: '#6c757d',
-                  marginBottom: '0.15rem'
-                }}>
-                    {worker.payment_type === 'contract' ? 'Contract' : 'Daily Wage'}
-                </p>
-                <p style={{
-                  margin: 0,
-                  fontSize: '1.15rem',
-                  fontWeight: 'bold',
-                  color: '#1F7A8C'
-                }}>
-                  {worker.payment_type === 'contract'
-                    ? `₹${worker.contract_amount} (contract)`
-                    : `₹${worker.daily_wage}/day`}
+              <div style={{ marginBottom: '1rem', padding: '0.75rem', background: '#f8f9fa', borderRadius: '8px', borderLeft: '3px solid #1F7A8C' }}>
+                <p style={{ margin: 0, fontSize: '0.75rem', color: '#6c757d' }}>{worker.payment_type === 'contract' ? 'Contract' : 'Daily Wage'}</p>
+                <p style={{ margin: 0, fontSize: '1.1rem', fontWeight: 'bold', color: '#1F7A8C' }}>
+                  {worker.payment_type === 'contract' ? `₹${worker.contract_amount}` : `₹${worker.daily_wage}/day`}
                 </p>
               </div>
-
-              {/* Action Buttons */}
               <div style={{ display: 'flex', gap: '0.5rem' }}>
-                <button
-                  style={{
-                    flex: 1,
-                    background: '#f8f9fa',
-                    color: '#1F7A8C',
-                    border: '2px solid #1F7A8C',
-                    padding: '0.6rem',
-                    borderRadius: '6px',
-                    fontWeight: '600',
-                    fontSize: '0.85rem',
-                    transition: 'all 0.2s',
-                    cursor: 'pointer'
-                  }}
-                  onClick={() => openEditDrawer(worker)}
-                  onMouseEnter={(e) => {
-                    e.currentTarget.style.background = '#1F7A8C';
-                    e.currentTarget.style.color = 'white';
-                    e.currentTarget.style.transform = 'scale(1.05)';
-                  }}
-                  onMouseLeave={(e) => {
-                    e.currentTarget.style.background = '#f8f9fa';
-                    e.currentTarget.style.color = '#1F7A8C';
-                    e.currentTarget.style.transform = 'scale(1)';
-                  }}
-                >
-                  Edit
-                </button>
-                <button
-                  style={{
-                    flex: 1,
-                    background: 'linear-gradient(135deg, #ef4444 0%, #dc2626 100%)',
-                    color: 'white',
-                    border: 'none',
-                    padding: '0.6rem',
-                    borderRadius: '6px',
-                    fontWeight: '600',
-                    fontSize: '0.85rem',
-                    transition: 'all 0.2s',
-                    cursor: 'pointer'
-                  }}
-                  onClick={() => handleDeleteClick(worker.id)}
-                  onMouseEnter={(e) => {
-                    e.currentTarget.style.transform = 'scale(1.05)';
-                    e.currentTarget.style.boxShadow = '0 4px 12px rgba(239, 68, 68, 0.4)';
-                  }}
-                  onMouseLeave={(e) => {
-                    e.currentTarget.style.transform = 'scale(1)';
-                    e.currentTarget.style.boxShadow = 'none';
-                  }}
-                >
-                  Delete
-                </button>
+                <button style={{ flex: 1, background: '#f8f9fa', color: '#1F7A8C', border: '2px solid #1F7A8C', padding: '0.6rem', borderRadius: '6px', fontWeight: '600', fontSize: '0.85rem', cursor: 'pointer' }}
+                  onClick={() => openEditDrawer(worker)}>Edit</button>
+                <button style={{ flex: 1, background: '#ef4444', color: 'white', border: 'none', padding: '0.6rem', borderRadius: '6px', fontWeight: '600', fontSize: '0.85rem', cursor: 'pointer' }}
+                  onClick={() => handleDeleteClick(worker.id)}>Delete</button>
               </div>
             </div>
           ))}
         </div>
+        )
       ) : (
         <div style={{
           textAlign: 'center',
@@ -538,6 +480,18 @@ const WorkerList: React.FC = () => {
           >
             + Add Worker
           </button>
+        </div>
+      )}
+
+      {/* Pagination Footer — standalone mode only */}
+      {!embedded && (
+        <div style={{ marginTop: '1rem', background: 'white', borderRadius: '10px', border: '1px solid #e9ecef', overflow: 'hidden' }}>
+          <Pagination
+            currentPage={currentPage} totalPages={totalPages} pageSize={pageSize}
+            totalItems={filteredWorkers.length} rangeStart={rangeStart} rangeEnd={rangeEnd}
+            onPageChange={setCurrentPage} onPageSizeChange={handlePageSizeChange}
+            label="workers"
+          />
         </div>
       )}
 
@@ -788,35 +742,6 @@ const WorkerList: React.FC = () => {
                   </div>
                 )}
 
-                <div style={{ marginBottom: '1.5rem' }}>
-                  <input
-                    type="number"
-                    name="advance_given"
-                    value={formData.advance_given}
-                    onChange={handleFormChange}
-                    min="0"
-                    step="0.01"
-                    placeholder="Advance Amount (optional)"
-                    style={{
-                      width: '100%',
-                      padding: '0.75rem 1rem',
-                      fontSize: '1rem',
-                      border: '2px solid #e9ecef',
-                      borderRadius: '8px',
-                      transition: 'all 0.3s',
-                      outline: 'none'
-                    }}
-                    onFocus={(e) => {
-                      e.currentTarget.style.borderColor = '#1F7A8C';
-                      e.currentTarget.style.boxShadow = '0 0 0 3px rgba(31, 122, 140, 0.1)';
-                    }}
-                    onBlur={(e) => {
-                      e.currentTarget.style.borderColor = '#e9ecef';
-                      e.currentTarget.style.boxShadow = 'none';
-                    }}
-                  />
-                </div>
-
                 <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem', marginBottom: '1.5rem' }}>
                   <div>
                     <label style={{
@@ -862,6 +787,44 @@ const WorkerList: React.FC = () => {
                       color: '#1F7A8C',
                       fontWeight: '600',
                       fontSize: '0.95rem'
+                    }}>Advance Amount</label>
+                    <input
+                      type="number"
+                      name="advance_given"
+                      value={formData.advance_given}
+                      onChange={handleFormChange}
+                      min="0"
+                      step="0.01"
+                      placeholder="0"
+                      style={{
+                        width: '100%',
+                        padding: '0.75rem 1rem',
+                        fontSize: '1rem',
+                        border: '2px solid #e9ecef',
+                        borderRadius: '8px',
+                        transition: 'all 0.3s',
+                        outline: 'none',
+                        boxSizing: 'border-box' as const
+                      }}
+                      onFocus={(e) => {
+                        e.currentTarget.style.borderColor = '#1F7A8C';
+                        e.currentTarget.style.boxShadow = '0 0 0 3px rgba(31, 122, 140, 0.1)';
+                      }}
+                      onBlur={(e) => {
+                        e.currentTarget.style.borderColor = '#e9ecef';
+                        e.currentTarget.style.boxShadow = 'none';
+                      }}
+                    />
+                  </div>
+
+                  {!projectId && (
+                  <div>
+                    <label style={{
+                      display: 'block',
+                      marginBottom: '0.5rem',
+                      color: '#1F7A8C',
+                      fontWeight: '600',
+                      fontSize: '0.95rem'
                     }}>Project *</label>
                     <select
                       name="project_id"
@@ -895,6 +858,7 @@ const WorkerList: React.FC = () => {
                       ))}
                     </select>
                   </div>
+                  )}
                 </div>
 
                 <div style={{ marginBottom: '1.5rem' }}>
@@ -1046,6 +1010,20 @@ const WorkerList: React.FC = () => {
           }
         }
       `}</style>
+    </>
+  );
+
+  if (embedded) {
+    return <div>{content}</div>;
+  }
+
+  return (
+    <div style={{
+      minHeight: '100vh',
+      background: 'linear-gradient(to bottom, #f8f9fa 0%, #e9ecef 100%)',
+      padding: '2rem 3rem 3rem 3rem'
+    }}>
+      {content}
     </div>
   );
 };

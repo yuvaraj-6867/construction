@@ -1,97 +1,190 @@
+import { formatDate } from '../../utils/formatDate';
 import React, { useState, useEffect } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
+import { useParams, useNavigate, useLocation } from 'react-router-dom';
 import projectService from '../../services/projectService';
-import workerService from '../../services/workerService';
-import attendanceService from '../../services/attendanceService';
-import paymentService from '../../services/paymentService';
-import materialService from '../../services/materialService';
-import expenseService from '../../services/expenseService';
-import invoiceService from '../../services/invoiceService';
-import clientAdvanceService from '../../services/clientAdvanceService';
 import api from '../../services/api';
-import Modal from '../../components/Modal';
+import WorkerList from '../Workers/WorkerList';
+import WorkerDetails from '../Workers/WorkerDetails';
+import PaymentList from '../Payments/PaymentList';
+import BulkPayment from '../Payments/BulkPayment';
+import AttendanceMarking from '../Attendance/AttendanceMarking';
+import AttendanceHistory from '../Attendance/AttendanceHistory';
+import AttendanceCalendar from '../Attendance/AttendanceCalendar';
+import MaterialList from '../Materials/MaterialList';
+import ExpenseList from '../Expenses/ExpenseList';
+import ClientAdvanceList from '../ClientAdvances/ClientAdvanceList';
+import EquipmentList from '../Equipment/EquipmentList';
+import WorkDiaryList from '../WorkDiary/WorkDiaryList';
+import MilestoneList from '../Milestones/MilestoneList';
+import SubcontractorList from '../Subcontractors/SubcontractorList';
 import Loading from '../../components/Loading';
 
-type TabType = 'overview' | 'workers' | 'attendance' | 'payments' | 'materials' | 'expenses' | 'invoices' | 'client-advances' | 'equipment' | 'diary' | 'milestones' | 'subcontractors';
-type ModalType = 'workers' | 'attendance' | 'payments' | 'materials' | 'expenses' | 'invoices' | 'client-advances' | null;
+// Advances Tab — shows worker advance payments for this project
+const AdvancesTab: React.FC<{ projectId: string }> = ({ projectId }) => {
+  const [advances, setAdvances] = useState<any[]>([]);
+  const [workers, setWorkers] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [showForm, setShowForm] = useState(false);
+  const [formData, setFormData] = useState({ worker_id: '', amount: '', date: new Date().toISOString().split('T')[0], notes: '' });
+  const [saving, setSaving] = useState(false);
+
+  useEffect(() => {
+    Promise.all([
+      api.get('/payments', { params: { project_id: projectId, payment_type: 'advance' } }),
+      api.get('/workers', { params: { project_id: projectId } })
+    ]).then(([pRes, wRes]) => {
+      setAdvances(pRes.data || []);
+      setWorkers(wRes.data || []);
+    }).finally(() => setLoading(false));
+  }, [projectId]);
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setSaving(true);
+    try {
+      const res = await api.post('/payments', { payment: { ...formData, project_id: projectId, payment_type: 'advance' } });
+      setAdvances(prev => [res.data, ...prev]);
+      setFormData({ worker_id: '', amount: '', date: new Date().toISOString().split('T')[0], notes: '' });
+      setShowForm(false);
+    } catch (err) { console.error(err); }
+    finally { setSaving(false); }
+  };
+
+  const handleDelete = async (id: number) => {
+    if (!window.confirm('Delete this advance?')) return;
+    await api.delete(`/payments/${id}`);
+    setAdvances(prev => prev.filter(a => a.id !== id));
+  };
+
+  if (loading) return <Loading message="Loading advances..." />;
+
+  const total = advances.reduce((s, a) => s + parseFloat(a.amount || 0), 0);
+
+  return (
+    <div>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
+        <div>
+          <h3 style={{ margin: 0, color: '#1F7A8C', fontSize: '1.1rem', fontWeight: '700' }}>Worker Advances</h3>
+          <p style={{ margin: '0.25rem 0 0', color: '#6c757d', fontSize: '0.85rem' }}>
+            Total: <strong style={{ color: '#f59e0b' }}>₹{total.toLocaleString('en-IN')}</strong>
+          </p>
+        </div>
+        <button onClick={() => setShowForm(v => !v)}
+          style={{ background: 'linear-gradient(135deg, #1F7A8C, #16616F)', color: 'white', border: 'none', padding: '0.6rem 1.25rem', borderRadius: '8px', fontWeight: '600', cursor: 'pointer', fontSize: '0.9rem' }}>
+          {showForm ? 'Cancel' : '+ Add Advance'}
+        </button>
+      </div>
+
+      {showForm && (
+        <form onSubmit={handleSubmit} style={{ background: '#f8f9fa', borderRadius: '10px', padding: '1.25rem', marginBottom: '1.25rem', display: 'grid', gridTemplateColumns: '1fr 1fr 1fr 1fr auto', gap: '0.75rem', alignItems: 'end' }}>
+          <div>
+            <label style={{ fontSize: '0.8rem', fontWeight: '600', color: '#1F7A8C', display: 'block', marginBottom: '0.3rem' }}>Worker *</label>
+            <select required value={formData.worker_id} onChange={e => setFormData(p => ({ ...p, worker_id: e.target.value }))}
+              style={{ width: '100%', padding: '0.6rem', border: '2px solid #e9ecef', borderRadius: '6px', outline: 'none', fontSize: '0.9rem' }}>
+              <option value="">Select worker</option>
+              {workers.map(w => <option key={w.id} value={w.id}>{w.name}</option>)}
+            </select>
+          </div>
+          <div>
+            <label style={{ fontSize: '0.8rem', fontWeight: '600', color: '#1F7A8C', display: 'block', marginBottom: '0.3rem' }}>Amount (₹) *</label>
+            <input required type="number" min="1" value={formData.amount} onChange={e => setFormData(p => ({ ...p, amount: e.target.value }))}
+              placeholder="0" style={{ width: '100%', padding: '0.6rem', border: '2px solid #e9ecef', borderRadius: '6px', outline: 'none', fontSize: '0.9rem', boxSizing: 'border-box' }} />
+          </div>
+          <div>
+            <label style={{ fontSize: '0.8rem', fontWeight: '600', color: '#1F7A8C', display: 'block', marginBottom: '0.3rem' }}>Date *</label>
+            <input required type="date" value={formData.date} onChange={e => setFormData(p => ({ ...p, date: e.target.value }))}
+              style={{ width: '100%', padding: '0.6rem', border: '2px solid #e9ecef', borderRadius: '6px', outline: 'none', fontSize: '0.9rem', boxSizing: 'border-box' }} />
+          </div>
+          <div>
+            <label style={{ fontSize: '0.8rem', fontWeight: '600', color: '#1F7A8C', display: 'block', marginBottom: '0.3rem' }}>Notes</label>
+            <input type="text" value={formData.notes} onChange={e => setFormData(p => ({ ...p, notes: e.target.value }))}
+              placeholder="Optional" style={{ width: '100%', padding: '0.6rem', border: '2px solid #e9ecef', borderRadius: '6px', outline: 'none', fontSize: '0.9rem', boxSizing: 'border-box' }} />
+          </div>
+          <button type="submit" disabled={saving}
+            style={{ background: '#22c55e', color: 'white', border: 'none', padding: '0.6rem 1.25rem', borderRadius: '6px', fontWeight: '600', cursor: 'pointer', whiteSpace: 'nowrap' }}>
+            {saving ? 'Saving...' : 'Save'}
+          </button>
+        </form>
+      )}
+
+      {advances.length === 0 ? (
+        <div style={{ textAlign: 'center', padding: '3rem', background: '#f8f9fa', borderRadius: '12px', color: '#6c757d' }}>
+          No advances recorded yet.
+        </div>
+      ) : (
+        <div style={{ background: 'white', borderRadius: '10px', overflow: 'hidden', border: '1px solid #e9ecef' }}>
+          <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+            <thead>
+              <tr style={{ background: '#f8f9fa', borderBottom: '2px solid #e9ecef' }}>
+                {['Worker', 'Amount', 'Date', 'Notes', ''].map(h => (
+                  <th key={h} style={{ padding: '0.75rem 1rem', textAlign: h === 'Amount' ? 'right' : 'left', color: '#1F7A8C', fontWeight: '600', fontSize: '0.85rem' }}>{h}</th>
+                ))}
+              </tr>
+            </thead>
+            <tbody>
+              {advances.map(a => (
+                <tr key={a.id} style={{ borderBottom: '1px solid #e9ecef' }}
+                  onMouseEnter={e => (e.currentTarget.style.background = '#f8f9fa')}
+                  onMouseLeave={e => (e.currentTarget.style.background = 'white')}>
+                  <td style={{ padding: '0.75rem 1rem', fontWeight: '600', color: '#374151' }}>{a.worker_name || a.worker?.name || '-'}</td>
+                  <td style={{ padding: '0.75rem 1rem', textAlign: 'right', fontWeight: '700', color: '#f59e0b' }}>₹{parseFloat(a.amount).toLocaleString('en-IN')}</td>
+                  <td style={{ padding: '0.75rem 1rem', color: '#6c757d', fontSize: '0.875rem' }}>{formatDate(a.payment_date || a.date)}</td>
+                  <td style={{ padding: '0.75rem 1rem', color: '#6c757d', fontSize: '0.875rem' }}>{a.notes || '-'}</td>
+                  <td style={{ padding: '0.75rem 1rem' }}>
+                    <button onClick={() => handleDelete(a.id)}
+                      style={{ background: '#fee2e2', color: '#dc2626', border: 'none', padding: '0.3rem 0.75rem', borderRadius: '6px', cursor: 'pointer', fontSize: '0.8rem', fontWeight: '600' }}>
+                      Delete
+                    </button>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+            <tfoot>
+              <tr style={{ background: '#f0f9ff', borderTop: '2px solid #1F7A8C' }}>
+                <td style={{ padding: '0.75rem 1rem', fontWeight: '700', color: '#1F7A8C' }}>TOTAL</td>
+                <td style={{ padding: '0.75rem 1rem', textAlign: 'right', fontWeight: '700', color: '#f59e0b' }}>₹{total.toLocaleString('en-IN')}</td>
+                <td colSpan={3} />
+              </tr>
+            </tfoot>
+          </table>
+        </div>
+      )}
+    </div>
+  );
+};
+
+type TabType = 'overview' | 'workers' | 'attendance' | 'payments' | 'advances' | 'materials' | 'expenses' | 'client-advances' | 'equipment' | 'diary' | 'milestones' | 'subcontractors';
 
 const ProjectDetails: React.FC = () => {
-  const { id } = useParams();
+  const { id, workerId } = useParams();
   const navigate = useNavigate();
+  const location = useLocation();
   const [project, setProject] = useState<any>(null);
   const [loading, setLoading] = useState(true);
-  const [activeTab, setActiveTab] = useState<TabType>('overview');
+
+  const getTabFromPath = (): TabType => {
+    const segment = location.pathname.split('/')[3];
+    const validTabs: TabType[] = ['workers', 'attendance', 'payments', 'advances', 'materials', 'expenses', 'client-advances', 'equipment', 'diary', 'milestones', 'subcontractors'];
+    return validTabs.includes(segment as TabType) ? (segment as TabType) : 'overview';
+  };
+
+  const [activeTab, setActiveTab] = useState<TabType>(getTabFromPath);
   const [workers, setWorkers] = useState<any[]>([]);
-  const [attendances, setAttendances] = useState<any[]>([]);
-  const [payments, setPayments] = useState<any[]>([]);
-  const [materials, setMaterials] = useState<any[]>([]);
-  const [expenses, setExpenses] = useState<any[]>([]);
-  const [openModal, setOpenModal] = useState<ModalType>(null);
-  const [allWorkers, setAllWorkers] = useState<any[]>([]);
-  const [allAttendances, setAllAttendances] = useState<any[]>([]);
-  const [allPayments, setAllPayments] = useState<any[]>([]);
-  const [allMaterials, setAllMaterials] = useState<any[]>([]);
-  const [allExpenses, setAllExpenses] = useState<any[]>([]);
-  const [editingWorker, setEditingWorker] = useState<any | null>(null);
-  const [editForm, setEditForm] = useState<any>({});
-  const [editSaving, setEditSaving] = useState(false);
-  const [showAddWorker, setShowAddWorker] = useState(false);
-  const [addForm, setAddForm] = useState<any>({ name: '', phone: '', role: '', daily_wage: '', payment_type: 'daily', contract_amount: '', status: 'active' });
-  const [addSaving, setAddSaving] = useState(false);
-  // Attendance modal
-  const [showAddAttendance, setShowAddAttendance] = useState(false);
-  const [attForm, setAttForm] = useState<any>({ worker_id: '', date: new Date().toISOString().split('T')[0], status: 'present', notes: '' });
-  const [attSaving, setAttSaving] = useState(false);
-  // Payment modal
-  const [showAddPayment, setShowAddPayment] = useState(false);
-  const [payForm, setPayForm] = useState<any>({ worker_id: '', amount: '', payment_date: new Date().toISOString().split('T')[0], payment_method: 'cash', payment_type: 'salary', notes: '' });
-  const [paySaving, setPaySaving] = useState(false);
-  // Material modal
-  const [showAddMaterial, setShowAddMaterial] = useState(false);
-  const [matForm, setMatForm] = useState<any>({ name: '', quantity: '', unit: 'kg', cost: '', supplier: '', purchase_date: new Date().toISOString().split('T')[0] });
-  const [matSaving, setMatSaving] = useState(false);
-  // Expense modal
-  const [showAddExpense, setShowAddExpense] = useState(false);
-  const [expForm, setExpForm] = useState<any>({ category: 'miscellaneous', description: '', amount: '', date: new Date().toISOString().split('T')[0], bill_number: '', notes: '' });
-  const [expSaving, setExpSaving] = useState(false);
-  // Invoice modal
-  const [showAddInvoice, setShowAddInvoice] = useState(false);
-  const [invForm, setInvForm] = useState<any>({ invoice_number: '', amount: '', date: new Date().toISOString().split('T')[0], due_date: '', status: 'pending', notes: '' });
-  const [invSaving, setInvSaving] = useState(false);
-  // Client Advance modal
-  const [showAddAdvance, setShowAddAdvance] = useState(false);
-  const [advForm, setAdvForm] = useState<any>({ amount: '', date: new Date().toISOString().split('T')[0], payment_method: 'cash', reference_number: '', notes: '' });
-  const [advSaving, setAdvSaving] = useState(false);
-  // Equipment
-  const [equipment, setEquipment] = useState<any[]>([]);
-  const [showAddEquipment, setShowAddEquipment] = useState(false);
-  const [equForm, setEquForm] = useState<any>({ name: '', equipment_type: '', usage_date: new Date().toISOString().split('T')[0], hours_used: '', daily_rate: '', operator_name: '', notes: '' });
-  const [equSaving, setEquSaving] = useState(false);
-  // Work Diary
-  const [diary, setDiary] = useState<any[]>([]);
-  const [showAddDiary, setShowAddDiary] = useState(false);
-  const [diaryForm, setDiaryForm] = useState<any>({ date: new Date().toISOString().split('T')[0], title: '', description: '', weather: '', workers_present_count: '', work_done: '', issues: '' });
-  const [diarySaving, setDiarySaving] = useState(false);
+  const [attSubTab, setAttSubTab] = useState<'marking' | 'history' | 'calendar'>('marking');
+  const [paySubTab, setPaySubTab] = useState<'list' | 'bulk'>('list');
+  const [calendarWorkerId, setCalendarWorkerId] = useState<string>('');
+
+  useEffect(() => {
+    setActiveTab(getTabFromPath());
+  }, [location.pathname]);
 
   useEffect(() => {
     loadProject();
   }, [id]);
 
   useEffect(() => {
-    if (activeTab === 'workers' && id) {
-      loadWorkers();
-    } else if (activeTab === 'attendance' && id) {
-      loadAttendances();
-    } else if (activeTab === 'payments' && id) {
-      loadPayments();
-    } else if (activeTab === 'materials' && id) {
-      loadMaterials();
-    } else if (activeTab === 'expenses' && id) {
-      loadExpenses();
-    } else if (activeTab === 'equipment' && id) {
-      loadEquipment();
-    } else if (activeTab === 'diary' && id) {
-      loadDiary();
+    if (activeTab === 'attendance' && id) {
+      loadWorkersForDropdown();
     }
   }, [activeTab, id]);
 
@@ -106,214 +199,11 @@ const ProjectDetails: React.FC = () => {
     }
   };
 
-  const loadWorkers = async () => {
+  const loadWorkersForDropdown = async () => {
     try {
-      const data = await workerService.getAll(id!);
-      setWorkers(data.filter((w: any) => w.is_active));
-    } catch (error) {
-      console.error('Failed to load workers:', error);
-    }
-  };
-
-  const loadAttendances = async () => {
-    try {
-      const data = await attendanceService.getAll({ project_id: id! });
-      setAttendances(data.slice(0, 10));
-    } catch (error) {
-      console.error('Failed to load attendances:', error);
-    }
-  };
-
-  const loadPayments = async () => {
-    try {
-      const data = await paymentService.getAll(undefined, id!);
-      setPayments(data.slice(0, 10));
-    } catch (error) {
-      console.error('Failed to load payments:', error);
-    }
-  };
-
-  const loadMaterials = async () => {
-    try {
-      const data = await materialService.getAll(id!);
-      setMaterials(data.slice(0, 10));
-    } catch (error) {
-      console.error('Failed to load materials:', error);
-    }
-  };
-
-  const loadExpenses = async () => {
-    try {
-      const data = await expenseService.getAll(id!);
-      setExpenses(data.slice(0, 10));
-    } catch (error) {
-      console.error('Failed to load expenses:', error);
-    }
-  };
-
-  const handleEditWorker = (worker: any) => {
-    setEditingWorker(worker);
-    setEditForm({
-      name: worker.name || '',
-      phone: worker.phone || '',
-      role: worker.role || '',
-      daily_wage: worker.daily_wage || '',
-      payment_type: worker.payment_type || 'daily',
-      contract_amount: worker.contract_amount || '',
-      status: worker.is_active ? 'active' : 'inactive',
-    });
-  };
-
-  const handleSaveWorker = async () => {
-    if (!editingWorker) return;
-    setEditSaving(true);
-    try {
-      await workerService.update(editingWorker.id, editForm);
-      setEditingWorker(null);
-      loadWorkers();
-    } catch (error) {
-      alert('Failed to save worker');
-    } finally {
-      setEditSaving(false);
-    }
-  };
-
-  const handleAddWorker = async () => {
-    setAddSaving(true);
-    try {
-      await workerService.create({ ...addForm, project_id: id });
-      setShowAddWorker(false);
-      setAddForm({ name: '', phone: '', role: '', daily_wage: '', payment_type: 'daily', contract_amount: '', status: 'active' });
-      loadWorkers();
-    } catch (error) {
-      alert('Failed to add worker');
-    } finally {
-      setAddSaving(false);
-    }
-  };
-
-  const handleAddAttendance = async () => {
-    setAttSaving(true);
-    try {
-      await attendanceService.bulkCreate([{ ...attForm, project_id: id }]);
-      setShowAddAttendance(false);
-      setAttForm({ worker_id: '', date: new Date().toISOString().split('T')[0], status: 'present', notes: '' });
-      loadAttendances();
-    } catch { alert('Failed to add attendance'); } finally { setAttSaving(false); }
-  };
-
-  const handleAddPayment = async () => {
-    setPaySaving(true);
-    try {
-      await paymentService.create({ ...payForm, project_id: id });
-      setShowAddPayment(false);
-      setPayForm({ worker_id: '', amount: '', payment_date: new Date().toISOString().split('T')[0], payment_method: 'cash', payment_type: 'salary', notes: '' });
-      loadPayments();
-    } catch { alert('Failed to add payment'); } finally { setPaySaving(false); }
-  };
-
-  const handleAddMaterial = async () => {
-    setMatSaving(true);
-    try {
-      await materialService.create({ ...matForm, project_id: id });
-      setShowAddMaterial(false);
-      setMatForm({ name: '', quantity: '', unit: 'kg', cost: '', supplier: '', purchase_date: new Date().toISOString().split('T')[0] });
-      loadMaterials();
-    } catch { alert('Failed to add material'); } finally { setMatSaving(false); }
-  };
-
-  const handleAddExpense = async () => {
-    setExpSaving(true);
-    try {
-      await expenseService.create({ ...expForm, project_id: id });
-      setShowAddExpense(false);
-      setExpForm({ category: 'miscellaneous', description: '', amount: '', date: new Date().toISOString().split('T')[0], bill_number: '', notes: '' });
-      loadExpenses();
-    } catch { alert('Failed to add expense'); } finally { setExpSaving(false); }
-  };
-
-  const handleAddInvoice = async () => {
-    setInvSaving(true);
-    try {
-      await invoiceService.create({ ...invForm, project_id: id });
-      setShowAddInvoice(false);
-      setInvForm({ invoice_number: '', amount: '', date: new Date().toISOString().split('T')[0], due_date: '', status: 'pending', notes: '' });
-    } catch { alert('Failed to add invoice'); } finally { setInvSaving(false); }
-  };
-
-  const loadEquipment = async () => {
-    try {
-      const res = await api.get('/equipments', { params: { project_id: id } });
-      setEquipment(res.data);
-    } catch (error) { console.error('Failed to load equipment:', error); }
-  };
-
-  const loadDiary = async () => {
-    try {
-      const res = await api.get('/work_diaries', { params: { project_id: id } });
-      setDiary(res.data);
-    } catch (error) { console.error('Failed to load diary:', error); }
-  };
-
-  const handleAddEquipment = async () => {
-    setEquSaving(true);
-    try {
-      await api.post('/equipments', { equipment: { ...equForm, project_id: id } });
-      setShowAddEquipment(false);
-      setEquForm({ name: '', equipment_type: '', usage_date: new Date().toISOString().split('T')[0], hours_used: '', daily_rate: '', operator_name: '', notes: '' });
-      loadEquipment();
-    } catch { alert('Failed to add equipment'); } finally { setEquSaving(false); }
-  };
-
-  const handleAddDiary = async () => {
-    setDiarySaving(true);
-    try {
-      await api.post('/work_diaries', { work_diary: { ...diaryForm, project_id: id } });
-      setShowAddDiary(false);
-      setDiaryForm({ date: new Date().toISOString().split('T')[0], title: '', description: '', weather: '', workers_present_count: '', work_done: '', issues: '' });
-      loadDiary();
-    } catch { alert('Failed to add diary entry'); } finally { setDiarySaving(false); }
-  };
-
-  const handleAddClientAdvance = async () => {
-    setAdvSaving(true);
-    try {
-      await clientAdvanceService.create({ ...advForm, project_id: id });
-      setShowAddAdvance(false);
-      setAdvForm({ amount: '', date: new Date().toISOString().split('T')[0], payment_method: 'cash', reference_number: '', notes: '' });
-    } catch { alert('Failed to add advance'); } finally { setAdvSaving(false); }
-  };
-
-  const handleOpenModal = async (type: ModalType) => {
-    setOpenModal(type);
-
-    // Load all data based on modal type
-    try {
-      switch (type) {
-        case 'workers':
-          const workersData = await workerService.getAll(id!);
-          setAllWorkers(workersData.filter((w: any) => w.is_active));
-          break;
-        case 'attendance':
-          const attendanceData = await attendanceService.getAll({ project_id: id! });
-          setAllAttendances(attendanceData);
-          break;
-        case 'payments':
-          const paymentsData = await paymentService.getAll(undefined, id!);
-          setAllPayments(paymentsData);
-          break;
-        case 'materials':
-          const materialsData = await materialService.getAll(id!);
-          setAllMaterials(materialsData);
-          break;
-        case 'expenses':
-          const expensesData = await expenseService.getAll(id!);
-          setAllExpenses(expensesData);
-          break;
-      }
-    } catch (error) {
-      console.error(`Failed to load ${type} data:`, error);
-    }
+      const res = await api.get('/workers', { params: { project_id: id } });
+      setWorkers(res.data.filter((w: any) => w.is_active));
+    } catch (error) { console.error('Failed to load workers:', error); }
   };
 
   if (loading) {
@@ -343,14 +233,14 @@ const ProjectDetails: React.FC = () => {
 
   const stats = project.stats || {};
 
-  const tabs: { id: TabType; label: string; icon: string; path?: string }[] = [
+  const tabs: { id: TabType; label: string; icon: string }[] = [
     { id: 'overview', label: 'Overview', icon: '📊' },
     { id: 'workers', label: 'Workers', icon: '👷' },
     { id: 'attendance', label: 'Attendance', icon: '✓' },
     { id: 'payments', label: 'Payments', icon: '💰' },
+    { id: 'advances', label: 'Advances', icon: '💳' },
     { id: 'materials', label: 'Materials', icon: '🧱' },
     { id: 'expenses', label: 'Expenses', icon: '💸' },
-    { id: 'invoices', label: 'Invoices', icon: '📄' },
     { id: 'client-advances', label: 'Client Advances', icon: '💵' },
     { id: 'equipment', label: 'Equipment', icon: '🔧' },
     { id: 'diary', label: 'Work Diary', icon: '📓' },
@@ -508,345 +398,50 @@ const ProjectDetails: React.FC = () => {
           </div>
         );
       case 'workers':
-        return (
-          <div>
-            <div style={{
-              display: 'flex',
-              justifyContent: 'space-between',
-              alignItems: 'center',
-              marginBottom: '1.5rem'
-            }}>
-              <h2 style={{
-                margin: 0,
-                fontSize: '1.5rem',
-                color: '#1F7A8C',
-                fontWeight: 'bold'
-              }}>
-                Project Workers ({workers.length})
-              </h2>
-              <div style={{ display: 'flex', gap: '0.75rem' }}>
-                <button
-                  onClick={() => setShowAddWorker(true)}
-                  style={{
-                    background: 'linear-gradient(135deg, #1F7A8C 0%, #16616F 100%)',
-                    border: 'none',
-                    color: 'white',
-                    padding: '0.75rem 1.5rem',
-                    fontSize: '0.95rem',
-                    fontWeight: '600',
-                    borderRadius: '10px',
-                    boxShadow: '0 4px 15px rgba(31, 122, 140, 0.3)',
-                    cursor: 'pointer',
-                    transition: 'all 0.3s'
-                  }}
-                  onMouseEnter={(e) => {
-                    e.currentTarget.style.transform = 'translateY(-2px)';
-                    e.currentTarget.style.boxShadow = '0 6px 20px rgba(31, 122, 140, 0.4)';
-                  }}
-                  onMouseLeave={(e) => {
-                    e.currentTarget.style.transform = 'translateY(0)';
-                    e.currentTarget.style.boxShadow = '0 4px 15px rgba(31, 122, 140, 0.3)';
-                  }}
-                >
-                  + Add Worker
-                </button>
-              </div>
-            </div>
-
-            {/* Workers Empty State */}
-            {workers.length === 0 && (
-              <div style={{ background: 'white', borderRadius: '12px', padding: '3rem', boxShadow: '0 4px 15px rgba(0,0,0,0.08)', border: '1px solid #e9ecef', textAlign: 'center' }}>
-                <div style={{ fontSize: '3rem', marginBottom: '1rem' }}>👷</div>
-                <h3 style={{ color: '#1F7A8C', marginBottom: '0.5rem' }}>No Workers Added Yet</h3>
-                <p style={{ color: '#6c757d', marginBottom: '1.5rem' }}>Add workers to this project to track attendance and payments</p>
-                <button onClick={() => setShowAddWorker(true)}
-                  style={{ padding: '0.6rem 1.5rem', background: '#1F7A8C', color: 'white', border: 'none', borderRadius: '8px', fontSize: '0.9rem', fontWeight: '600', cursor: 'pointer' }}>
-                  + Add Worker
-                </button>
-              </div>
-            )}
-
-            {/* Worker Balance Summary Table */}
-            {workers.length > 0 && (
-              <div style={{
-                background: 'white', borderRadius: '12px', padding: '1.5rem',
-                boxShadow: '0 4px 15px rgba(0,0,0,0.08)', border: '1px solid #e9ecef',
-                marginBottom: '1.5rem', overflowX: 'auto'
-              }}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
-                  <h3 style={{ margin: 0, color: '#1F7A8C', fontWeight: '700', fontSize: '1.1rem' }}>
-                    💰 Worker Balance Summary
-                  </h3>
-
-                </div>
-                <table style={{ width: '100%', borderCollapse: 'collapse' }}>
-                  <thead>
-                    <tr style={{ background: '#f8f9fa' }}>
-                      {['Worker', 'Phone', 'Role', 'Daily Wage', 'Status', 'Wages Earned', 'Advances', 'Paid', 'Balance Due', 'Action'].map(h => (
-                        <th key={h} style={{ padding: '0.75rem 1rem', textAlign: ['Worker', 'Phone', 'Role', 'Status', 'Action'].includes(h) ? 'left' : 'right', color: '#1F7A8C', fontWeight: '600', fontSize: '0.85rem', borderBottom: '2px solid #e9ecef' }}>{h}</th>
-                      ))}
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {workers.map(w => {
-                      const wages = parseFloat(w.total_wages_earned || 0);
-                      const paid = parseFloat(w.total_payments || 0);
-                      const balance = parseFloat(w.balance_due || 0);
-                      return (
-                        <tr key={w.id} style={{ borderBottom: '1px solid #e9ecef' }}
-                          onMouseEnter={e => { e.currentTarget.style.background = '#f8f9fa'; }}
-                          onMouseLeave={e => { e.currentTarget.style.background = 'white'; }}
-                        >
-                          <td style={{ padding: '0.75rem 1rem', fontWeight: '600', color: '#1F7A8C', cursor: 'pointer' }}
-                            onClick={() => navigate(`/projects/${id}/workers/${w.id}`)}>
-                            {w.name}
-                          </td>
-                          <td style={{ padding: '0.75rem 1rem', color: '#6c757d', fontSize: '0.875rem' }}>{w.phone || '-'}</td>
-                          <td style={{ padding: '0.75rem 1rem', color: '#6c757d', fontSize: '0.875rem' }}>{w.role}</td>
-                          <td style={{ padding: '0.75rem 1rem', textAlign: 'right', color: '#374151', fontSize: '0.875rem' }}>
-                            ₹{parseFloat(w.daily_wage || 0).toLocaleString('en-IN')}
-                          </td>
-                          <td style={{ padding: '0.75rem 1rem' }}>
-                            <span style={{ padding: '0.2rem 0.6rem', borderRadius: '12px', fontSize: '0.75rem', fontWeight: '600',
-                              background: w.is_active ? '#dcfce7' : '#fee2e2', color: w.is_active ? '#16a34a' : '#dc2626' }}>
-                              {w.is_active ? 'Active' : 'Inactive'}
-                            </span>
-                          </td>
-                          <td style={{ padding: '0.75rem 1rem', textAlign: 'right', fontWeight: '600', color: '#374151' }}>
-                            ₹{wages.toLocaleString('en-IN')}
-                          </td>
-                          <td style={{ padding: '0.75rem 1rem', textAlign: 'right', color: '#f59e0b', fontWeight: '600' }}>
-                            ₹{parseFloat(w.total_advances || 0).toLocaleString('en-IN')}
-                          </td>
-                          <td style={{ padding: '0.75rem 1rem', textAlign: 'right', color: '#22c55e', fontWeight: '600' }}>
-                            ₹{paid.toLocaleString('en-IN')}
-                          </td>
-                          <td style={{ padding: '0.75rem 1rem', textAlign: 'right', fontWeight: '700',
-                            color: balance > 0 ? '#ef4444' : balance < 0 ? '#22c55e' : '#6c757d' }}>
-                            {balance > 0 ? `₹${balance.toLocaleString('en-IN')} owed` : balance < 0 ? `₹${Math.abs(balance).toLocaleString('en-IN')} excess` : '✓ Settled'}
-                          </td>
-                          <td style={{ padding: '0.75rem 1rem' }}>
-                            <button onClick={() => handleEditWorker(w)}
-                              style={{ padding: '0.3rem 0.75rem', background: '#f8f9fa', border: '1px solid #1F7A8C', color: '#1F7A8C', borderRadius: '6px', fontSize: '0.8rem', fontWeight: '600', cursor: 'pointer' }}>
-                              Edit
-                            </button>
-                          </td>
-                        </tr>
-                      );
-                    })}
-                  </tbody>
-                  <tfoot>
-                    <tr style={{ background: '#f0f9ff', borderTop: '2px solid #1F7A8C' }}>
-                      <td colSpan={5} style={{ padding: '0.75rem 1rem', fontWeight: '700', color: '#1F7A8C' }}>TOTAL</td>
-                      <td style={{ padding: '0.75rem 1rem', textAlign: 'right', fontWeight: '700', color: '#374151' }}>
-                        ₹{workers.reduce((s, w) => s + parseFloat(w.total_wages_earned || 0), 0).toLocaleString('en-IN')}
-                      </td>
-                      <td style={{ padding: '0.75rem 1rem', textAlign: 'right', fontWeight: '700', color: '#f59e0b' }}>
-                        ₹{workers.reduce((s, w) => s + parseFloat(w.total_advances || 0), 0).toLocaleString('en-IN')}
-                      </td>
-                      <td style={{ padding: '0.75rem 1rem', textAlign: 'right', fontWeight: '700', color: '#22c55e' }}>
-                        ₹{workers.reduce((s, w) => s + parseFloat(w.total_payments || 0), 0).toLocaleString('en-IN')}
-                      </td>
-                      <td style={{ padding: '0.75rem 1rem', textAlign: 'right', fontWeight: '700', color: '#ef4444' }}>
-                        ₹{workers.reduce((s, w) => s + Math.max(0, parseFloat(w.balance_due || 0)), 0).toLocaleString('en-IN')} owed
-                      </td>
-                    </tr>
-                  </tfoot>
-                </table>
-              </div>
-            )}
-
-            {/* Add Worker Modal */}
-            {showAddWorker && (
-              <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.5)', zIndex: 1000, display: 'flex', alignItems: 'center', justifyContent: 'center' }}
-                onClick={(e) => { if (e.target === e.currentTarget) setShowAddWorker(false); }}>
-                <div style={{ background: 'white', borderRadius: '16px', padding: '2rem', width: '480px', maxWidth: '95vw', boxShadow: '0 20px 60px rgba(0,0,0,0.3)' }}>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem', borderBottom: '2px solid #e9ecef', paddingBottom: '0.75rem' }}>
-                    <h3 style={{ margin: 0, color: '#1F7A8C', fontSize: '1.2rem', fontWeight: '700' }}>Add New Worker</h3>
-                    <button onClick={() => setShowAddWorker(false)} style={{ background: 'none', border: 'none', fontSize: '1.5rem', cursor: 'pointer', color: '#6c757d', lineHeight: 1 }}>&times;</button>
-                  </div>
-                  <div style={{ display: 'grid', gap: '1rem' }}>
-                    {[
-                      { label: 'Name *', key: 'name', type: 'text' },
-                      { label: 'Phone', key: 'phone', type: 'text' },
-                      { label: 'Role', key: 'role', type: 'text' },
-                      { label: 'Daily Wage (₹)', key: 'daily_wage', type: 'number' },
-                      { label: 'Contract Amount (₹)', key: 'contract_amount', type: 'number' },
-                    ].map(f => (
-                      <div key={f.key}>
-                        <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: '600', color: '#374151', marginBottom: '0.3rem' }}>{f.label}</label>
-                        <input
-                          type={f.type}
-                          value={addForm[f.key] || ''}
-                          onChange={e => setAddForm((prev: any) => ({ ...prev, [f.key]: e.target.value }))}
-                          style={{ width: '100%', padding: '0.6rem 0.75rem', border: '1px solid #d1d5db', borderRadius: '8px', fontSize: '0.9rem', boxSizing: 'border-box' }}
-                        />
-                      </div>
-                    ))}
-                    <div>
-                      <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: '600', color: '#374151', marginBottom: '0.3rem' }}>Payment Type</label>
-                      <select value={addForm.payment_type} onChange={e => setAddForm((prev: any) => ({ ...prev, payment_type: e.target.value }))}
-                        style={{ width: '100%', padding: '0.6rem 0.75rem', border: '1px solid #d1d5db', borderRadius: '8px', fontSize: '0.9rem' }}>
-                        <option value="daily">Daily</option>
-                        <option value="contract">Contract</option>
-                      </select>
-                    </div>
-                  </div>
-                  <div style={{ display: 'flex', gap: '0.75rem', marginTop: '1.5rem', justifyContent: 'flex-end' }}>
-                    <button onClick={() => setShowAddWorker(false)}
-                      style={{ padding: '0.6rem 1.25rem', background: '#f8f9fa', border: '1px solid #d1d5db', borderRadius: '8px', fontSize: '0.9rem', cursor: 'pointer', fontWeight: '600' }}>
-                      Cancel
-                    </button>
-                    <button onClick={handleAddWorker} disabled={addSaving || !addForm.name}
-                      style={{ padding: '0.6rem 1.5rem', background: addSaving || !addForm.name ? '#93c5fd' : '#1F7A8C', color: 'white', border: 'none', borderRadius: '8px', fontSize: '0.9rem', cursor: 'pointer', fontWeight: '600' }}>
-                      {addSaving ? 'Adding...' : 'Add Worker'}
-                    </button>
-                  </div>
-                </div>
-              </div>
-            )}
-
-            {/* Inline Worker Edit Modal */}
-            {editingWorker && (
-              <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.5)', zIndex: 1000, display: 'flex', alignItems: 'center', justifyContent: 'center' }}
-                onClick={(e) => { if (e.target === e.currentTarget) setEditingWorker(null); }}>
-                <div style={{ background: 'white', borderRadius: '16px', padding: '2rem', width: '480px', maxWidth: '95vw', boxShadow: '0 20px 60px rgba(0,0,0,0.3)' }}>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem', borderBottom: '2px solid #e9ecef', paddingBottom: '0.75rem' }}>
-                    <h3 style={{ margin: 0, color: '#1F7A8C', fontSize: '1.2rem', fontWeight: '700' }}>Edit Worker</h3>
-                    <button onClick={() => setEditingWorker(null)} style={{ background: 'none', border: 'none', fontSize: '1.5rem', cursor: 'pointer', color: '#6c757d', lineHeight: 1 }}>&times;</button>
-                  </div>
-                  <div style={{ display: 'grid', gap: '1rem' }}>
-                    {[
-                      { label: 'Name', key: 'name', type: 'text' },
-                      { label: 'Phone', key: 'phone', type: 'text' },
-                      { label: 'Role', key: 'role', type: 'text' },
-                      { label: 'Daily Wage (₹)', key: 'daily_wage', type: 'number' },
-                      { label: 'Contract Amount (₹)', key: 'contract_amount', type: 'number' },
-                    ].map(f => (
-                      <div key={f.key}>
-                        <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: '600', color: '#374151', marginBottom: '0.3rem' }}>{f.label}</label>
-                        <input
-                          type={f.type}
-                          value={editForm[f.key] || ''}
-                          onChange={e => setEditForm((prev: any) => ({ ...prev, [f.key]: e.target.value }))}
-                          style={{ width: '100%', padding: '0.6rem 0.75rem', border: '1px solid #d1d5db', borderRadius: '8px', fontSize: '0.9rem', boxSizing: 'border-box' }}
-                        />
-                      </div>
-                    ))}
-                    <div>
-                      <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: '600', color: '#374151', marginBottom: '0.3rem' }}>Payment Type</label>
-                      <select value={editForm.payment_type || 'daily'} onChange={e => setEditForm((prev: any) => ({ ...prev, payment_type: e.target.value }))}
-                        style={{ width: '100%', padding: '0.6rem 0.75rem', border: '1px solid #d1d5db', borderRadius: '8px', fontSize: '0.9rem' }}>
-                        <option value="daily">Daily</option>
-                        <option value="contract">Contract</option>
-                      </select>
-                    </div>
-                    <div>
-                      <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: '600', color: '#374151', marginBottom: '0.3rem' }}>Status</label>
-                      <select value={editForm.status || 'active'} onChange={e => setEditForm((prev: any) => ({ ...prev, status: e.target.value }))}
-                        style={{ width: '100%', padding: '0.6rem 0.75rem', border: '1px solid #d1d5db', borderRadius: '8px', fontSize: '0.9rem' }}>
-                        <option value="active">Active</option>
-                        <option value="inactive">Inactive</option>
-                      </select>
-                    </div>
-                  </div>
-                  <div style={{ display: 'flex', gap: '0.75rem', marginTop: '1.5rem', justifyContent: 'flex-end' }}>
-                    <button onClick={() => setEditingWorker(null)}
-                      style={{ padding: '0.6rem 1.25rem', background: '#f8f9fa', border: '1px solid #d1d5db', borderRadius: '8px', fontSize: '0.9rem', cursor: 'pointer', fontWeight: '600' }}>
-                      Cancel
-                    </button>
-                    <button onClick={handleSaveWorker} disabled={editSaving}
-                      style={{ padding: '0.6rem 1.5rem', background: editSaving ? '#93c5fd' : '#1F7A8C', color: 'white', border: 'none', borderRadius: '8px', fontSize: '0.9rem', cursor: 'pointer', fontWeight: '600' }}>
-                      {editSaving ? 'Saving...' : 'Save Changes'}
-                    </button>
-                  </div>
-                </div>
-              </div>
-            )}
-
-          </div>
-        );
+        if (workerId) return <WorkerDetails />;
+        return <WorkerList embedded />;
       case 'attendance':
         return (
           <div>
-            <div style={{
-              display: 'flex',
-              justifyContent: 'space-between',
-              alignItems: 'center',
-              marginBottom: '1.5rem'
-            }}>
-              <h2 style={{
-                margin: 0,
-                fontSize: '1.5rem',
-                color: '#1F7A8C',
-                fontWeight: 'bold'
-              }}>
-                Recent Attendance ({attendances.length})
-              </h2>
-              <div style={{ display: 'flex', gap: '0.75rem' }}>
-                <button onClick={() => { loadWorkers(); setShowAddAttendance(true); }}
-                  style={{ background: 'linear-gradient(135deg, #1F7A8C 0%, #16616F 100%)', border: 'none', color: 'white', padding: '0.75rem 1.5rem', fontSize: '0.95rem', fontWeight: '600', borderRadius: '10px', cursor: 'pointer' }}>
-                  + Mark Attendance
+            {/* Sub-tab bar */}
+            <div style={{ display: 'flex', gap: '0.5rem', marginBottom: '1.25rem', borderBottom: '2px solid #e9ecef', paddingBottom: '0' }}>
+              {([
+                { key: 'marking', label: '✓ Mark Attendance' },
+                { key: 'history', label: '📅 History' },
+                { key: 'calendar', label: '🗓 Calendar' },
+              ] as const).map(({ key, label }) => (
+                <button key={key} onClick={() => setAttSubTab(key)}
+                  style={{
+                    padding: '0.6rem 1.25rem', border: 'none', borderRadius: '8px 8px 0 0',
+                    fontWeight: '600', fontSize: '0.9rem', cursor: 'pointer',
+                    background: attSubTab === key ? '#1F7A8C' : '#f8f9fa',
+                    color: attSubTab === key ? 'white' : '#6c757d',
+                    borderBottom: attSubTab === key ? '2px solid #1F7A8C' : '2px solid transparent',
+                    marginBottom: '-2px'
+                  }}>
+                  {label}
                 </button>
-              </div>
+              ))}
             </div>
 
-            {attendances.length > 0 ? (
-              <div style={{ overflowX: 'auto' }}>
-                <table style={{ width: '100%', borderCollapse: 'collapse' }}>
-                  <thead>
-                    <tr style={{ background: '#f8f9fa' }}>
-                      <th style={{ padding: '1rem', textAlign: 'left', color: '#1F7A8C', fontWeight: '600' }}>Worker</th>
-                      <th style={{ padding: '1rem', textAlign: 'left', color: '#1F7A8C', fontWeight: '600' }}>Date</th>
-                      <th style={{ padding: '1rem', textAlign: 'left', color: '#1F7A8C', fontWeight: '600' }}>Status</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {attendances.map((attendance, index) => (
-                      <tr key={index} style={{ borderBottom: '1px solid #e9ecef' }}>
-                        <td style={{ padding: '1rem' }}>{attendance.worker?.name || 'N/A'}</td>
-                        <td style={{ padding: '1rem' }}>{attendance.date}</td>
-                        <td style={{ padding: '1rem' }}>
-                          <span style={{
-                            display: 'inline-block',
-                            padding: '0.25rem 0.75rem',
-                            borderRadius: '12px',
-                            fontSize: '0.75rem',
-                            fontWeight: '600',
-                            textTransform: 'uppercase',
-                            background: attendance.status === 'present'
-                              ? '#22c55e'
-                              : attendance.status === 'half-day'
-                              ? '#f59e0b'
-                              : '#ef4444',
-                            color: 'white'
-                          }}>
-                            {attendance.status}
-                          </span>
-                        </td>
-                      </tr>
+            {attSubTab === 'marking' && <AttendanceMarking embedded />}
+            {attSubTab === 'history' && <AttendanceHistory embedded />}
+            {attSubTab === 'calendar' && (
+              <div>
+                <div style={{ marginBottom: '1rem', display: 'flex', alignItems: 'center', gap: '1rem' }}>
+                  <label style={{ fontWeight: '600', color: '#1F7A8C', fontSize: '0.9rem' }}>Select Worker:</label>
+                  <select value={calendarWorkerId} onChange={e => setCalendarWorkerId(e.target.value)}
+                    style={{ padding: '0.5rem 0.75rem', border: '2px solid #e9ecef', borderRadius: '8px', fontSize: '0.9rem', outline: 'none', minWidth: '200px' }}>
+                    <option value="">-- Select a worker --</option>
+                    {workers.map((w: any) => (
+                      <option key={w.id} value={w.id}>{w.name}</option>
                     ))}
-                  </tbody>
-                </table>
-              </div>
-            ) : (
-              <div style={{
-                textAlign: 'center',
-                padding: '4rem 2rem',
-                background: '#f8f9fa',
-                borderRadius: '12px'
-              }}>
-                <div style={{ fontSize: '4rem', marginBottom: '1rem' }}>✓</div>
-                <h3 style={{
-                  color: '#1F7A8C',
-                  marginBottom: '0.5rem',
-                  fontSize: '1.5rem'
-                }}>
-                  No Attendance Records
-                </h3>
-                <p style={{ color: '#6c757d', marginBottom: '1.5rem' }}>
-                  Start marking attendance for workers!
-                </p>
+                  </select>
+                </div>
+                {calendarWorkerId
+                  ? <AttendanceCalendar embedded workerIdProp={calendarWorkerId} />
+                  : <div style={{ textAlign: 'center', padding: '3rem', background: '#f8f9fa', borderRadius: '12px', color: '#6c757d' }}>Select a worker to view their attendance calendar</div>
+                }
               </div>
             )}
           </div>
@@ -854,479 +449,42 @@ const ProjectDetails: React.FC = () => {
       case 'payments':
         return (
           <div>
-            <div style={{
-              display: 'flex',
-              justifyContent: 'space-between',
-              alignItems: 'center',
-              marginBottom: '1.5rem'
-            }}>
-              <h2 style={{
-                margin: 0,
-                fontSize: '1.5rem',
-                color: '#1F7A8C',
-                fontWeight: 'bold'
-              }}>
-                Recent Payments ({payments.length})
-              </h2>
-              <div style={{ display: 'flex', gap: '0.75rem' }}>
-                <button onClick={() => navigate(`/projects/${id}/bulk-payment`)}
-                  style={{ background: 'linear-gradient(135deg, #22c55e, #16a34a)', border: 'none', color: 'white', padding: '0.75rem 1.5rem', fontSize: '0.95rem', fontWeight: '600', borderRadius: '10px', cursor: 'pointer' }}>
-                  💳 Bulk Payment
+            <div style={{ display: 'flex', gap: '0.5rem', marginBottom: '1.25rem', borderBottom: '2px solid #e9ecef', paddingBottom: '0' }}>
+              {([
+                { key: 'list', label: '💰 Payment List' },
+                { key: 'bulk', label: '💳 Bulk Payment' },
+              ] as { key: 'list' | 'bulk'; label: string }[]).map(sub => (
+                <button key={sub.key} onClick={() => setPaySubTab(sub.key)}
+                  style={{
+                    padding: '0.5rem 1.25rem', border: 'none', cursor: 'pointer', fontWeight: '600',
+                    fontSize: '0.9rem', borderRadius: '8px 8px 0 0',
+                    background: paySubTab === sub.key ? 'linear-gradient(135deg, #1F7A8C, #16616F)' : 'transparent',
+                    color: paySubTab === sub.key ? 'white' : '#6c757d',
+                    borderBottom: paySubTab === sub.key ? 'none' : '2px solid transparent',
+                  }}>
+                  {sub.label}
                 </button>
-                <button onClick={() => { loadWorkers(); setShowAddPayment(true); }}
-                  style={{ background: 'linear-gradient(135deg, #1F7A8C 0%, #16616F 100%)', border: 'none', color: 'white', padding: '0.75rem 1.5rem', fontSize: '0.95rem', fontWeight: '600', borderRadius: '10px', cursor: 'pointer' }}>
-                  + Add Payment
-                </button>
-              </div>
+              ))}
             </div>
-
-            {payments.length > 0 ? (
-              <div style={{
-                background: 'white',
-                borderRadius: '12px',
-                boxShadow: '0 4px 15px rgba(0,0,0,0.08)',
-                border: '1px solid #e9ecef',
-                overflowX: 'auto'
-              }}>
-                <table style={{ width: '100%', borderCollapse: 'collapse' }}>
-                  <thead>
-                    <tr style={{ background: '#f8f9fa', borderBottom: '2px solid #e9ecef' }}>
-                      <th style={{ padding: '1rem', textAlign: 'left', color: '#1F7A8C', fontWeight: '600' }}>Worker</th>
-                      <th style={{ padding: '1rem', textAlign: 'left', color: '#1F7A8C', fontWeight: '600' }}>Date</th>
-                      <th style={{ padding: '1rem', textAlign: 'right', color: '#1F7A8C', fontWeight: '600' }}>Amount</th>
-                      <th style={{ padding: '1rem', textAlign: 'left', color: '#1F7A8C', fontWeight: '600' }}>Method</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {payments.map((payment, index) => (
-                      <tr key={index} style={{
-                        borderBottom: '1px solid #e9ecef',
-                        transition: 'background 0.2s'
-                      }}
-                      onMouseEnter={(e) => e.currentTarget.style.background = '#f8f9fa'}
-                      onMouseLeave={(e) => e.currentTarget.style.background = 'white'}
-                      >
-                        <td style={{ padding: '1rem', fontWeight: '500' }}>{payment.worker?.name || 'N/A'}</td>
-                        <td style={{ padding: '1rem', color: '#6c757d' }}>
-                          {new Date(payment.payment_date).toLocaleDateString('en-IN')}
-                        </td>
-                        <td style={{ padding: '1rem', textAlign: 'right', fontWeight: '600', color: '#22c55e' }}>
-                          ₹{parseFloat(payment.amount).toLocaleString('en-IN')}
-                        </td>
-                        <td style={{ padding: '1rem' }}>
-                          <span style={{
-                            display: 'inline-block',
-                            padding: '0.25rem 0.75rem',
-                            borderRadius: '12px',
-                            fontSize: '0.75rem',
-                            fontWeight: '600',
-                            textTransform: 'uppercase',
-                            background: payment.payment_method === 'cash'
-                              ? '#d1fae5'
-                              : payment.payment_method === 'bank_transfer'
-                              ? '#dbeafe'
-                              : '#fef3c7',
-                            color: payment.payment_method === 'cash'
-                              ? '#065f46'
-                              : payment.payment_method === 'bank_transfer'
-                              ? '#1e40af'
-                              : '#92400e'
-                          }}>
-                            {payment.payment_method?.replace('_', ' ') || 'N/A'}
-                          </span>
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-            ) : (
-              <div style={{
-                textAlign: 'center',
-                padding: '4rem 2rem',
-                background: 'white',
-                borderRadius: '12px',
-                boxShadow: '0 4px 15px rgba(0,0,0,0.08)',
-                border: '1px solid #e9ecef'
-              }}>
-                <div style={{ fontSize: '4rem', marginBottom: '1rem' }}>💰</div>
-                <h3 style={{ color: '#1F7A8C', marginBottom: '0.5rem', fontSize: '1.25rem' }}>No Payments Yet</h3>
-                <p style={{ color: '#6c757d' }}>Start recording worker payments!</p>
-              </div>
-            )}
+            {paySubTab === 'list' ? <PaymentList embedded /> : <BulkPayment embedded />}
           </div>
         );
+      case 'advances':
+        return <AdvancesTab projectId={id!} />;
       case 'materials':
-        return (
-          <div>
-            <div style={{
-              display: 'flex',
-              justifyContent: 'space-between',
-              alignItems: 'center',
-              marginBottom: '1.5rem'
-            }}>
-              <h2 style={{
-                margin: 0,
-                fontSize: '1.5rem',
-                color: '#1F7A8C',
-                fontWeight: 'bold'
-              }}>
-                Project Materials ({materials.length})
-              </h2>
-              <div style={{ display: 'flex', gap: '0.75rem' }}>
-                <button onClick={() => setShowAddMaterial(true)}
-                  style={{ background: 'linear-gradient(135deg, #1F7A8C 0%, #16616F 100%)', border: 'none', color: 'white', padding: '0.75rem 1.5rem', fontSize: '0.95rem', fontWeight: '600', borderRadius: '10px', cursor: 'pointer' }}>
-                  + Add Material
-                </button>
-              </div>
-            </div>
-
-            {materials.length > 0 ? (
-              <div style={{
-                background: 'white',
-                borderRadius: '12px',
-                boxShadow: '0 4px 15px rgba(0,0,0,0.08)',
-                border: '1px solid #e9ecef',
-                overflowX: 'auto'
-              }}>
-                <table style={{ width: '100%', borderCollapse: 'collapse' }}>
-                  <thead>
-                    <tr style={{ background: '#f8f9fa', borderBottom: '2px solid #e9ecef' }}>
-                      <th style={{ padding: '1rem', textAlign: 'left', color: '#1F7A8C', fontWeight: '600' }}>Material Name</th>
-                      <th style={{ padding: '1rem', textAlign: 'left', color: '#1F7A8C', fontWeight: '600' }}>Category</th>
-                      <th style={{ padding: '1rem', textAlign: 'right', color: '#1F7A8C', fontWeight: '600' }}>Quantity</th>
-                      <th style={{ padding: '1rem', textAlign: 'right', color: '#1F7A8C', fontWeight: '600' }}>Cost</th>
-                      <th style={{ padding: '1rem', textAlign: 'left', color: '#1F7A8C', fontWeight: '600' }}>Supplier</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {materials.map((material, index) => (
-                      <tr key={index} style={{
-                        borderBottom: '1px solid #e9ecef',
-                        transition: 'background 0.2s'
-                      }}
-                      onMouseEnter={(e) => e.currentTarget.style.background = '#f8f9fa'}
-                      onMouseLeave={(e) => e.currentTarget.style.background = 'white'}
-                      >
-                        <td style={{ padding: '1rem', fontWeight: '500' }}>{material.material_name}</td>
-                        <td style={{ padding: '1rem' }}>
-                          <span style={{
-                            display: 'inline-block',
-                            padding: '0.25rem 0.75rem',
-                            borderRadius: '12px',
-                            fontSize: '0.75rem',
-                            fontWeight: '600',
-                            textTransform: 'uppercase',
-                            background: '#e0f2fe',
-                            color: '#0369a1'
-                          }}>
-                            {material.category || 'N/A'}
-                          </span>
-                        </td>
-                        <td style={{ padding: '1rem', textAlign: 'right', color: '#6c757d' }}>
-                          {parseFloat(material.quantity).toLocaleString('en-IN')} {material.unit || ''}
-                        </td>
-                        <td style={{ padding: '1rem', textAlign: 'right', fontWeight: '600', color: '#1F7A8C' }}>
-                          ₹{parseFloat(material.cost_per_unit).toLocaleString('en-IN')}
-                        </td>
-                        <td style={{ padding: '1rem', color: '#6c757d' }}>{material.supplier || 'N/A'}</td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-            ) : (
-              <div style={{
-                textAlign: 'center',
-                padding: '4rem 2rem',
-                background: 'white',
-                borderRadius: '12px',
-                boxShadow: '0 4px 15px rgba(0,0,0,0.08)',
-                border: '1px solid #e9ecef'
-              }}>
-                <div style={{ fontSize: '4rem', marginBottom: '1rem' }}>🧱</div>
-                <h3 style={{ color: '#1F7A8C', marginBottom: '0.5rem', fontSize: '1.25rem' }}>No Materials Yet</h3>
-                <p style={{ color: '#6c757d' }}>Start tracking construction materials!</p>
-              </div>
-            )}
-          </div>
-        );
+        return <MaterialList embedded />;
       case 'expenses':
-        return (
-          <div>
-            <div style={{
-              display: 'flex',
-              justifyContent: 'space-between',
-              alignItems: 'center',
-              marginBottom: '1.5rem'
-            }}>
-              <h2 style={{
-                margin: 0,
-                fontSize: '1.5rem',
-                color: '#1F7A8C',
-                fontWeight: 'bold'
-              }}>
-                Recent Expenses ({expenses.length})
-              </h2>
-              <div style={{ display: 'flex', gap: '0.75rem' }}>
-                <button onClick={() => setShowAddExpense(true)}
-                  style={{ background: 'linear-gradient(135deg, #1F7A8C 0%, #16616F 100%)', border: 'none', color: 'white', padding: '0.75rem 1.5rem', fontSize: '0.95rem', fontWeight: '600', borderRadius: '10px', cursor: 'pointer' }}>
-                  + Add Expense
-                </button>
-              </div>
-            </div>
-
-            {expenses.length > 0 ? (
-              <div style={{
-                background: 'white',
-                borderRadius: '12px',
-                boxShadow: '0 4px 15px rgba(0,0,0,0.08)',
-                border: '1px solid #e9ecef',
-                overflowX: 'auto'
-              }}>
-                <table style={{ width: '100%', borderCollapse: 'collapse' }}>
-                  <thead>
-                    <tr style={{ background: '#f8f9fa', borderBottom: '2px solid #e9ecef' }}>
-                      <th style={{ padding: '1rem', textAlign: 'left', color: '#1F7A8C', fontWeight: '600' }}>Category</th>
-                      <th style={{ padding: '1rem', textAlign: 'left', color: '#1F7A8C', fontWeight: '600' }}>Description</th>
-                      <th style={{ padding: '1rem', textAlign: 'left', color: '#1F7A8C', fontWeight: '600' }}>Date</th>
-                      <th style={{ padding: '1rem', textAlign: 'right', color: '#1F7A8C', fontWeight: '600' }}>Amount</th>
-                      <th style={{ padding: '1rem', textAlign: 'left', color: '#1F7A8C', fontWeight: '600' }}>Method</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {expenses.map((expense, index) => (
-                      <tr key={index} style={{
-                        borderBottom: '1px solid #e9ecef',
-                        transition: 'background 0.2s'
-                      }}
-                      onMouseEnter={(e) => e.currentTarget.style.background = '#f8f9fa'}
-                      onMouseLeave={(e) => e.currentTarget.style.background = 'white'}
-                      >
-                        <td style={{ padding: '1rem' }}>
-                          <span style={{
-                            display: 'inline-block',
-                            padding: '0.25rem 0.75rem',
-                            borderRadius: '12px',
-                            fontSize: '0.75rem',
-                            fontWeight: '600',
-                            textTransform: 'uppercase',
-                            background: '#fef3c7',
-                            color: '#92400e'
-                          }}>
-                            {expense.category || 'N/A'}
-                          </span>
-                        </td>
-                        <td style={{ padding: '1rem', fontWeight: '500' }}>{expense.description}</td>
-                        <td style={{ padding: '1rem', color: '#6c757d' }}>
-                          {new Date(expense.expense_date).toLocaleDateString('en-IN')}
-                        </td>
-                        <td style={{ padding: '1rem', textAlign: 'right', fontWeight: '600', color: '#ef4444' }}>
-                          ₹{parseFloat(expense.amount).toLocaleString('en-IN')}
-                        </td>
-                        <td style={{ padding: '1rem', color: '#6c757d' }}>
-                          {expense.payment_method?.replace('_', ' ') || 'N/A'}
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-            ) : (
-              <div style={{
-                textAlign: 'center',
-                padding: '4rem 2rem',
-                background: 'white',
-                borderRadius: '12px',
-                boxShadow: '0 4px 15px rgba(0,0,0,0.08)',
-                border: '1px solid #e9ecef'
-              }}>
-                <div style={{ fontSize: '4rem', marginBottom: '1rem' }}>💸</div>
-                <h3 style={{ color: '#1F7A8C', marginBottom: '0.5rem', fontSize: '1.25rem' }}>No Expenses Yet</h3>
-                <p style={{ color: '#6c757d' }}>Start tracking project expenses!</p>
-              </div>
-            )}
-          </div>
-        );
-      case 'invoices':
-        return (
-          <div>
-            <div style={{
-              display: 'flex',
-              justifyContent: 'space-between',
-              alignItems: 'center',
-              marginBottom: '1.5rem'
-            }}>
-              <h2 style={{
-                margin: 0,
-                fontSize: '1.5rem',
-                color: '#1F7A8C',
-                fontWeight: 'bold'
-              }}>
-                Invoices
-              </h2>
-              <div style={{ display: 'flex', gap: '0.75rem' }}>
-                <button onClick={() => setShowAddInvoice(true)}
-                  style={{ background: 'linear-gradient(135deg, #1F7A8C 0%, #16616F 100%)', border: 'none', color: 'white', padding: '0.75rem 1.5rem', fontSize: '0.95rem', fontWeight: '600', borderRadius: '10px', cursor: 'pointer' }}>
-                  + Create Invoice
-                </button>
-              </div>
-            </div>
-
-            <div style={{
-              textAlign: 'center',
-              padding: '4rem 2rem',
-              background: 'white',
-              borderRadius: '12px',
-              boxShadow: '0 4px 15px rgba(0,0,0,0.08)',
-              border: '1px solid #e9ecef'
-            }}>
-              <div style={{ fontSize: '4rem', marginBottom: '1rem' }}>📄</div>
-              <h3 style={{ color: '#1F7A8C', marginBottom: '0.5rem', fontSize: '1.25rem' }}>No Invoices Yet</h3>
-              <p style={{ color: '#6c757d' }}>Generate invoices for your clients!</p>
-            </div>
-          </div>
-        );
+        return <ExpenseList embedded />;
       case 'client-advances':
-        return (
-          <div>
-            <div style={{
-              display: 'flex',
-              justifyContent: 'space-between',
-              alignItems: 'center',
-              marginBottom: '1.5rem'
-            }}>
-              <h2 style={{
-                margin: 0,
-                fontSize: '1.5rem',
-                color: '#1F7A8C',
-                fontWeight: 'bold'
-              }}>
-                Client Advances
-              </h2>
-              <div style={{ display: 'flex', gap: '0.75rem' }}>
-                <button onClick={() => setShowAddAdvance(true)}
-                  style={{ background: 'linear-gradient(135deg, #1F7A8C 0%, #16616F 100%)', border: 'none', color: 'white', padding: '0.75rem 1.5rem', fontSize: '0.95rem', fontWeight: '600', borderRadius: '10px', cursor: 'pointer' }}>
-                  + Record Advance
-                </button>
-              </div>
-            </div>
-
-            <div style={{
-              textAlign: 'center',
-              padding: '4rem 2rem',
-              background: 'white',
-              borderRadius: '12px',
-              boxShadow: '0 4px 15px rgba(0,0,0,0.08)',
-              border: '1px solid #e9ecef'
-            }}>
-              <div style={{ fontSize: '4rem', marginBottom: '1rem' }}>💵</div>
-              <h3 style={{ color: '#1F7A8C', marginBottom: '0.5rem', fontSize: '1.25rem' }}>No Client Advances Yet</h3>
-              <p style={{ color: '#6c757d' }}>Track advance payments from clients!</p>
-            </div>
-          </div>
-        );
+        return <ClientAdvanceList embedded />;
       case 'equipment':
-        return (
-          <div>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem' }}>
-              <h2 style={{ margin: 0, fontSize: '1.5rem', color: '#1F7A8C', fontWeight: 'bold' }}>Equipment / Machinery ({equipment.length})</h2>
-              <button onClick={() => setShowAddEquipment(true)}
-                style={{ background: 'linear-gradient(135deg, #1F7A8C 0%, #16616F 100%)', border: 'none', color: 'white', padding: '0.75rem 1.5rem', fontSize: '0.95rem', fontWeight: '600', borderRadius: '10px', cursor: 'pointer' }}>
-                + Add Equipment
-              </button>
-            </div>
-            {equipment.length > 0 ? (
-              <div style={{ background: 'white', borderRadius: '12px', boxShadow: '0 4px 15px rgba(0,0,0,0.08)', border: '1px solid #e9ecef', overflowX: 'auto' }}>
-                <table style={{ width: '100%', borderCollapse: 'collapse' }}>
-                  <thead>
-                    <tr style={{ background: '#f8f9fa', borderBottom: '2px solid #e9ecef' }}>
-                      {['Name', 'Type', 'Date', 'Hours', 'Daily Rate', 'Total Cost', 'Operator'].map(h => (
-                        <th key={h} style={{ padding: '1rem', textAlign: 'left', color: '#1F7A8C', fontWeight: '600' }}>{h}</th>
-                      ))}
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {equipment.map((eq: any, i: number) => (
-                      <tr key={i} style={{ borderBottom: '1px solid #e9ecef' }}
-                        onMouseEnter={e => { e.currentTarget.style.background = '#f8f9fa'; }}
-                        onMouseLeave={e => { e.currentTarget.style.background = 'white'; }}>
-                        <td style={{ padding: '0.75rem 1rem', fontWeight: '600', color: '#1F7A8C' }}>{eq.name}</td>
-                        <td style={{ padding: '0.75rem 1rem', color: '#6c757d' }}>{eq.equipment_type || '-'}</td>
-                        <td style={{ padding: '0.75rem 1rem', color: '#6c757d' }}>{eq.usage_date || '-'}</td>
-                        <td style={{ padding: '0.75rem 1rem', color: '#374151' }}>{eq.hours_used || '-'}</td>
-                        <td style={{ padding: '0.75rem 1rem', color: '#374151' }}>₹{parseFloat(eq.daily_rate || 0).toLocaleString('en-IN')}</td>
-                        <td style={{ padding: '0.75rem 1rem', fontWeight: '600', color: '#ef4444' }}>₹{parseFloat(eq.total_cost || 0).toLocaleString('en-IN')}</td>
-                        <td style={{ padding: '0.75rem 1rem', color: '#6c757d' }}>{eq.operator_name || '-'}</td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-            ) : (
-              <div style={{ textAlign: 'center', padding: '4rem 2rem', background: 'white', borderRadius: '12px', boxShadow: '0 4px 15px rgba(0,0,0,0.08)', border: '1px solid #e9ecef' }}>
-                <div style={{ fontSize: '4rem', marginBottom: '1rem' }}>🔧</div>
-                <h3 style={{ color: '#1F7A8C', marginBottom: '0.5rem', fontSize: '1.25rem' }}>No Equipment Yet</h3>
-                <p style={{ color: '#6c757d' }}>Track machinery and equipment usage!</p>
-              </div>
-            )}
-          </div>
-        );
+        return <EquipmentList embedded />;
       case 'diary':
-        return (
-          <div>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem' }}>
-              <h2 style={{ margin: 0, fontSize: '1.5rem', color: '#1F7A8C', fontWeight: 'bold' }}>Work Diary ({diary.length})</h2>
-              <button onClick={() => setShowAddDiary(true)}
-                style={{ background: 'linear-gradient(135deg, #1F7A8C 0%, #16616F 100%)', border: 'none', color: 'white', padding: '0.75rem 1.5rem', fontSize: '0.95rem', fontWeight: '600', borderRadius: '10px', cursor: 'pointer' }}>
-                + Add Entry
-              </button>
-            </div>
-            {diary.length > 0 ? (
-              <div style={{ display: 'grid', gap: '1rem' }}>
-                {diary.map((entry: any, i: number) => (
-                  <div key={i} style={{ background: 'white', borderRadius: '12px', padding: '1.25rem', boxShadow: '0 2px 8px rgba(0,0,0,0.06)', border: '1px solid #e9ecef' }}>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.75rem' }}>
-                      <div>
-                        <span style={{ fontWeight: '700', color: '#1F7A8C', fontSize: '1rem' }}>{entry.title || '(No title)'}</span>
-                        <span style={{ marginLeft: '0.75rem', color: '#6c757d', fontSize: '0.85rem' }}>{entry.date}</span>
-                      </div>
-                      <div style={{ display: 'flex', gap: '0.5rem' }}>
-                        {entry.weather && <span style={{ background: '#e0f2fe', color: '#0369a1', padding: '0.2rem 0.6rem', borderRadius: '12px', fontSize: '0.75rem', fontWeight: '600' }}>☁️ {entry.weather}</span>}
-                        {entry.workers_present_count && <span style={{ background: '#dcfce7', color: '#16a34a', padding: '0.2rem 0.6rem', borderRadius: '12px', fontSize: '0.75rem', fontWeight: '600' }}>👷 {entry.workers_present_count}</span>}
-                      </div>
-                    </div>
-                    {entry.description && <p style={{ margin: '0 0 0.5rem 0', color: '#374151', fontSize: '0.9rem' }}>{entry.description}</p>}
-                    {entry.work_done && <p style={{ margin: '0 0 0.5rem 0', color: '#374151', fontSize: '0.85rem' }}><strong>Work Done:</strong> {entry.work_done}</p>}
-                    {entry.issues && <p style={{ margin: 0, color: '#ef4444', fontSize: '0.85rem' }}><strong>Issues:</strong> {entry.issues}</p>}
-                  </div>
-                ))}
-              </div>
-            ) : (
-              <div style={{ textAlign: 'center', padding: '4rem 2rem', background: 'white', borderRadius: '12px', boxShadow: '0 4px 15px rgba(0,0,0,0.08)', border: '1px solid #e9ecef' }}>
-                <div style={{ fontSize: '4rem', marginBottom: '1rem' }}>📓</div>
-                <h3 style={{ color: '#1F7A8C', marginBottom: '0.5rem', fontSize: '1.25rem' }}>No Diary Entries Yet</h3>
-                <p style={{ color: '#6c757d' }}>Record daily work progress and issues!</p>
-              </div>
-            )}
-          </div>
-        );
+        return <WorkDiaryList embedded />;
       case 'milestones':
-        return (
-          <div style={{ textAlign: 'center', padding: '4rem 2rem', background: 'white', borderRadius: '12px', boxShadow: '0 4px 15px rgba(0,0,0,0.08)', border: '1px solid #e9ecef' }}>
-            <div style={{ fontSize: '4rem', marginBottom: '1rem' }}>🏁</div>
-            <h3 style={{ color: '#1F7A8C', marginBottom: '0.5rem', fontSize: '1.25rem' }}>Milestones</h3>
-            <p style={{ color: '#6c757d' }}>Coming soon — track project milestones and deadlines.</p>
-          </div>
-        );
+        return <MilestoneList embedded />;
       case 'subcontractors':
-        return (
-          <div style={{ textAlign: 'center', padding: '4rem 2rem', background: 'white', borderRadius: '12px', boxShadow: '0 4px 15px rgba(0,0,0,0.08)', border: '1px solid #e9ecef' }}>
-            <div style={{ fontSize: '4rem', marginBottom: '1rem' }}>🏗️</div>
-            <h3 style={{ color: '#1F7A8C', marginBottom: '0.5rem', fontSize: '1.25rem' }}>Subcontractors</h3>
-            <p style={{ color: '#6c757d' }}>Coming soon — manage subcontractors and their work.</p>
-          </div>
-        );
+        return <SubcontractorList embedded />;
       default:
         return null;
     }
@@ -1402,31 +560,6 @@ const ProjectDetails: React.FC = () => {
             </p>
           </div>
         </div>
-        <button
-          onClick={() => navigate(`/projects/${id}/edit`)}
-          style={{
-            background: 'linear-gradient(135deg, #1F7A8C 0%, #16616F 100%)',
-            border: 'none',
-            color: 'white',
-            padding: '0.5rem 1.2rem',
-            fontSize: '0.85rem',
-            fontWeight: '600',
-            borderRadius: '6px',
-            boxShadow: '0 1px 4px rgba(31, 122, 140, 0.2)',
-            transition: 'all 0.3s',
-            cursor: 'pointer'
-          }}
-          onMouseEnter={(e) => {
-            e.currentTarget.style.transform = 'translateY(-2px)';
-            e.currentTarget.style.boxShadow = '0 3px 8px rgba(31, 122, 140, 0.3)';
-          }}
-          onMouseLeave={(e) => {
-            e.currentTarget.style.transform = 'translateY(0)';
-            e.currentTarget.style.boxShadow = '0 1px 4px rgba(31, 122, 140, 0.2)';
-          }}
-        >
-          Edit Project
-        </button>
       </div>
 
       {/* Stats Cards */}
@@ -1558,7 +691,11 @@ const ProjectDetails: React.FC = () => {
         {tabs.map((tab) => (
           <button
             key={tab.id}
-            onClick={() => tab.path ? navigate(tab.path) : setActiveTab(tab.id)}
+            onClick={() => {
+              setActiveTab(tab.id);
+              const path = tab.id === 'overview' ? `/projects/${id}` : `/projects/${id}/${tab.id}`;
+              navigate(path);
+            }}
             style={{
               flex: '1',
               padding: '1rem 1.5rem',
@@ -1609,607 +746,6 @@ const ProjectDetails: React.FC = () => {
         {renderTabContent()}
       </div>
 
-      {/* ── Attendance Modal ── */}
-      {showAddAttendance && (
-        <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.5)', zIndex: 1000, display: 'flex', alignItems: 'center', justifyContent: 'center' }}
-          onClick={(e) => { if (e.target === e.currentTarget) setShowAddAttendance(false); }}>
-          <div style={{ background: 'white', borderRadius: '16px', padding: '2rem', width: '420px', maxWidth: '95vw', boxShadow: '0 20px 60px rgba(0,0,0,0.3)' }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem', borderBottom: '2px solid #e9ecef', paddingBottom: '0.75rem' }}>
-              <h3 style={{ margin: 0, color: '#1F7A8C', fontWeight: '700' }}>Mark Attendance</h3>
-              <button onClick={() => setShowAddAttendance(false)} style={{ background: 'none', border: 'none', fontSize: '1.5rem', cursor: 'pointer', color: '#6c757d' }}>&times;</button>
-            </div>
-            <div style={{ display: 'grid', gap: '1rem' }}>
-              <div>
-                <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: '600', color: '#374151', marginBottom: '0.3rem' }}>Worker *</label>
-                <select value={attForm.worker_id} onChange={e => setAttForm((p: any) => ({ ...p, worker_id: e.target.value }))}
-                  style={{ width: '100%', padding: '0.6rem 0.75rem', border: '1px solid #d1d5db', borderRadius: '8px', fontSize: '0.9rem' }}>
-                  <option value="">Select Worker</option>
-                  {workers.map((w: any) => <option key={w.id} value={w.id}>{w.name}</option>)}
-                </select>
-              </div>
-              <div>
-                <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: '600', color: '#374151', marginBottom: '0.3rem' }}>Date</label>
-                <input type="date" value={attForm.date} onChange={e => setAttForm((p: any) => ({ ...p, date: e.target.value }))}
-                  style={{ width: '100%', padding: '0.6rem 0.75rem', border: '1px solid #d1d5db', borderRadius: '8px', fontSize: '0.9rem', boxSizing: 'border-box' }} />
-              </div>
-              <div>
-                <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: '600', color: '#374151', marginBottom: '0.3rem' }}>Status</label>
-                <select value={attForm.status} onChange={e => setAttForm((p: any) => ({ ...p, status: e.target.value }))}
-                  style={{ width: '100%', padding: '0.6rem 0.75rem', border: '1px solid #d1d5db', borderRadius: '8px', fontSize: '0.9rem' }}>
-                  <option value="present">Present</option>
-                  <option value="half-day">Half Day</option>
-                  <option value="absent">Absent</option>
-                </select>
-              </div>
-              <div>
-                <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: '600', color: '#374151', marginBottom: '0.3rem' }}>Notes</label>
-                <input type="text" value={attForm.notes} onChange={e => setAttForm((p: any) => ({ ...p, notes: e.target.value }))}
-                  style={{ width: '100%', padding: '0.6rem 0.75rem', border: '1px solid #d1d5db', borderRadius: '8px', fontSize: '0.9rem', boxSizing: 'border-box' }} />
-              </div>
-            </div>
-            <div style={{ display: 'flex', gap: '0.75rem', marginTop: '1.5rem', justifyContent: 'flex-end' }}>
-              <button onClick={() => setShowAddAttendance(false)} style={{ padding: '0.6rem 1.25rem', background: '#f8f9fa', border: '1px solid #d1d5db', borderRadius: '8px', fontSize: '0.9rem', cursor: 'pointer', fontWeight: '600' }}>Cancel</button>
-              <button onClick={handleAddAttendance} disabled={attSaving || !attForm.worker_id}
-                style={{ padding: '0.6rem 1.5rem', background: attSaving || !attForm.worker_id ? '#93c5fd' : '#1F7A8C', color: 'white', border: 'none', borderRadius: '8px', fontSize: '0.9rem', cursor: 'pointer', fontWeight: '600' }}>
-                {attSaving ? 'Saving...' : 'Mark Attendance'}
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* ── Payment Modal ── */}
-      {showAddPayment && (
-        <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.5)', zIndex: 1000, display: 'flex', alignItems: 'center', justifyContent: 'center' }}
-          onClick={(e) => { if (e.target === e.currentTarget) setShowAddPayment(false); }}>
-          <div style={{ background: 'white', borderRadius: '16px', padding: '2rem', width: '420px', maxWidth: '95vw', boxShadow: '0 20px 60px rgba(0,0,0,0.3)' }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem', borderBottom: '2px solid #e9ecef', paddingBottom: '0.75rem' }}>
-              <h3 style={{ margin: 0, color: '#1F7A8C', fontWeight: '700' }}>Add Payment</h3>
-              <button onClick={() => setShowAddPayment(false)} style={{ background: 'none', border: 'none', fontSize: '1.5rem', cursor: 'pointer', color: '#6c757d' }}>&times;</button>
-            </div>
-            <div style={{ display: 'grid', gap: '1rem' }}>
-              <div>
-                <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: '600', color: '#374151', marginBottom: '0.3rem' }}>Worker *</label>
-                <select value={payForm.worker_id} onChange={e => setPayForm((p: any) => ({ ...p, worker_id: e.target.value }))}
-                  style={{ width: '100%', padding: '0.6rem 0.75rem', border: '1px solid #d1d5db', borderRadius: '8px', fontSize: '0.9rem' }}>
-                  <option value="">Select Worker</option>
-                  {workers.map((w: any) => <option key={w.id} value={w.id}>{w.name}</option>)}
-                </select>
-              </div>
-              <div>
-                <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: '600', color: '#374151', marginBottom: '0.3rem' }}>Amount (₹) *</label>
-                <input type="number" value={payForm.amount} onChange={e => setPayForm((p: any) => ({ ...p, amount: e.target.value }))}
-                  style={{ width: '100%', padding: '0.6rem 0.75rem', border: '1px solid #d1d5db', borderRadius: '8px', fontSize: '0.9rem', boxSizing: 'border-box' }} />
-              </div>
-              <div>
-                <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: '600', color: '#374151', marginBottom: '0.3rem' }}>Date</label>
-                <input type="date" value={payForm.payment_date} onChange={e => setPayForm((p: any) => ({ ...p, payment_date: e.target.value }))}
-                  style={{ width: '100%', padding: '0.6rem 0.75rem', border: '1px solid #d1d5db', borderRadius: '8px', fontSize: '0.9rem', boxSizing: 'border-box' }} />
-              </div>
-              <div>
-                <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: '600', color: '#374151', marginBottom: '0.3rem' }}>Method</label>
-                <select value={payForm.payment_method} onChange={e => setPayForm((p: any) => ({ ...p, payment_method: e.target.value }))}
-                  style={{ width: '100%', padding: '0.6rem 0.75rem', border: '1px solid #d1d5db', borderRadius: '8px', fontSize: '0.9rem' }}>
-                  <option value="cash">Cash</option>
-                  <option value="bank_transfer">Bank Transfer</option>
-                  <option value="upi">UPI</option>
-                  <option value="cheque">Cheque</option>
-                </select>
-              </div>
-              <div>
-                <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: '600', color: '#374151', marginBottom: '0.3rem' }}>Type</label>
-                <select value={payForm.payment_type} onChange={e => setPayForm((p: any) => ({ ...p, payment_type: e.target.value }))}
-                  style={{ width: '100%', padding: '0.6rem 0.75rem', border: '1px solid #d1d5db', borderRadius: '8px', fontSize: '0.9rem' }}>
-                  <option value="salary">Salary</option>
-                  <option value="advance">Advance</option>
-                </select>
-              </div>
-              <div>
-                <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: '600', color: '#374151', marginBottom: '0.3rem' }}>Notes</label>
-                <input type="text" value={payForm.notes} onChange={e => setPayForm((p: any) => ({ ...p, notes: e.target.value }))}
-                  style={{ width: '100%', padding: '0.6rem 0.75rem', border: '1px solid #d1d5db', borderRadius: '8px', fontSize: '0.9rem', boxSizing: 'border-box' }} />
-              </div>
-            </div>
-            <div style={{ display: 'flex', gap: '0.75rem', marginTop: '1.5rem', justifyContent: 'flex-end' }}>
-              <button onClick={() => setShowAddPayment(false)} style={{ padding: '0.6rem 1.25rem', background: '#f8f9fa', border: '1px solid #d1d5db', borderRadius: '8px', fontSize: '0.9rem', cursor: 'pointer', fontWeight: '600' }}>Cancel</button>
-              <button onClick={handleAddPayment} disabled={paySaving || !payForm.worker_id || !payForm.amount}
-                style={{ padding: '0.6rem 1.5rem', background: paySaving || !payForm.worker_id || !payForm.amount ? '#93c5fd' : '#1F7A8C', color: 'white', border: 'none', borderRadius: '8px', fontSize: '0.9rem', cursor: 'pointer', fontWeight: '600' }}>
-                {paySaving ? 'Saving...' : 'Add Payment'}
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* ── Material Modal ── */}
-      {showAddMaterial && (
-        <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.5)', zIndex: 1000, display: 'flex', alignItems: 'center', justifyContent: 'center' }}
-          onClick={(e) => { if (e.target === e.currentTarget) setShowAddMaterial(false); }}>
-          <div style={{ background: 'white', borderRadius: '16px', padding: '2rem', width: '420px', maxWidth: '95vw', boxShadow: '0 20px 60px rgba(0,0,0,0.3)' }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem', borderBottom: '2px solid #e9ecef', paddingBottom: '0.75rem' }}>
-              <h3 style={{ margin: 0, color: '#1F7A8C', fontWeight: '700' }}>Add Material</h3>
-              <button onClick={() => setShowAddMaterial(false)} style={{ background: 'none', border: 'none', fontSize: '1.5rem', cursor: 'pointer', color: '#6c757d' }}>&times;</button>
-            </div>
-            <div style={{ display: 'grid', gap: '1rem' }}>
-              {[
-                { label: 'Material Name *', key: 'name', type: 'text' },
-                { label: 'Quantity', key: 'quantity', type: 'number' },
-                { label: 'Unit (kg/m/pcs...)', key: 'unit', type: 'text' },
-                { label: 'Cost per Unit (₹)', key: 'cost', type: 'number' },
-                { label: 'Supplier', key: 'supplier', type: 'text' },
-              ].map(f => (
-                <div key={f.key}>
-                  <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: '600', color: '#374151', marginBottom: '0.3rem' }}>{f.label}</label>
-                  <input type={f.type} value={matForm[f.key] || ''} onChange={e => setMatForm((p: any) => ({ ...p, [f.key]: e.target.value }))}
-                    style={{ width: '100%', padding: '0.6rem 0.75rem', border: '1px solid #d1d5db', borderRadius: '8px', fontSize: '0.9rem', boxSizing: 'border-box' }} />
-                </div>
-              ))}
-              <div>
-                <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: '600', color: '#374151', marginBottom: '0.3rem' }}>Purchase Date</label>
-                <input type="date" value={matForm.purchase_date} onChange={e => setMatForm((p: any) => ({ ...p, purchase_date: e.target.value }))}
-                  style={{ width: '100%', padding: '0.6rem 0.75rem', border: '1px solid #d1d5db', borderRadius: '8px', fontSize: '0.9rem', boxSizing: 'border-box' }} />
-              </div>
-            </div>
-            <div style={{ display: 'flex', gap: '0.75rem', marginTop: '1.5rem', justifyContent: 'flex-end' }}>
-              <button onClick={() => setShowAddMaterial(false)} style={{ padding: '0.6rem 1.25rem', background: '#f8f9fa', border: '1px solid #d1d5db', borderRadius: '8px', fontSize: '0.9rem', cursor: 'pointer', fontWeight: '600' }}>Cancel</button>
-              <button onClick={handleAddMaterial} disabled={matSaving || !matForm.name}
-                style={{ padding: '0.6rem 1.5rem', background: matSaving || !matForm.name ? '#93c5fd' : '#1F7A8C', color: 'white', border: 'none', borderRadius: '8px', fontSize: '0.9rem', cursor: 'pointer', fontWeight: '600' }}>
-                {matSaving ? 'Saving...' : 'Add Material'}
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* ── Expense Modal ── */}
-      {showAddExpense && (
-        <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.5)', zIndex: 1000, display: 'flex', alignItems: 'center', justifyContent: 'center' }}
-          onClick={(e) => { if (e.target === e.currentTarget) setShowAddExpense(false); }}>
-          <div style={{ background: 'white', borderRadius: '16px', padding: '2rem', width: '420px', maxWidth: '95vw', boxShadow: '0 20px 60px rgba(0,0,0,0.3)' }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem', borderBottom: '2px solid #e9ecef', paddingBottom: '0.75rem' }}>
-              <h3 style={{ margin: 0, color: '#1F7A8C', fontWeight: '700' }}>Add Expense</h3>
-              <button onClick={() => setShowAddExpense(false)} style={{ background: 'none', border: 'none', fontSize: '1.5rem', cursor: 'pointer', color: '#6c757d' }}>&times;</button>
-            </div>
-            <div style={{ display: 'grid', gap: '1rem' }}>
-              <div>
-                <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: '600', color: '#374151', marginBottom: '0.3rem' }}>Category</label>
-                <select value={expForm.category} onChange={e => setExpForm((p: any) => ({ ...p, category: e.target.value }))}
-                  style={{ width: '100%', padding: '0.6rem 0.75rem', border: '1px solid #d1d5db', borderRadius: '8px', fontSize: '0.9rem' }}>
-                  {['tools', 'transport', 'food', 'fuel', 'electricity', 'water', 'rent', 'miscellaneous'].map(c => (
-                    <option key={c} value={c}>{c.charAt(0).toUpperCase() + c.slice(1)}</option>
-                  ))}
-                </select>
-              </div>
-              {[
-                { label: 'Description', key: 'description', type: 'text' },
-                { label: 'Amount (₹) *', key: 'amount', type: 'number' },
-                { label: 'Bill Number', key: 'bill_number', type: 'text' },
-                { label: 'Notes', key: 'notes', type: 'text' },
-              ].map(f => (
-                <div key={f.key}>
-                  <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: '600', color: '#374151', marginBottom: '0.3rem' }}>{f.label}</label>
-                  <input type={f.type} value={expForm[f.key] || ''} onChange={e => setExpForm((p: any) => ({ ...p, [f.key]: e.target.value }))}
-                    style={{ width: '100%', padding: '0.6rem 0.75rem', border: '1px solid #d1d5db', borderRadius: '8px', fontSize: '0.9rem', boxSizing: 'border-box' }} />
-                </div>
-              ))}
-              <div>
-                <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: '600', color: '#374151', marginBottom: '0.3rem' }}>Date</label>
-                <input type="date" value={expForm.date} onChange={e => setExpForm((p: any) => ({ ...p, date: e.target.value }))}
-                  style={{ width: '100%', padding: '0.6rem 0.75rem', border: '1px solid #d1d5db', borderRadius: '8px', fontSize: '0.9rem', boxSizing: 'border-box' }} />
-              </div>
-            </div>
-            <div style={{ display: 'flex', gap: '0.75rem', marginTop: '1.5rem', justifyContent: 'flex-end' }}>
-              <button onClick={() => setShowAddExpense(false)} style={{ padding: '0.6rem 1.25rem', background: '#f8f9fa', border: '1px solid #d1d5db', borderRadius: '8px', fontSize: '0.9rem', cursor: 'pointer', fontWeight: '600' }}>Cancel</button>
-              <button onClick={handleAddExpense} disabled={expSaving || !expForm.amount}
-                style={{ padding: '0.6rem 1.5rem', background: expSaving || !expForm.amount ? '#93c5fd' : '#1F7A8C', color: 'white', border: 'none', borderRadius: '8px', fontSize: '0.9rem', cursor: 'pointer', fontWeight: '600' }}>
-                {expSaving ? 'Saving...' : 'Add Expense'}
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* ── Invoice Modal ── */}
-      {showAddInvoice && (
-        <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.5)', zIndex: 1000, display: 'flex', alignItems: 'center', justifyContent: 'center' }}
-          onClick={(e) => { if (e.target === e.currentTarget) setShowAddInvoice(false); }}>
-          <div style={{ background: 'white', borderRadius: '16px', padding: '2rem', width: '420px', maxWidth: '95vw', boxShadow: '0 20px 60px rgba(0,0,0,0.3)' }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem', borderBottom: '2px solid #e9ecef', paddingBottom: '0.75rem' }}>
-              <h3 style={{ margin: 0, color: '#1F7A8C', fontWeight: '700' }}>Create Invoice</h3>
-              <button onClick={() => setShowAddInvoice(false)} style={{ background: 'none', border: 'none', fontSize: '1.5rem', cursor: 'pointer', color: '#6c757d' }}>&times;</button>
-            </div>
-            <div style={{ display: 'grid', gap: '1rem' }}>
-              {[
-                { label: 'Invoice Number *', key: 'invoice_number', type: 'text' },
-                { label: 'Amount (₹) *', key: 'amount', type: 'number' },
-                { label: 'Notes', key: 'notes', type: 'text' },
-              ].map(f => (
-                <div key={f.key}>
-                  <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: '600', color: '#374151', marginBottom: '0.3rem' }}>{f.label}</label>
-                  <input type={f.type} value={invForm[f.key] || ''} onChange={e => setInvForm((p: any) => ({ ...p, [f.key]: e.target.value }))}
-                    style={{ width: '100%', padding: '0.6rem 0.75rem', border: '1px solid #d1d5db', borderRadius: '8px', fontSize: '0.9rem', boxSizing: 'border-box' }} />
-                </div>
-              ))}
-              <div>
-                <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: '600', color: '#374151', marginBottom: '0.3rem' }}>Invoice Date</label>
-                <input type="date" value={invForm.date} onChange={e => setInvForm((p: any) => ({ ...p, date: e.target.value }))}
-                  style={{ width: '100%', padding: '0.6rem 0.75rem', border: '1px solid #d1d5db', borderRadius: '8px', fontSize: '0.9rem', boxSizing: 'border-box' }} />
-              </div>
-              <div>
-                <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: '600', color: '#374151', marginBottom: '0.3rem' }}>Due Date</label>
-                <input type="date" value={invForm.due_date} onChange={e => setInvForm((p: any) => ({ ...p, due_date: e.target.value }))}
-                  style={{ width: '100%', padding: '0.6rem 0.75rem', border: '1px solid #d1d5db', borderRadius: '8px', fontSize: '0.9rem', boxSizing: 'border-box' }} />
-              </div>
-              <div>
-                <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: '600', color: '#374151', marginBottom: '0.3rem' }}>Status</label>
-                <select value={invForm.status} onChange={e => setInvForm((p: any) => ({ ...p, status: e.target.value }))}
-                  style={{ width: '100%', padding: '0.6rem 0.75rem', border: '1px solid #d1d5db', borderRadius: '8px', fontSize: '0.9rem' }}>
-                  <option value="pending">Pending</option>
-                  <option value="paid">Paid</option>
-                  <option value="overdue">Overdue</option>
-                </select>
-              </div>
-            </div>
-            <div style={{ display: 'flex', gap: '0.75rem', marginTop: '1.5rem', justifyContent: 'flex-end' }}>
-              <button onClick={() => setShowAddInvoice(false)} style={{ padding: '0.6rem 1.25rem', background: '#f8f9fa', border: '1px solid #d1d5db', borderRadius: '8px', fontSize: '0.9rem', cursor: 'pointer', fontWeight: '600' }}>Cancel</button>
-              <button onClick={handleAddInvoice} disabled={invSaving || !invForm.invoice_number || !invForm.amount}
-                style={{ padding: '0.6rem 1.5rem', background: invSaving || !invForm.invoice_number || !invForm.amount ? '#93c5fd' : '#1F7A8C', color: 'white', border: 'none', borderRadius: '8px', fontSize: '0.9rem', cursor: 'pointer', fontWeight: '600' }}>
-                {invSaving ? 'Saving...' : 'Create Invoice'}
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* ── Client Advance Modal ── */}
-      {showAddAdvance && (
-        <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.5)', zIndex: 1000, display: 'flex', alignItems: 'center', justifyContent: 'center' }}
-          onClick={(e) => { if (e.target === e.currentTarget) setShowAddAdvance(false); }}>
-          <div style={{ background: 'white', borderRadius: '16px', padding: '2rem', width: '420px', maxWidth: '95vw', boxShadow: '0 20px 60px rgba(0,0,0,0.3)' }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem', borderBottom: '2px solid #e9ecef', paddingBottom: '0.75rem' }}>
-              <h3 style={{ margin: 0, color: '#1F7A8C', fontWeight: '700' }}>Record Client Advance</h3>
-              <button onClick={() => setShowAddAdvance(false)} style={{ background: 'none', border: 'none', fontSize: '1.5rem', cursor: 'pointer', color: '#6c757d' }}>&times;</button>
-            </div>
-            <div style={{ display: 'grid', gap: '1rem' }}>
-              <div>
-                <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: '600', color: '#374151', marginBottom: '0.3rem' }}>Amount (₹) *</label>
-                <input type="number" value={advForm.amount} onChange={e => setAdvForm((p: any) => ({ ...p, amount: e.target.value }))}
-                  style={{ width: '100%', padding: '0.6rem 0.75rem', border: '1px solid #d1d5db', borderRadius: '8px', fontSize: '0.9rem', boxSizing: 'border-box' }} />
-              </div>
-              <div>
-                <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: '600', color: '#374151', marginBottom: '0.3rem' }}>Date</label>
-                <input type="date" value={advForm.date} onChange={e => setAdvForm((p: any) => ({ ...p, date: e.target.value }))}
-                  style={{ width: '100%', padding: '0.6rem 0.75rem', border: '1px solid #d1d5db', borderRadius: '8px', fontSize: '0.9rem', boxSizing: 'border-box' }} />
-              </div>
-              <div>
-                <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: '600', color: '#374151', marginBottom: '0.3rem' }}>Payment Method</label>
-                <select value={advForm.payment_method} onChange={e => setAdvForm((p: any) => ({ ...p, payment_method: e.target.value }))}
-                  style={{ width: '100%', padding: '0.6rem 0.75rem', border: '1px solid #d1d5db', borderRadius: '8px', fontSize: '0.9rem' }}>
-                  <option value="cash">Cash</option>
-                  <option value="bank_transfer">Bank Transfer</option>
-                  <option value="upi">UPI</option>
-                  <option value="cheque">Cheque</option>
-                </select>
-              </div>
-              <div>
-                <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: '600', color: '#374151', marginBottom: '0.3rem' }}>Reference Number</label>
-                <input type="text" value={advForm.reference_number} onChange={e => setAdvForm((p: any) => ({ ...p, reference_number: e.target.value }))}
-                  style={{ width: '100%', padding: '0.6rem 0.75rem', border: '1px solid #d1d5db', borderRadius: '8px', fontSize: '0.9rem', boxSizing: 'border-box' }} />
-              </div>
-              <div>
-                <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: '600', color: '#374151', marginBottom: '0.3rem' }}>Notes</label>
-                <input type="text" value={advForm.notes} onChange={e => setAdvForm((p: any) => ({ ...p, notes: e.target.value }))}
-                  style={{ width: '100%', padding: '0.6rem 0.75rem', border: '1px solid #d1d5db', borderRadius: '8px', fontSize: '0.9rem', boxSizing: 'border-box' }} />
-              </div>
-            </div>
-            <div style={{ display: 'flex', gap: '0.75rem', marginTop: '1.5rem', justifyContent: 'flex-end' }}>
-              <button onClick={() => setShowAddAdvance(false)} style={{ padding: '0.6rem 1.25rem', background: '#f8f9fa', border: '1px solid #d1d5db', borderRadius: '8px', fontSize: '0.9rem', cursor: 'pointer', fontWeight: '600' }}>Cancel</button>
-              <button onClick={handleAddClientAdvance} disabled={advSaving || !advForm.amount}
-                style={{ padding: '0.6rem 1.5rem', background: advSaving || !advForm.amount ? '#93c5fd' : '#1F7A8C', color: 'white', border: 'none', borderRadius: '8px', fontSize: '0.9rem', cursor: 'pointer', fontWeight: '600' }}>
-                {advSaving ? 'Saving...' : 'Record Advance'}
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* ── Equipment Modal ── */}
-      <Modal isOpen={showAddEquipment} onClose={() => setShowAddEquipment(false)} title="Add Equipment" size="medium">
-        <div style={{ display: 'grid', gap: '1rem' }}>
-          {[
-            { label: 'Equipment Name *', key: 'name', type: 'text' },
-            { label: 'Type (JCB, Crane, etc.)', key: 'equipment_type', type: 'text' },
-            { label: 'Operator Name', key: 'operator_name', type: 'text' },
-            { label: 'Hours Used', key: 'hours_used', type: 'number' },
-            { label: 'Daily Rate (₹)', key: 'daily_rate', type: 'number' },
-            { label: 'Notes', key: 'notes', type: 'text' },
-          ].map(f => (
-            <div key={f.key}>
-              <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: '600', color: '#374151', marginBottom: '0.3rem' }}>{f.label}</label>
-              <input type={f.type} value={equForm[f.key] || ''} onChange={e => setEquForm((p: any) => ({ ...p, [f.key]: e.target.value }))}
-                style={{ width: '100%', padding: '0.6rem 0.75rem', border: '1px solid #d1d5db', borderRadius: '8px', fontSize: '0.9rem', boxSizing: 'border-box' }} />
-            </div>
-          ))}
-          <div>
-            <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: '600', color: '#374151', marginBottom: '0.3rem' }}>Usage Date</label>
-            <input type="date" value={equForm.usage_date} onChange={e => setEquForm((p: any) => ({ ...p, usage_date: e.target.value }))}
-              style={{ width: '100%', padding: '0.6rem 0.75rem', border: '1px solid #d1d5db', borderRadius: '8px', fontSize: '0.9rem', boxSizing: 'border-box' }} />
-          </div>
-        </div>
-        <div style={{ display: 'flex', gap: '0.75rem', marginTop: '1.5rem', justifyContent: 'flex-end' }}>
-          <button onClick={() => setShowAddEquipment(false)} style={{ padding: '0.6rem 1.25rem', background: '#f8f9fa', border: '1px solid #d1d5db', borderRadius: '8px', fontSize: '0.9rem', cursor: 'pointer', fontWeight: '600' }}>Cancel</button>
-          <button onClick={handleAddEquipment} disabled={equSaving || !equForm.name}
-            style={{ padding: '0.6rem 1.5rem', background: equSaving || !equForm.name ? '#93c5fd' : '#1F7A8C', color: 'white', border: 'none', borderRadius: '8px', fontSize: '0.9rem', cursor: 'pointer', fontWeight: '600' }}>
-            {equSaving ? 'Saving...' : 'Add Equipment'}
-          </button>
-        </div>
-      </Modal>
-
-      {/* ── Work Diary Modal ── */}
-      <Modal isOpen={showAddDiary} onClose={() => setShowAddDiary(false)} title="Add Diary Entry" size="medium">
-        <div style={{ display: 'grid', gap: '1rem' }}>
-          <div>
-            <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: '600', color: '#374151', marginBottom: '0.3rem' }}>Date</label>
-            <input type="date" value={diaryForm.date} onChange={e => setDiaryForm((p: any) => ({ ...p, date: e.target.value }))}
-              style={{ width: '100%', padding: '0.6rem 0.75rem', border: '1px solid #d1d5db', borderRadius: '8px', fontSize: '0.9rem', boxSizing: 'border-box' }} />
-          </div>
-          {[
-            { label: 'Title *', key: 'title', type: 'text' },
-            { label: 'Weather', key: 'weather', type: 'text' },
-            { label: 'Workers Present', key: 'workers_present_count', type: 'number' },
-          ].map(f => (
-            <div key={f.key}>
-              <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: '600', color: '#374151', marginBottom: '0.3rem' }}>{f.label}</label>
-              <input type={f.type} value={diaryForm[f.key] || ''} onChange={e => setDiaryForm((p: any) => ({ ...p, [f.key]: e.target.value }))}
-                style={{ width: '100%', padding: '0.6rem 0.75rem', border: '1px solid #d1d5db', borderRadius: '8px', fontSize: '0.9rem', boxSizing: 'border-box' }} />
-            </div>
-          ))}
-          {[
-            { label: 'Description', key: 'description' },
-            { label: 'Work Done', key: 'work_done' },
-            { label: 'Issues / Problems', key: 'issues' },
-          ].map(f => (
-            <div key={f.key}>
-              <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: '600', color: '#374151', marginBottom: '0.3rem' }}>{f.label}</label>
-              <textarea value={diaryForm[f.key] || ''} onChange={e => setDiaryForm((p: any) => ({ ...p, [f.key]: e.target.value }))} rows={2}
-                style={{ width: '100%', padding: '0.6rem 0.75rem', border: '1px solid #d1d5db', borderRadius: '8px', fontSize: '0.9rem', boxSizing: 'border-box', resize: 'vertical' }} />
-            </div>
-          ))}
-        </div>
-        <div style={{ display: 'flex', gap: '0.75rem', marginTop: '1.5rem', justifyContent: 'flex-end' }}>
-          <button onClick={() => setShowAddDiary(false)} style={{ padding: '0.6rem 1.25rem', background: '#f8f9fa', border: '1px solid #d1d5db', borderRadius: '8px', fontSize: '0.9rem', cursor: 'pointer', fontWeight: '600' }}>Cancel</button>
-          <button onClick={handleAddDiary} disabled={diarySaving || !diaryForm.title}
-            style={{ padding: '0.6rem 1.5rem', background: diarySaving || !diaryForm.title ? '#93c5fd' : '#1F7A8C', color: 'white', border: 'none', borderRadius: '8px', fontSize: '0.9rem', cursor: 'pointer', fontWeight: '600' }}>
-            {diarySaving ? 'Saving...' : 'Save Entry'}
-          </button>
-        </div>
-      </Modal>
-
-      {/* Modals */}
-      <Modal
-        isOpen={openModal === 'workers'}
-        onClose={() => setOpenModal(null)}
-        title="All Workers"
-        size="xlarge"
-      >
-        {allWorkers.length > 0 ? (
-          <div className="grid grid-cols-3" style={{ gap: '1.25rem' }}>
-            {allWorkers.map((worker) => (
-              <div
-                key={worker.id}
-                style={{
-                  background: 'white',
-                  borderRadius: '12px',
-                  padding: '1.25rem',
-                  boxShadow: '0 4px 15px rgba(0,0,0,0.08)',
-                  transition: 'all 0.3s',
-                  border: '1px solid #e9ecef'
-                }}
-              >
-                <h3
-                  onClick={() => {
-                    setOpenModal(null);
-                    navigate(`/projects/${id}/workers/${worker.id}`);
-                  }}
-                  style={{
-                    margin: '0 0 0.5rem 0',
-                    fontSize: '1.15rem',
-                    color: '#1F7A8C',
-                    fontWeight: '700',
-                    cursor: 'pointer'
-                  }}
-                >
-                  {worker.name}
-                </h3>
-                <div style={{ marginBottom: '0.5rem', color: '#6c757d' }}>
-                  <div>💼 {worker.role}</div>
-                  <div>📱 {worker.phone}</div>
-                </div>
-                <div style={{
-                  padding: '0.75rem',
-                  background: '#f8f9fa',
-                  borderRadius: '8px',
-                  marginTop: '0.75rem'
-                }}>
-                  <p style={{ margin: 0, fontSize: '0.75rem', color: '#6c757d' }}>Daily Wage</p>
-                  <p style={{ margin: 0, fontSize: '1.15rem', fontWeight: 'bold', color: '#1F7A8C' }}>
-                    ₹{worker.daily_wage}
-                  </p>
-                </div>
-              </div>
-            ))}
-          </div>
-        ) : (
-          <p style={{ textAlign: 'center', color: '#6c757d', padding: '2rem' }}>No workers found</p>
-        )}
-      </Modal>
-
-      <Modal
-        isOpen={openModal === 'attendance'}
-        onClose={() => setOpenModal(null)}
-        title="All Attendance Records"
-        size="xlarge"
-      >
-        {allAttendances.length > 0 ? (
-          <table style={{ width: '100%', borderCollapse: 'collapse' }}>
-            <thead>
-              <tr style={{ background: '#f8f9fa', borderBottom: '2px solid #e9ecef' }}>
-                <th style={{ padding: '1rem', textAlign: 'left', color: '#1F7A8C', fontWeight: '600' }}>Worker</th>
-                <th style={{ padding: '1rem', textAlign: 'left', color: '#1F7A8C', fontWeight: '600' }}>Date</th>
-                <th style={{ padding: '1rem', textAlign: 'left', color: '#1F7A8C', fontWeight: '600' }}>Status</th>
-              </tr>
-            </thead>
-            <tbody>
-              {allAttendances.map((attendance, index) => (
-                <tr key={index} style={{ borderBottom: '1px solid #e9ecef' }}>
-                  <td style={{ padding: '1rem' }}>{attendance.worker?.name || 'N/A'}</td>
-                  <td style={{ padding: '1rem' }}>{attendance.date}</td>
-                  <td style={{ padding: '1rem' }}>
-                    <span style={{
-                      padding: '0.25rem 0.75rem',
-                      borderRadius: '12px',
-                      fontSize: '0.75rem',
-                      fontWeight: '600',
-                      background: attendance.status === 'present' ? '#22c55e' : attendance.status === 'half-day' ? '#f59e0b' : '#ef4444',
-                      color: 'white'
-                    }}>
-                      {attendance.status}
-                    </span>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        ) : (
-          <p style={{ textAlign: 'center', color: '#6c757d', padding: '2rem' }}>No attendance records found</p>
-        )}
-      </Modal>
-
-      <Modal
-        isOpen={openModal === 'payments'}
-        onClose={() => setOpenModal(null)}
-        title="All Payments"
-        size="xlarge"
-      >
-        {allPayments.length > 0 ? (
-          <table style={{ width: '100%', borderCollapse: 'collapse' }}>
-            <thead>
-              <tr style={{ background: '#f8f9fa', borderBottom: '2px solid #e9ecef' }}>
-                <th style={{ padding: '1rem', textAlign: 'left', color: '#1F7A8C', fontWeight: '600' }}>Worker</th>
-                <th style={{ padding: '1rem', textAlign: 'left', color: '#1F7A8C', fontWeight: '600' }}>Date</th>
-                <th style={{ padding: '1rem', textAlign: 'right', color: '#1F7A8C', fontWeight: '600' }}>Amount</th>
-                <th style={{ padding: '1rem', textAlign: 'left', color: '#1F7A8C', fontWeight: '600' }}>Method</th>
-              </tr>
-            </thead>
-            <tbody>
-              {allPayments.map((payment, index) => (
-                <tr key={index} style={{ borderBottom: '1px solid #e9ecef' }}>
-                  <td style={{ padding: '1rem' }}>{payment.worker?.name || 'N/A'}</td>
-                  <td style={{ padding: '1rem' }}>{new Date(payment.payment_date).toLocaleDateString('en-IN')}</td>
-                  <td style={{ padding: '1rem', textAlign: 'right', fontWeight: '600', color: '#22c55e' }}>
-                    ₹{parseFloat(payment.amount).toLocaleString('en-IN')}
-                  </td>
-                  <td style={{ padding: '1rem' }}>{payment.payment_method?.replace('_', ' ') || 'N/A'}</td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        ) : (
-          <p style={{ textAlign: 'center', color: '#6c757d', padding: '2rem' }}>No payments found</p>
-        )}
-      </Modal>
-
-      <Modal
-        isOpen={openModal === 'materials'}
-        onClose={() => setOpenModal(null)}
-        title="All Materials"
-        size="xlarge"
-      >
-        {allMaterials.length > 0 ? (
-          <table style={{ width: '100%', borderCollapse: 'collapse' }}>
-            <thead>
-              <tr style={{ background: '#f8f9fa', borderBottom: '2px solid #e9ecef' }}>
-                <th style={{ padding: '1rem', textAlign: 'left', color: '#1F7A8C', fontWeight: '600' }}>Material Name</th>
-                <th style={{ padding: '1rem', textAlign: 'left', color: '#1F7A8C', fontWeight: '600' }}>Category</th>
-                <th style={{ padding: '1rem', textAlign: 'right', color: '#1F7A8C', fontWeight: '600' }}>Quantity</th>
-                <th style={{ padding: '1rem', textAlign: 'right', color: '#1F7A8C', fontWeight: '600' }}>Cost</th>
-                <th style={{ padding: '1rem', textAlign: 'left', color: '#1F7A8C', fontWeight: '600' }}>Supplier</th>
-              </tr>
-            </thead>
-            <tbody>
-              {allMaterials.map((material, index) => (
-                <tr key={index} style={{ borderBottom: '1px solid #e9ecef' }}>
-                  <td style={{ padding: '1rem', fontWeight: '500' }}>{material.material_name}</td>
-                  <td style={{ padding: '1rem' }}>{material.category || 'N/A'}</td>
-                  <td style={{ padding: '1rem', textAlign: 'right' }}>
-                    {parseFloat(material.quantity).toLocaleString('en-IN')} {material.unit || ''}
-                  </td>
-                  <td style={{ padding: '1rem', textAlign: 'right', fontWeight: '600', color: '#1F7A8C' }}>
-                    ₹{parseFloat(material.cost_per_unit).toLocaleString('en-IN')}
-                  </td>
-                  <td style={{ padding: '1rem' }}>{material.supplier || 'N/A'}</td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        ) : (
-          <p style={{ textAlign: 'center', color: '#6c757d', padding: '2rem' }}>No materials found</p>
-        )}
-      </Modal>
-
-      <Modal
-        isOpen={openModal === 'expenses'}
-        onClose={() => setOpenModal(null)}
-        title="All Expenses"
-        size="xlarge"
-      >
-        {allExpenses.length > 0 ? (
-          <table style={{ width: '100%', borderCollapse: 'collapse' }}>
-            <thead>
-              <tr style={{ background: '#f8f9fa', borderBottom: '2px solid #e9ecef' }}>
-                <th style={{ padding: '1rem', textAlign: 'left', color: '#1F7A8C', fontWeight: '600' }}>Category</th>
-                <th style={{ padding: '1rem', textAlign: 'left', color: '#1F7A8C', fontWeight: '600' }}>Description</th>
-                <th style={{ padding: '1rem', textAlign: 'left', color: '#1F7A8C', fontWeight: '600' }}>Date</th>
-                <th style={{ padding: '1rem', textAlign: 'right', color: '#1F7A8C', fontWeight: '600' }}>Amount</th>
-                <th style={{ padding: '1rem', textAlign: 'left', color: '#1F7A8C', fontWeight: '600' }}>Method</th>
-              </tr>
-            </thead>
-            <tbody>
-              {allExpenses.map((expense, index) => (
-                <tr key={index} style={{ borderBottom: '1px solid #e9ecef' }}>
-                  <td style={{ padding: '1rem' }}>{expense.category || 'N/A'}</td>
-                  <td style={{ padding: '1rem', fontWeight: '500' }}>{expense.description}</td>
-                  <td style={{ padding: '1rem' }}>{new Date(expense.expense_date).toLocaleDateString('en-IN')}</td>
-                  <td style={{ padding: '1rem', textAlign: 'right', fontWeight: '600', color: '#ef4444' }}>
-                    ₹{parseFloat(expense.amount).toLocaleString('en-IN')}
-                  </td>
-                  <td style={{ padding: '1rem' }}>{expense.payment_method?.replace('_', ' ') || 'N/A'}</td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        ) : (
-          <p style={{ textAlign: 'center', color: '#6c757d', padding: '2rem' }}>No expenses found</p>
-        )}
-      </Modal>
-
-      <Modal
-        isOpen={openModal === 'invoices'}
-        onClose={() => setOpenModal(null)}
-        title="All Invoices"
-        size="xlarge"
-      >
-        <p style={{ textAlign: 'center', color: '#6c757d', padding: '2rem' }}>No invoices available</p>
-      </Modal>
-
-      <Modal
-        isOpen={openModal === 'client-advances'}
-        onClose={() => setOpenModal(null)}
-        title="All Client Advances"
-        size="xlarge"
-      >
-        <p style={{ textAlign: 'center', color: '#6c757d', padding: '2rem' }}>No client advances available</p>
-      </Modal>
     </div>
   );
 };

@@ -1,3 +1,4 @@
+import { formatDate } from '../../utils/formatDate';
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import axios from 'axios';
@@ -33,7 +34,7 @@ const WorkDiaryDetails: React.FC = () => {
     <div className="work-diary-details">
       <div className="page-header">
         <button onClick={() => navigate(-1)} className="back-btn">← Back</button>
-        <h1>Work Diary - {new Date(diary.date).toLocaleDateString()}</h1>
+        <h1>Work Diary - {formatDate(diary.date)}</h1>
       </div>
 
       <div className="details-card">
@@ -41,7 +42,7 @@ const WorkDiaryDetails: React.FC = () => {
         <div className="info-grid">
           <div className="info-item">
             <label>Date:</label>
-            <span>{new Date(diary.date).toLocaleDateString()}</span>
+            <span>{formatDate(diary.date)}</span>
           </div>
           <div className="info-item">
             <label>Project:</label>

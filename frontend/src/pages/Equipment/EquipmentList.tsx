@@ -1,8 +1,9 @@
+import { formatDate } from '../../utils/formatDate';
 import React, { useState, useEffect } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import api from '../../services/api';
 
-const EquipmentList: React.FC = () => {
+const EquipmentList: React.FC<{ embedded?: boolean }> = ({ embedded = false }) => {
   const navigate = useNavigate();
   const { id: projectId } = useParams();
 
@@ -46,9 +47,9 @@ const EquipmentList: React.FC = () => {
 
   const totalCost = equipments.reduce((s, e) => s + parseFloat(e.total_cost || 0), 0);
 
-  return (
-    <div className="app">
-      <nav style={{ background: 'linear-gradient(135deg, #1F7A8C 0%, #16616F 100%)', color: 'white', padding: '1rem 1.5rem', display: 'flex', alignItems: 'center', gap: '1rem', position: 'sticky', top: 0, zIndex: 100 }}>
+  const inner = (
+    <div>
+      {!embedded && <nav style={{ background: 'linear-gradient(135deg, #1F7A8C 0%, #16616F 100%)', color: 'white', padding: '1rem 1.5rem', display: 'flex', alignItems: 'center', gap: '1rem', position: 'sticky', top: 0, zIndex: 100 }}>
         <button onClick={() => navigate(-1)} style={{ background: 'rgba(255,255,255,0.15)', border: 'none', color: 'white', padding: '0.4rem 0.8rem', borderRadius: '8px', cursor: 'pointer', fontWeight: 600 }}>
           ← Back
         </button>
@@ -56,9 +57,9 @@ const EquipmentList: React.FC = () => {
         <button onClick={() => setShowForm(!showForm)} style={{ background: 'white', color: '#1F7A8C', border: 'none', padding: '0.5rem 1rem', borderRadius: '8px', cursor: 'pointer', fontWeight: 700 }}>
           + Add
         </button>
-      </nav>
+      </nav>}
 
-      <div style={{ padding: '1.5rem', maxWidth: '900px', margin: '0 auto' }}>
+      <div style={{ padding: embedded ? '0' : '1.5rem', maxWidth: embedded ? '100%' : '900px', margin: '0 auto' }}>
         {/* Summary */}
         <div style={{ display: 'flex', gap: '1rem', marginBottom: '1.5rem' }}>
           <div className="card" style={{ flex: 1, textAlign: 'center', padding: '1rem' }}>
@@ -92,7 +93,7 @@ const EquipmentList: React.FC = () => {
                 </div>
                 <div className="form-group">
                   <label className="label">Usage Date</label>
-                  <input type="date" className="input" value={formData.usage_date} onChange={e => setFormData({ ...formData, usage_date: e.target.value })} />
+                  <input type="date" className="input" value={formData.usage_date} onChange={e => setFormData({ ...formData, usage_date: e.target.value })}/>
                 </div>
                 <div className="form-group">
                   <label className="label">Hours Used</label>
@@ -143,7 +144,7 @@ const EquipmentList: React.FC = () => {
                   <tr key={eq.id} style={{ borderBottom: '1px solid #f0f0f0' }}>
                     <td style={{ padding: '0.75rem 1rem', fontWeight: 600 }}>{eq.name}</td>
                     <td style={{ padding: '0.75rem 1rem', color: '#666' }}>{eq.equipment_type || '—'}</td>
-                    <td style={{ padding: '0.75rem 1rem', color: '#666' }}>{eq.usage_date ? new Date(eq.usage_date).toLocaleDateString('en-IN') : '—'}</td>
+                    <td style={{ padding: '0.75rem 1rem', color: '#666' }}>{eq.usage_date ? formatDate(eq.usage_date) : '—'}</td>
                     <td style={{ padding: '0.75rem 1rem' }}>{eq.hours_used || '—'}</td>
                     <td style={{ padding: '0.75rem 1rem' }}>{eq.daily_rate ? `₹${parseFloat(eq.daily_rate).toLocaleString()}` : '—'}</td>
                     <td style={{ padding: '0.75rem 1rem', fontWeight: 700, color: '#E36414' }}>
@@ -164,6 +165,8 @@ const EquipmentList: React.FC = () => {
       </div>
     </div>
   );
+  if (embedded) return inner;
+  return <div className="app">{inner}</div>;
 };
 
 export default EquipmentList;

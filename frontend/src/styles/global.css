@@ -475,3 +475,257 @@ a:hover {
     border: 1px solid var(--border-color);
   }
 }
+
+/* ============================================================
+   GLOBAL UI ENHANCEMENTS — uniform design across all pages
+   ============================================================ */
+
+/* --- Global input / select / textarea --- */
+input:not([type='checkbox']):not([type='radio']),
+select,
+textarea {
+  font-family: var(--font-primary) !important;
+  border-radius: 8px !important;
+  border: 1.5px solid #d1d5db !important;
+  padding: 0.55rem 0.9rem !important;
+  font-size: 0.92rem !important;
+  transition: border-color 0.18s, box-shadow 0.18s !important;
+  background: #fff !important;
+  color: #1a1a2e !important;
+}
+input:not([type='checkbox']):not([type='radio']):focus,
+select:focus,
+textarea:focus {
+  outline: none !important;
+  border-color: #1F7A8C !important;
+  box-shadow: 0 0 0 3px rgba(31, 122, 140, 0.12) !important;
+}
+input::placeholder,
+textarea::placeholder {
+  color: #aab4be !important;
+  font-size: 0.88rem !important;
+}
+select {
+  cursor: pointer !important;
+}
+
+/* --- Global table polish --- */
+table {
+  border-collapse: collapse;
+  width: 100%;
+}
+thead th {
+  font-weight: 600;
+  letter-spacing: 0.03em;
+  white-space: nowrap;
+}
+tbody tr {
+  transition: background 0.15s;
+}
+tbody tr:hover {
+  filter: brightness(0.97);
+}
+td, th {
+  vertical-align: middle !important;
+}
+tfoot tr {
+  font-weight: 700;
+}
+
+/* --- Status badges --- */
+.badge-active {
+  background: #dcfce7;
+  color: #166534;
+  padding: 0.2rem 0.65rem;
+  border-radius: 999px;
+  font-size: 0.72rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+.badge-inactive {
+  background: #fee2e2;
+  color: #991b1b;
+  padding: 0.2rem 0.65rem;
+  border-radius: 999px;
+  font-size: 0.72rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+/* --- Page-level layout wrappers --- */
+.page-container {
+  min-height: 100vh;
+  background: #f3f6f9;
+  padding: 1.75rem 2.5rem 3rem;
+  animation: pageFadeIn 0.22s ease;
+}
+@keyframes pageFadeIn {
+  from { opacity: 0; transform: translateY(6px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+/* --- Page header bar --- */
+.page-header-bar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  background: #fff;
+  padding: 1rem 1.5rem;
+  border-radius: 14px;
+  box-shadow: 0 2px 12px rgba(0,0,0,0.07);
+  margin-bottom: 1.5rem;
+}
+
+/* --- Stat / summary cards --- */
+.stat-card {
+  background: #fff;
+  border-radius: 12px;
+  padding: 1rem 1.25rem;
+  box-shadow: 0 2px 10px rgba(0,0,0,0.06);
+  border: 1px solid #eef0f3;
+  text-align: center;
+  transition: box-shadow 0.2s, transform 0.2s;
+}
+.stat-card:hover {
+  box-shadow: 0 6px 20px rgba(0,0,0,0.10);
+  transform: translateY(-2px);
+}
+.stat-card-value {
+  font-size: 1.35rem;
+  font-weight: 700;
+  margin-bottom: 0.2rem;
+  line-height: 1.2;
+}
+.stat-card-label {
+  font-size: 0.72rem;
+  color: #7a8394;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  font-weight: 500;
+}
+
+/* --- Section / content cards --- */
+.section-card {
+  background: #fff;
+  border-radius: 14px;
+  padding: 1.4rem 1.6rem;
+  box-shadow: 0 3px 14px rgba(0,0,0,0.07);
+  border: 1px solid #eef0f3;
+  margin-bottom: 1.5rem;
+}
+.section-card-title {
+  font-size: 1rem;
+  font-weight: 700;
+  color: #1F7A8C;
+  padding-bottom: 0.6rem;
+  margin-bottom: 1rem;
+  border-bottom: 2px solid #eef0f3;
+}
+
+/* --- Action buttons --- */
+.btn-action-primary {
+  background: linear-gradient(135deg, #1F7A8C, #16616F);
+  color: #fff;
+  border: none;
+  padding: 0.55rem 1.25rem;
+  border-radius: 8px;
+  font-weight: 600;
+  font-size: 0.88rem;
+  cursor: pointer;
+  transition: all 0.18s;
+  font-family: var(--font-primary);
+}
+.btn-action-primary:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(31,122,140,0.3);
+}
+.btn-action-danger {
+  background: linear-gradient(135deg, #ef4444, #dc2626);
+  color: #fff;
+  border: none;
+  padding: 0.55rem 1.25rem;
+  border-radius: 8px;
+  font-weight: 600;
+  font-size: 0.88rem;
+  cursor: pointer;
+  transition: all 0.18s;
+}
+.btn-action-danger:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(220,38,38,0.3);
+}
+
+/* --- Table wrapper --- */
+.table-wrapper {
+  background: #fff;
+  border-radius: 14px;
+  box-shadow: 0 3px 14px rgba(0,0,0,0.07);
+  overflow: hidden;
+  border: 1px solid #eef0f3;
+}
+
+/* --- Empty state --- */
+.empty-state {
+  padding: 3.5rem 2rem;
+  text-align: center;
+  color: #9aa3ae;
+}
+.empty-state-icon {
+  font-size: 3rem;
+  margin-bottom: 0.75rem;
+  opacity: 0.6;
+}
+.empty-state-title {
+  font-size: 1.05rem;
+  font-weight: 600;
+  color: #555;
+  margin-bottom: 0.3rem;
+}
+.empty-state-desc {
+  font-size: 0.88rem;
+  color: #9aa3ae;
+}
+
+/* --- Smooth page content area --- */
+main, .main-content {
+  animation: pageFadeIn 0.2s ease;
+}
+
+/* --- Improved scrollbar for table containers --- */
+.table-wrapper::-webkit-scrollbar,
+div[style*="overflow"]::-webkit-scrollbar {
+  height: 5px;
+  width: 5px;
+}
+.table-wrapper::-webkit-scrollbar-thumb,
+div[style*="overflow"]::-webkit-scrollbar-thumb {
+  background: #c4cdd6;
+  border-radius: 99px;
+}
+
+/* --- Tooltip-like notes --- */
+.field-hint {
+  font-size: 0.75rem;
+  color: #7a8394;
+  margin-top: 0.2rem;
+}
+
+/* --- Mobile responsive table scroll --- */
+@media (max-width: 768px) {
+  .page-container {
+    padding: 1rem 1rem 2rem;
+  }
+  .page-header-bar {
+    flex-direction: column;
+    gap: 0.75rem;
+    align-items: flex-start;
+  }
+  table {
+    font-size: 0.82rem !important;
+  }
+  thead th, tbody td {
+    padding: 0.5rem 0.65rem !important;
+  }
+}

@@ -4,28 +4,28 @@ Rails.application.routes.draw do
   namespace :api do
     namespace :v1 do
       # Authentication routes
-      post 'auth/register', to: 'auth#register'
-      post 'auth/login', to: 'auth#login'
-      get  'auth/me', to: 'auth#me'
-      post 'auth/forgot_password', to: 'auth#forgot_password'
-      post 'auth/reset_password', to: 'auth#reset_password'
-      get  'auth/users_list', to: 'auth#users_list'
-      post 'auth/quick_login', to: 'auth#quick_login'
+      post "auth/register", to: "auth#register"
+      post "auth/login", to: "auth#login"
+      get  "auth/me", to: "auth#me"
+      post "auth/forgot_password", to: "auth#forgot_password"
+      post "auth/reset_password", to: "auth#reset_password"
+      get  "auth/users_list", to: "auth#users_list"
+      post "auth/quick_login", to: "auth#quick_login"
 
       # Dashboard stats
-      get 'dashboard/stats', to: 'dashboard#stats'
+      get "dashboard/stats", to: "dashboard#stats"
 
       # Reports
-      get 'reports/worker_summary', to: 'reports#worker_summary'
-      get 'reports/project_summary', to: 'reports#project_summary'
-      get 'reports/monthly_payroll', to: 'reports#monthly_payroll'
-      get 'reports/worker_performance', to: 'reports#worker_performance'
+      get "reports/worker_summary", to: "reports#worker_summary"
+      get "reports/project_summary", to: "reports#project_summary"
+      get "reports/monthly_payroll", to: "reports#monthly_payroll"
+      get "reports/worker_performance", to: "reports#worker_performance"
 
       # Notifications
-      get  'notifications', to: 'notifications#index'
-      get  'notifications/unread_count', to: 'notifications#unread_count'
-      patch 'notifications/mark_all_read', to: 'notifications#mark_all_read'
-      patch 'notifications/:id/mark_read', to: 'notifications#mark_read'
+      get  "notifications", to: "notifications#index"
+      get  "notifications/unread_count", to: "notifications#unread_count"
+      patch "notifications/mark_all_read", to: "notifications#mark_all_read"
+      patch "notifications/:id/mark_read", to: "notifications#mark_read"
 
       # Resource routes
       resources :projects

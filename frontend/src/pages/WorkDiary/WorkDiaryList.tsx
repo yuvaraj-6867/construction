@@ -1,10 +1,11 @@
+import { formatDate } from '../../utils/formatDate';
 import React, { useState, useEffect } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import api from '../../services/api';
 
 const weatherOptions = ['Sunny', 'Cloudy', 'Rainy', 'Windy', 'Stormy', 'Other'];
 
-const WorkDiaryList: React.FC = () => {
+const WorkDiaryList: React.FC<{ embedded?: boolean }> = ({ embedded = false }) => {
   const navigate = useNavigate();
   const { id: projectId } = useParams();
 
@@ -73,9 +74,9 @@ const WorkDiaryList: React.FC = () => {
     Sunny: '☀️', Cloudy: '☁️', Rainy: '🌧️', Windy: '💨', Stormy: '⛈️', Other: '🌡️'
   };
 
-  return (
-    <div className="app">
-      <nav style={{ background: 'linear-gradient(135deg, #1F7A8C 0%, #16616F 100%)', color: 'white', padding: '1rem 1.5rem', display: 'flex', alignItems: 'center', gap: '1rem', position: 'sticky', top: 0, zIndex: 100 }}>
+  const inner = (
+    <div>
+      {!embedded && <nav style={{ background: 'linear-gradient(135deg, #1F7A8C 0%, #16616F 100%)', color: 'white', padding: '1rem 1.5rem', display: 'flex', alignItems: 'center', gap: '1rem', position: 'sticky', top: 0, zIndex: 100 }}>
         <button onClick={() => navigate(-1)} style={{ background: 'rgba(255,255,255,0.15)', border: 'none', color: 'white', padding: '0.4rem 0.8rem', borderRadius: '8px', cursor: 'pointer', fontWeight: 600 }}>
           ← Back
         </button>
@@ -83,9 +84,9 @@ const WorkDiaryList: React.FC = () => {
         <button onClick={() => { setShowForm(!showForm); setSelectedDiary(null); resetForm(); }} style={{ background: 'white', color: '#1F7A8C', border: 'none', padding: '0.5rem 1rem', borderRadius: '8px', cursor: 'pointer', fontWeight: 700 }}>
           + Add Entry
         </button>
-      </nav>
+      </nav>}
 
-      <div style={{ padding: '1.5rem', maxWidth: '800px', margin: '0 auto' }}>
+      <div style={{ padding: embedded ? '0' : '1.5rem', maxWidth: embedded ? '100%' : '800px', margin: '0 auto' }}>
         {/* Add/Edit Form */}
         {showForm && (
           <div className="card" style={{ marginBottom: '1.5rem', padding: '1.5rem' }}>
@@ -94,7 +95,7 @@ const WorkDiaryList: React.FC = () => {
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
                 <div className="form-group">
                   <label className="label">Date *</label>
-                  <input type="date" className="input" value={formData.date} onChange={e => setFormData({ ...formData, date: e.target.value })} required />
+                  <input type="date" className="input" value={formData.date} onChange={e => setFormData({ ...formData, date: e.target.value })} required/>
                 </div>
                 <div className="form-group">
                   <label className="label">Weather</label>
@@ -144,7 +145,7 @@ const WorkDiaryList: React.FC = () => {
                   <div>
                     <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
                       <span style={{ fontWeight: 700, color: '#1F7A8C', fontSize: '1rem' }}>
-                        {new Date(diary.date).toLocaleDateString('en-IN', { weekday: 'short', day: '2-digit', month: 'short', year: 'numeric' })}
+                        {formatDate(diary.date)}
                       </span>
                       <span style={{ fontSize: '1.1rem' }}>{weatherEmoji[diary.weather] || '🌡️'} {diary.weather}</span>
                       {diary.workers_present_count > 0 && (
@@ -179,6 +180,8 @@ const WorkDiaryList: React.FC = () => {
       </div>
     </div>
   );
+  if (embedded) return inner;
+  return <div className="app">{inner}</div>;
 };
 
 export default WorkDiaryList;

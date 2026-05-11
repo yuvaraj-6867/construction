@@ -1,3 +1,4 @@
+import { formatDate } from '../../utils/formatDate';
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
@@ -69,7 +70,7 @@ const Reports: React.FC = () => {
     doc.setFontSize(18);
     doc.text('Construction App — Report', 14, 22);
     doc.setFontSize(11);
-    doc.text(`Generated: ${new Date().toLocaleDateString('en-IN')}`, 14, 30);
+    doc.text(`Generated: ${formatDate(new Date())}`, 14, 30);
 
     if (activeTab === 'worker' && workerData.length > 0) {
       doc.text('Worker Summary Report', 14, 40);

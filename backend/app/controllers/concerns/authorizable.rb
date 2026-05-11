@@ -41,7 +41,7 @@ module Authorizable
   def render_unauthorized(exception)
     render json: {
       error: exception.message,
-      status: 'forbidden'
+      status: "forbidden"
     }, status: :forbidden
   end
 end

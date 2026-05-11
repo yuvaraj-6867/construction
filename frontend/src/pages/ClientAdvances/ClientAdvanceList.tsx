@@ -1,3 +1,4 @@
+import { formatDate } from '../../utils/formatDate';
 import React, { useState, useEffect } from 'react';
 import { useNavigate, useSearchParams, useParams, useLocation } from 'react-router-dom';
 import clientAdvanceService from '../../services/clientAdvanceService';
@@ -5,7 +6,7 @@ import projectService from '../../services/projectService';
 import ConfirmDialog from '../../components/ConfirmDialog';
 import Loading from '../../components/Loading';
 
-const ClientAdvanceList: React.FC = () => {
+const ClientAdvanceList: React.FC<{ embedded?: boolean }> = ({ embedded = false }) => {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const params = useParams();
@@ -161,12 +162,7 @@ const ClientAdvanceList: React.FC = () => {
     return <Loading message="Loading client advances..." />;
   }
 
-  return (
-    <div style={{
-      minHeight: '100vh',
-      background: 'linear-gradient(to bottom, #f8f9fa 0%, #e9ecef 100%)',
-      padding: '2rem 3rem 3rem 3rem'
-    }}>
+  const inner = (<div>
       {/* Header */}
       <div style={{
         display: 'flex',
@@ -362,7 +358,7 @@ const ClientAdvanceList: React.FC = () => {
                     <td style={{ padding: '1rem' }}>
                       {adv.received_date === 'Invalid Date' || !adv.received_date
                         ? 'Invalid Date'
-                        : new Date(adv.received_date).toLocaleDateString('en-IN')}
+                        : formatDate(adv.received_date)}
                     </td>
                     <td style={{ padding: '1rem' }}>
                       <span
@@ -888,6 +884,8 @@ const ClientAdvanceList: React.FC = () => {
       `}</style>
     </div>
   );
+  if (embedded) return inner;
+  return <div style={{ minHeight: '100vh', background: 'linear-gradient(to bottom, #f8f9fa 0%, #e9ecef 100%)', padding: '2rem 3rem 3rem 3rem' }}>{inner}</div>;
 };
 
 export default ClientAdvanceList;

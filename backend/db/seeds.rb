@@ -1,5 +1,6 @@
 # Clear existing data
 puts "Clearing existing data..."
+Notification.delete_all
 SitePhoto.delete_all
 Invoice.delete_all
 ClientAdvance.delete_all

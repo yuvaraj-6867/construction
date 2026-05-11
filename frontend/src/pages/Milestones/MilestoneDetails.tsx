@@ -1,3 +1,4 @@
+import { formatDate } from '../../utils/formatDate';
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import axios from 'axios';
@@ -49,11 +50,11 @@ const MilestoneDetails: React.FC = () => {
           </div>
           <div className="info-item">
             <label>Target Date:</label>
-            <span>{new Date(milestone.target_date).toLocaleDateString()}</span>
+            <span>{formatDate(milestone.target_date)}</span>
           </div>
           <div className="info-item">
             <label>Completion Date:</label>
-            <span>{milestone.completion_date ? new Date(milestone.completion_date).toLocaleDateString() : 'Not Completed'}</span>
+            <span>{milestone.completion_date ? formatDate(milestone.completion_date) : 'Not Completed'}</span>
           </div>
           <div className="info-item">
             <label>Progress:</label>

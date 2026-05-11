@@ -17,15 +17,15 @@ class Api::V1::AuthController < ApplicationController
   def login
     user = if params[:email]&.match?(/^[0-9]{10}$/)
              User.find_by(phone: params[:email])
-           else
+    else
              User.find_by(email: params[:email])
-           end
+    end
 
     if user && user.authenticate(params[:password])
       token = encode_token(user_id: user.id, exp: 24.hours.from_now.to_i)
       render json: { token: token, user: user_json(user), expires_at: 24.hours.from_now.iso8601 }, status: :ok
     else
-      render json: { error: 'Invalid credentials' }, status: :unauthorized
+      render json: { error: "Invalid credentials" }, status: :unauthorized
     end
   end
 
@@ -34,7 +34,7 @@ class Api::V1::AuthController < ApplicationController
     if current_user
       render json: { user: user_json(current_user) }, status: :ok
     else
-      render json: { error: 'Unauthorized' }, status: :unauthorized
+      render json: { error: "Unauthorized" }, status: :unauthorized
     end
   end
 
@@ -47,7 +47,7 @@ class Api::V1::AuthController < ApplicationController
   # POST /api/v1/auth/quick_login
   def quick_login
     user = User.find_by(id: params[:user_id])
-    return render json: { error: 'User not found' }, status: :not_found unless user
+    return render json: { error: "User not found" }, status: :not_found unless user
 
     token = JWT.encode(
       { user_id: user.id, exp: 24.hours.from_now.to_i },
@@ -67,9 +67,9 @@ class Api::V1::AuthController < ApplicationController
       )
       # Send reset email
       AuthMailer.reset_password(user, token).deliver_later rescue nil
-      render json: { message: 'Password reset instructions sent to your email' }
+      render json: { message: "Password reset instructions sent to your email" }
     else
-      render json: { error: 'Email not found' }, status: :not_found
+      render json: { error: "Email not found" }, status: :not_found
     end
   end
 
@@ -78,16 +78,16 @@ class Api::V1::AuthController < ApplicationController
     user = User.find_by(reset_password_token: params[:token])
 
     if user.nil?
-      return render json: { error: 'Invalid or expired token' }, status: :unprocessable_entity
+      return render json: { error: "Invalid or expired token" }, status: :unprocessable_entity
     end
 
     if user.reset_password_sent_at < 2.hours.ago
-      return render json: { error: 'Token expired. Please request a new one.' }, status: :unprocessable_entity
+      return render json: { error: "Token expired. Please request a new one." }, status: :unprocessable_entity
     end
 
     if user.update(password: params[:password], password_confirmation: params[:password_confirmation],
                    reset_password_token: nil, reset_password_sent_at: nil)
-      render json: { message: 'Password reset successfully. You can now login.' }
+      render json: { message: "Password reset successfully. You can now login." }
     else
       render json: { errors: user.errors.full_messages }, status: :unprocessable_entity
     end
@@ -108,10 +108,10 @@ class Api::V1::AuthController < ApplicationController
   end
 
   def current_user
-    return nil unless request.headers['Authorization']
-    token = request.headers['Authorization'].split(' ')[1]
-    decoded = JWT.decode(token, Rails.application.secret_key_base, true, algorithm: 'HS256')
-    User.find_by(id: decoded[0]['user_id'])
+    return nil unless request.headers["Authorization"]
+    token = request.headers["Authorization"].split(" ")[1]
+    decoded = JWT.decode(token, Rails.application.secret_key_base, true, algorithm: "HS256")
+    User.find_by(id: decoded[0]["user_id"])
   rescue JWT::DecodeError
     nil
   end
